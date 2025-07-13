@@ -13,9 +13,9 @@ TrueCred is a unified platform to verify and showcase skills, experience, and cr
 
 ## 👥 Team Members
 
-- Shubham Gupta – Android App Developer
-- Member 2 – React Frontend
-- Member 3 – Node Backend
+- Shubham Gupta
+- Kirti Singh
+- Saniya Singh
 
 ## 📝 Current Phase
 
