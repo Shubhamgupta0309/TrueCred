@@ -4,7 +4,9 @@ TrueCred is a unified platform to verify and showcase skills, experience, and cr
 
 ## 📁 Folder Structure
 
-- `/project-docs` – All official documents (abstract, reports, proposals, etc.)
+- `/project-docs`
+  - TrueCred Project Summary
+  - TrueCred System Design
 - (Coming Soon)
   - `/android-app`
   - `/web-client`
