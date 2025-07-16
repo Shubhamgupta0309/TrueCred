@@ -6,9 +6,11 @@ TrueCred is a unified platform to verify and showcase skills, experience, and cr
 
 - `/project-docs`
   - TrueCred Project Summary
-  - TrueCred System Design
+  - TrueCred System Design.
+- `/frontend`
+- `truecred.-backend`
 - (Coming Soon)
-  - `/android-app`
+  - `/android-app`.
   - `/web-client`
   - `/server`
   - `/docs`
@@ -24,4 +26,4 @@ TrueCred is a unified platform to verify and showcase skills, experience, and cr
 - [x] Repo setup
 - [x] Team added
 - [x] Docs folder created
-- [ ] Code folders
+- [x] Code folders
