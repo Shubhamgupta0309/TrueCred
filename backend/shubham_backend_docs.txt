@@ -1,0 +1,353 @@
+# TrueCred Backend Documentation
+# Developer: Shubham Gupta
+# Role: Backend Developer
+# Last Updated: October 3, 2023
+
+## Table of Contents
+1. Overview
+2. Project Structure
+3. Technology Stack
+4. Implementation Details
+5. API Documentation
+6. Database Schema
+7. Blockchain Integration
+8. IPFS Integration
+9. Authentication & Security
+10. Testing
+11. Deployment
+12. Progress Log
+
+---
+
+## 1. Overview
+This document tracks the development of the backend for TrueCred, a blockchain-based credential verification system. TrueCred allows educational institutions to issue digital credentials, companies to verify experiences, and users to maintain a tamper-proof record of their accomplishments.
+
+### Core Features
+- Authentication and user management
+- Credential issuance and verification
+- Experience claims and verification
+- Document storage using IPFS
+- Blockchain verification using Ethereum
+- Third-party verification APIs
+
+---
+
+## 2. Project Structure
+```
+backend/
+├── app.py                 # Main Flask application
+├── config.py              # Configuration settings
+├── .env                   # Environment variables
+├── requirements.txt       # Python dependencies
+├── README.md              # Project documentation
+├── contracts/             # Smart contracts
+│   ├── compile_contract.py
+│   └── TrueCred.sol
+├── models/                # Database models
+│   ├── user.py
+│   ├── credential.py
+│   └── experience.py
+├── routes/                # API routes
+│   ├── auth.py
+│   ├── credentials.py
+│   ├── experiences.py
+│   └── health.py
+├── services/              # Business logic
+├── utils/                 # Helper functions
+│   ├── database.py
+│   ├── blockchain.py
+│   ├── ipfs.py
+│   └── health.py
+├── middleware/            # Custom middleware
+├── scripts/               # Utility scripts
+│   └── setup_mongodb.py
+└── tests/                 # Unit and integration tests
+    └── test_basic.py
+```
+
+---
+
+## 3. Technology Stack
+- **Framework**: Flask 2.3.3
+- **Database**: MongoDB Atlas
+- **ODM**: PyMongo (`pip install pymongo[srv]`)
+- **Authentication**: JWT (JSON Web Tokens)
+- **Blockchain**: Ethereum (Web3.py)
+- **Storage**: IPFS (InterPlanetary File System)
+- **Testing**: Pytest
+- **Documentation**: Swagger/OpenAPI
+
+---
+
+## 4. Implementation Details
+
+### 4.1 Backend Architecture
+The backend follows a modular architecture with:
+- Application factory pattern for better testability
+- Blueprint-based route organization
+- Model-View-Controller (MVC) pattern
+- Service layer for business logic
+- Utility modules for reusable functionality
+
+### 4.2 Environment Setup
+- Flask application with development, testing, and production configurations
+- Environment variables management with python-dotenv
+- MongoDB Atlas connection setup
+- JWT authentication configuration
+- Health check endpoint for system monitoring
+
+### 4.3 MongoDB Setup
+- MongoDB Atlas used as the cloud database
+- Installation: `pip install pymongo[srv] python-dotenv`
+- Connection string: `mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/truecred?retryWrites=true&w=majority`
+- Test script available at `scripts/test_mongodb_connection.py`
+
+### 4.4 API Structure
+- RESTful API design principles
+- JWT-based authentication
+- Route organization by resource (auth, credentials, experiences)
+- Error handling and standardized responses
+
+---
+
+## 5. API Documentation
+
+### 5.1 Authentication
+- `POST /api/auth/register` - Register a new user
+- `POST /api/auth/login` - Login and get JWT token
+- `GET /api/auth/profile` - Get current user profile
+
+### 5.2 Credentials
+- `GET /api/credentials/` - Get all credentials for current user
+- `POST /api/credentials/` - Create a new credential
+- `GET /api/credentials/<id>` - Get a specific credential
+- `POST /api/credentials/<id>/verify` - Verify a credential
+
+### 5.3 Experiences
+- `GET /api/experiences/` - Get all experiences for current user
+- `POST /api/experiences/` - Create a new experience
+- `GET /api/experiences/<id>` - Get a specific experience
+- `PUT /api/experiences/<id>` - Update an experience
+
+### 5.4 Health
+- `GET /api/health/` - Check system health and dependencies
+
+---
+
+## 6. Database Schema
+
+### 6.1 User Model
+- Username
+- Email
+- Password (hashed)
+- Role
+- Creation and update timestamps
+
+### 6.2 Credential Model
+- User ID (owner)
+- Title
+- Issuer
+- Description
+- Blockchain hash
+- IPFS hash
+- Verification status
+- Creation and update timestamps
+
+### 6.3 Experience Model
+- User ID (owner)
+- Title
+- Organization
+- Start and end dates
+- Description
+- Skills
+- Creation and update timestamps
+
+---
+
+## 7. Blockchain Integration
+- Web3.py for Ethereum interaction
+- Smart contract integration for credential verification
+- Transaction handling and receipt verification
+- Credential hash storage and verification
+
+---
+
+## 8. IPFS Integration
+- Document storage and retrieval
+- JSON data management
+- File upload and download functionality
+- Hash-based content addressing
+
+---
+
+## 9. Authentication & Security
+- JWT-based authentication
+- Password hashing with secure algorithms
+- Role-based access control
+- Token refresh and expiration management
+
+---
+
+## 10. Testing
+- Unit tests for core functionality
+- Integration tests for API endpoints
+- Test configuration for MongoDB
+- Mock objects for blockchain and IPFS
+
+---
+
+## 11. Deployment
+- Development environment setup
+- Production configuration
+- Gunicorn WSGI server integration
+- Environment variable management
+
+---
+
+## 12. Progress Log
+
+### Day 1: Environment Setup (October 3, 2023)
+- Set up project structure and repository
+- Created basic Flask application with application factory pattern
+- Configured MongoDB Atlas connection
+- Verified connection to MongoDB Atlas cluster
+- Implemented JWT authentication setup
+- Created route blueprints for auth, credentials, and experiences
+- Added health check endpoint
+- Set up testing framework
+- Created utility modules for database, blockchain, and IPFS
+- Implemented model classes for users, credentials, and experiences
+- Added MongoDB setup and testing scripts
+- ✅ Completed all Day 1 tasks
+
+### Next Steps:
+- Implement authentication routes (register, login, profile)
+- Set up MongoDB models with validation
+- Configure blockchain integration with Web3.py
+- Set up IPFS integration for document storage
+- Implement credential and experience APIs
+
+## 11. Deployment
+[This section will be populated with deployment instructions]
+
+---
+
+## 12. Progress Log
+
+### [September 5, 2025] - Project Initialization
+- Created project structure
+- Initialized documentation
+- Analyzed requirements
+- Planned development phases
+- Selected MongoDB as database solution
+
+[Future entries will be added as development progresses]
+
+---
+
+## Detailed Development Plan
+
+### Phase 1: Foundation (September 5-8, 2025)
+#### Day 1: Environment Setup
+- Set up MongoDB connection
+- Configure development environment
+- Update requirements.txt
+- Create basic Flask application structure
+
+#### Day 2: Database Schema Design
+- Design collections for users, credentials, experiences
+- Implement document schemas with MongoEngine
+- Set up validation rules
+- Create database initialization script
+
+#### Day 3: Authentication System
+- Implement user registration and login routes
+- Set up JWT token generation and validation
+- Create authentication middleware
+- Add password hashing and security
+
+#### Day 4: Basic API Structure
+- Set up route blueprints
+- Implement error handling
+- Add logging
+- Create base API response format
+
+### Phase 2: Core Functionality (September 9-13, 2025)
+#### Day 5-6: Credential Management
+- Create CRUD endpoints for credentials
+- Implement validation logic
+- Add status tracking functionality
+- Create document metadata storage
+
+#### Day 7-8: Experience Verification
+- Implement experience claim submission
+- Create verification workflow
+- Add company verification routes
+- Implement approval/rejection logic
+
+#### Day 9: Third-party API Integration
+- Set up external API connections
+- Create verification callback handlers
+- Implement verification status tracking
+
+### Phase 3: Blockchain & IPFS Integration (September 14-18, 2025)
+#### Day 10-11: Web3 Implementation
+- Connect to Ethereum testnet
+- Set up contract interaction
+- Implement transaction creation and signing
+- Create blockchain record storage
+
+#### Day 12-13: IPFS Integration
+- Set up IPFS node connection
+- Implement document storage and retrieval
+- Create content addressing system
+- Link IPFS hashes with database records
+
+#### Day 14: Verification Smart Contracts
+- Finalize smart contract implementation
+- Test contract interactions
+- Implement verification functions
+- Link blockchain records with database
+
+### Phase 4: Testing and Finalization (September 19-22, 2025)
+#### Day 15-16: Testing
+- Write unit tests for all components
+- Implement integration tests
+- Test blockchain interactions
+- Performance testing
+
+#### Day 17: Security Review
+- Implement rate limiting
+- Add input validation
+- Security review of authentication
+- Check for common vulnerabilities
+
+#### Day 18: Documentation and Cleanup
+- Complete API documentation
+- Finalize code comments
+- Clean up code and remove unused components
+- Prepare for deployment
+
+### Phase 5: Deployment (September 23-24, 2025)
+#### Day 19-20: Deployment Preparation
+- Set up production environment
+- Configure monitoring
+- Final testing in staging environment
+- Deploy to production
+
+---
+
+## Notes and Decisions
+- Decided to use MongoDB for database due to flexibility with document-oriented schema and better compatibility with blockchain data
+- Planning to use Goerli testnet for Ethereum development before mainnet deployment
+- Implementing JWT authentication for stateless API interactions
+
+---
+
+## References
+- [Flask Documentation](https://flask.palletsprojects.com/)
+- [MongoDB Documentation](https://docs.mongodb.com/)
+- [MongoEngine Documentation](https://mongoengine-odm.readthedocs.io/)
+- [Web3.py Documentation](https://web3py.readthedocs.io/)
+- [IPFS Documentation](https://docs.ipfs.io/)
+- [JWT Documentation](https://jwt.io/)
