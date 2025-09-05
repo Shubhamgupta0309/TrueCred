@@ -48,7 +48,12 @@ This is the backend API for the TrueCred application, a blockchain-based credent
    pip install pymongo[srv] python-dotenv
    ```
 
-4. Create a `.env` file:
+4. Create a `.env` file based on the template:
+   ```
+   cp .env.sample .env
+   ```
+
+5. Edit the `.env` file with your actual credentials:
    ```
    FLASK_APP=app.py
    FLASK_ENV=development
@@ -58,6 +63,8 @@ This is the backend API for the TrueCred application, a blockchain-based credent
    IPFS_HOST=127.0.0.1
    IPFS_PORT=5001
    ```
+
+   > ⚠️ **SECURITY WARNING**: Never commit your `.env` file with real credentials to Git. The `.env` file is included in `.gitignore` to prevent accidental commits.
 
 ### MongoDB Atlas Setup
 
