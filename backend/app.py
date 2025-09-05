@@ -3,14 +3,24 @@ TrueCred Backend Application
 
 This is the main application entry point for the TrueCred backend.
 """
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from config import get_config
-from utils.database import init_db, get_db
+from utils.database import init_db
+from utils.simple_logging import configure_logging
+from utils.error_handlers import register_error_handlers
+from utils.api_response import error_response
+import logging
+import os
 
 # JWT manager
 jwt = JWTManager()
+
+# Simple in-memory token blacklist
+# In a production environment, you would use Redis or another database
+# to store blacklisted tokens
+token_blacklist = set()
 
 def create_app(config_name='default'):
     """
@@ -25,44 +35,99 @@ def create_app(config_name='default'):
     app = Flask(__name__)
     
     # Load configuration
-    app.config.from_object(get_config())
+    config = get_config(config_name)
+    app.config.from_object(config)
+    
+    # Set up logging
+    configure_logging(app, log_level=app.config.get('LOG_LEVEL', logging.INFO))
+    logger = logging.getLogger(__name__)
     
     # Initialize extensions
     CORS(app)
+    
+    # Initialize database
+    logger.info("Initializing database connection...")
     init_db(app)
+    logger.info("Database connection initialized successfully")
+    
+    # Initialize JWT
     jwt.init_app(app)
     
+    # JWT configuration
+    @jwt.token_in_blocklist_loader
+    def check_if_token_in_blacklist(jwt_header, jwt_payload):
+        """Check if a token is in the blacklist."""
+        jti = jwt_payload["jti"]
+        return jti in token_blacklist
+
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        """Handler for expired tokens."""
+        return error_response(
+            message="The token has expired",
+            status_code=401,
+            error_code="token_expired"
+        )
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        """Handler for invalid tokens."""
+        return error_response(
+            message="Signature verification failed",
+            status_code=401,
+            error_code="invalid_token"
+        )
+
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        """Handler for missing tokens."""
+        return error_response(
+            message="Authorization required",
+            status_code=401,
+            error_code="authorization_required"
+        )
+
+    @jwt.needs_fresh_token_loader
+    def token_not_fresh_callback(jwt_header, jwt_payload):
+        """Handler for non-fresh tokens."""
+        return error_response(
+            message="Fresh token required",
+            status_code=401,
+            error_code="fresh_token_required"
+        )
+
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        """Handler for revoked tokens."""
+        return error_response(
+            message="Token has been revoked",
+            status_code=401,
+            error_code="token_revoked"
+        )
+    
+    # Register error handlers
+    register_error_handlers(app)
+    
     # Register blueprints
-    from routes.auth import auth_bp
-    from routes.credentials import credentials_bp
-    from routes.experiences import experiences_bp
-    from routes.health import health_bp
-    
-    app.register_blueprint(auth_bp, url_prefix='/api/auth')
-    app.register_blueprint(credentials_bp, url_prefix='/api/credentials')
-    app.register_blueprint(experiences_bp, url_prefix='/api/experiences')
-    app.register_blueprint(health_bp, url_prefix='/api/health')
-    
-    # Error handlers
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({'error': 'Not found'}), 404
-    
-    @app.errorhandler(500)
-    def server_error(error):
-        return jsonify({'error': 'Server error'}), 500
+    from routes.api import register_blueprints
+    register_blueprints(app)
     
     # Root route
     @app.route('/')
     def index():
         return jsonify({
             'name': 'TrueCred API',
-            'version': '1.0.0',
+            'version': app.config.get('API_VERSION', '1.0.0'),
             'status': 'Running'
         })
     
+    logger.info(f"TrueCred API initialized in {app.config.get('ENV', 'development')} mode")
     return app
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(debug=True)
+    app.run(
+        host=os.getenv('FLASK_HOST', '0.0.0.0'),
+        port=int(os.getenv('FLASK_PORT', 5000)),
+        debug=app.config.get('DEBUG', False)
+    )

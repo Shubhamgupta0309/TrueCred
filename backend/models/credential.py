@@ -2,120 +2,180 @@
 Credential model for the TrueCred application.
 """
 from datetime import datetime
-from flask_pymongo import PyMongo
-from bson import ObjectId
+from mongoengine import (
+    Document, StringField, DateTimeField, BooleanField, 
+    ReferenceField, DictField, URLField, DENY
+)
+from models.user import User
 
-class Credential:
+class Credential(Document):
     """
     Credential model representing a verifiable credential in the TrueCred system.
+    
+    Attributes:
+        user: Reference to the User who owns this credential
+        title: Title of the credential
+        issuer: Organization or entity that issued the credential
+        description: Description of the credential
+        type: Type of credential (e.g., 'diploma', 'certificate', 'badge')
+        issue_date: Date when the credential was issued
+        expiry_date: Date when the credential expires (optional)
+        blockchain_hash: Hash of the credential on the blockchain (optional)
+        ipfs_hash: IPFS hash for document storage (optional)
+        document_url: URL to the credential document (optional)
+        verified: Whether the credential has been verified
+        verified_at: Timestamp when the credential was verified
+        verification_data: Additional data about the verification
+        metadata: Additional metadata about the credential
+        created_at: Timestamp when the record was created
+        updated_at: Timestamp when the record was last updated
     """
     
-    collection_name = 'credentials'
+    # Relationships
+    user = ReferenceField(User, required=True, reverse_delete_rule=DENY)
     
-    def __init__(self, mongo):
-        """
-        Initialize the Credential model with the MongoDB connection.
-        
-        Args:
-            mongo: PyMongo instance for database operations
-        """
-        self.mongo = mongo
-        self.collection = self.mongo.db[self.collection_name]
+    # Basic credential information
+    title = StringField(required=True, max_length=200)
+    issuer = StringField(required=True, max_length=200)
+    description = StringField(max_length=2000)
+    type = StringField(choices=[
+        'diploma', 'degree', 'certificate', 'badge', 'award', 'license', 'other'
+    ])
     
-    def create(self, user_id, title, issuer, description, blockchain_hash=None, ipfs_hash=None):
-        """
-        Create a new credential in the database.
-        
-        Args:
-            user_id: ID of the user who owns this credential
-            title: Title of the credential
-            issuer: Organization or entity that issued the credential
-            description: Description of the credential
-            blockchain_hash: Hash of the credential on the blockchain (optional)
-            ipfs_hash: IPFS hash for document storage (optional)
-        
-        Returns:
-            Credential ID if successful
-        """
-        credential_data = {
-            'user_id': str(user_id),
-            'title': title,
-            'issuer': issuer,
-            'description': description,
-            'blockchain_hash': blockchain_hash,
-            'ipfs_hash': ipfs_hash,
-            'verified': False,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
-        }
-        
-        result = self.collection.insert_one(credential_data)
-        return str(result.inserted_id)
+    # Dates
+    issue_date = DateTimeField()
+    expiry_date = DateTimeField()
     
-    def find_by_id(self, credential_id):
-        """
-        Find a credential by ID.
-        
-        Args:
-            credential_id: Credential ID to search for
-        
-        Returns:
-            Credential document or None if not found
-        """
-        return self.collection.find_one({'_id': ObjectId(credential_id)})
+    # Verification information
+    blockchain_hash = StringField()
+    ipfs_hash = StringField()
+    document_url = URLField()
+    verified = BooleanField(default=False)
+    verified_at = DateTimeField()
+    verification_data = DictField()
     
-    def find_by_user(self, user_id):
-        """
-        Find all credentials for a specific user.
-        
-        Args:
-            user_id: User ID to search for
-        
-        Returns:
-            Cursor of credential documents
-        """
-        return self.collection.find({'user_id': str(user_id)})
+    # Additional information
+    metadata = DictField()
     
-    def update(self, credential_id, update_data):
-        """
-        Update a credential's information.
-        
-        Args:
-            credential_id: Credential ID to update
-            update_data: Dictionary of fields to update
-        
-        Returns:
-            True if successful, False otherwise
-        """
-        update_data['updated_at'] = datetime.utcnow()
-        result = self.collection.update_one(
-            {'_id': ObjectId(credential_id)},
-            {'$set': update_data}
-        )
-        return result.modified_count > 0
+    # Timestamps
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
     
-    def verify(self, credential_id, verification_data=None):
+    # Configuration
+    meta = {
+        'collection': 'credentials',
+        'indexes': [
+            {'fields': ['user']},
+            {'fields': ['title']},
+            {'fields': ['issuer']},
+            {'fields': ['type']},
+            {'fields': ['blockchain_hash'], 'sparse': True, 'unique': True, 'name': 'blockchain_hash_unique'},
+            {'fields': ['ipfs_hash'], 'sparse': True, 'unique': True, 'name': 'ipfs_hash_unique'}
+        ],
+        'ordering': ['-created_at']
+    }
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save method to update the updated_at field.
+        """
+        self.updated_at = datetime.utcnow()
+        return super(Credential, self).save(*args, **kwargs)
+    
+    def verify(self, verification_data=None):
         """
         Mark a credential as verified.
         
         Args:
-            credential_id: Credential ID to verify
             verification_data: Optional data about the verification
         
         Returns:
-            True if successful, False otherwise
+            Self for method chaining
         """
-        update_data = {
-            'verified': True,
-            'verified_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
-        }
+        self.verified = True
+        self.verified_at = datetime.utcnow()
         
         if verification_data:
-            update_data['verification_data'] = verification_data
+            self.verification_data = verification_data
             
-        result = self.collection.update_one(
-            {'_id': ObjectId(credential_id)},
-            {'$set': update_data}
-        )
-        return result.modified_count > 0
+        self.save()
+        return self
+    
+    def to_json(self):
+        """
+        Convert credential to JSON-serializable dictionary.
+        
+        Returns:
+            Dictionary representation of the credential
+        """
+        return {
+            'id': str(self.id),
+            'user_id': str(self.user.id) if self.user else None,
+            'title': self.title,
+            'issuer': self.issuer,
+            'description': self.description,
+            'type': self.type,
+            'issue_date': self.issue_date.isoformat() if self.issue_date else None,
+            'expiry_date': self.expiry_date.isoformat() if self.expiry_date else None,
+            'blockchain_hash': self.blockchain_hash,
+            'ipfs_hash': self.ipfs_hash,
+            'document_url': self.document_url,
+            'verified': self.verified,
+            'verified_at': self.verified_at.isoformat() if self.verified_at else None,
+            'metadata': self.metadata,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __str__(self):
+        """String representation of the credential."""
+        return f"Credential(title={self.title}, issuer={self.issuer}, verified={self.verified})"
+    
+    def verify(self, verification_data=None):
+        """
+        Mark a credential as verified.
+        
+        Args:
+            verification_data: Optional data about the verification
+        
+        Returns:
+            Self for method chaining
+        """
+        self.verified = True
+        self.verified_at = datetime.utcnow()
+        
+        if verification_data:
+            self.verification_data = verification_data
+            
+        self.save()
+        return self
+    
+    def to_json(self):
+        """
+        Convert credential to JSON-serializable dictionary.
+        
+        Returns:
+            Dictionary representation of the credential
+        """
+        return {
+            'id': str(self.id),
+            'user_id': str(self.user.id) if self.user else None,
+            'title': self.title,
+            'issuer': self.issuer,
+            'description': self.description,
+            'type': self.type,
+            'issue_date': self.issue_date.isoformat() if self.issue_date else None,
+            'expiry_date': self.expiry_date.isoformat() if self.expiry_date else None,
+            'blockchain_hash': self.blockchain_hash,
+            'ipfs_hash': self.ipfs_hash,
+            'document_url': self.document_url,
+            'verified': self.verified,
+            'verified_at': self.verified_at.isoformat() if self.verified_at else None,
+            'metadata': self.metadata,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __str__(self):
+        """String representation of the credential."""
+        return f"Credential(title={self.title}, issuer={self.issuer}, verified={self.verified})"

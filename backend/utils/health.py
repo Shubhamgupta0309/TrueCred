@@ -5,7 +5,36 @@ import os
 import sys
 import importlib.util
 import platform
-from flask import current_app
+from datetime import datetime
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
+
+def check_database_connection():
+    """
+    Check if the database connection is working.
+    
+    Returns:
+        Tuple of (is_connected, details)
+    """
+    try:
+        from utils.database import get_db
+        db = get_db()
+        
+        # Try to perform a simple operation
+        collection_names = db.db.list_collection_names()
+        
+        return True, {
+            'status': 'connected',
+            'collections': collection_names
+        }
+    except Exception as e:
+        logger.error(f"Database connection error: {str(e)}")
+        return False, {
+            'status': 'error',
+            'message': str(e)
+        }
 
 def check_environment():
     """
@@ -14,81 +43,57 @@ def check_environment():
     Returns:
         Dictionary with health check results
     """
-    results = {
+    start_time = datetime.utcnow()
+    
+    # Basic system information
+    system_info = {
         'system': platform.system(),
         'python_version': sys.version,
-        'dependencies': {},
-        'environment_variables': {},
-        'database_connection': False,
-        'blockchain_connection': False,
-        'ipfs_connection': False
+        'node': platform.node(),
+        'time': datetime.utcnow().isoformat()
     }
     
     # Check dependencies
-    dependencies = [
-        'flask', 'pymongo', 'flask_jwt_extended', 'web3', 'ipfshttpclient',
-        'flask_cors', 'python-dotenv'
-    ]
+    dependencies = {
+        'flask': True,
+        'pymongo': True,
+        'mongoengine': True,
+        'flask_jwt_extended': True,
+        'flask_cors': True,
+        'python-dotenv': True
+    }
     
-    for dep in dependencies:
+    for dep in dependencies.keys():
+        module_name = dep.replace('-', '_')
         try:
-            spec = importlib.util.find_spec(dep.replace('-', '_'))
+            spec = importlib.util.find_spec(module_name)
             if spec is not None:
-                module = importlib.import_module(dep.replace('-', '_'))
+                module = importlib.import_module(module_name)
                 version = getattr(module, '__version__', 'Unknown')
-                results['dependencies'][dep] = {
+                dependencies[dep] = {
                     'installed': True,
                     'version': version
                 }
             else:
-                results['dependencies'][dep] = {
+                dependencies[dep] = {
                     'installed': False,
                     'version': None
                 }
         except ImportError:
-            results['dependencies'][dep] = {
+            dependencies[dep] = {
                 'installed': False,
                 'version': None
             }
     
-    # Check environment variables
-    env_vars = [
-        'FLASK_APP', 'FLASK_ENV', 'MONGO_URI', 'JWT_SECRET_KEY',
-        'WEB3_PROVIDER_URI', 'IPFS_HOST', 'IPFS_PORT'
-    ]
-    
-    for var in env_vars:
-        results['environment_variables'][var] = os.environ.get(var, 'Not set')
-    
     # Check database connection
-    try:
-        from utils.database import get_db
-        mongo = get_db()
-        if mongo and mongo.db:
-            # Try a simple operation
-            collections = mongo.db.list_collection_names()
-            results['database_connection'] = True
-            results['database_collections'] = collections
-    except Exception as e:
-        results['database_error'] = str(e)
+    db_connected, db_details = check_database_connection()
     
-    # Check blockchain connection
-    try:
-        from utils.blockchain import BlockchainUtil
-        web3_uri = os.environ.get('WEB3_PROVIDER_URI', 'http://127.0.0.1:8545')
-        blockchain_util = BlockchainUtil(web3_uri)
-        results['blockchain_connection'] = blockchain_util.is_connected()
-    except Exception as e:
-        results['blockchain_error'] = str(e)
+    # Assemble results
+    results = {
+        'system': system_info,
+        'dependencies': dependencies,
+        'database': db_details,
+        'uptime': str(datetime.utcnow() - start_time)
+    }
     
-    # Check IPFS connection
-    try:
-        from utils.ipfs import IPFSUtil
-        ipfs_host = os.environ.get('IPFS_HOST', '127.0.0.1')
-        ipfs_port = int(os.environ.get('IPFS_PORT', '5001'))
-        ipfs_util = IPFSUtil(ipfs_host, ipfs_port)
-        results['ipfs_connection'] = ipfs_util.connect()
-    except Exception as e:
-        results['ipfs_error'] = str(e)
-    
-    return results
+    return results, db_connected
