@@ -2,64 +2,97 @@
 User model for the TrueCred application.
 """
 from datetime import datetime
-from flask_pymongo import PyMongo
-from bson import ObjectId
+import re
+from mongoengine import (
+    Document, StringField, EmailField, DateTimeField, 
+    BooleanField, ListField, ReferenceField, DENY
+)
+from mongoengine.errors import ValidationError
 
-class User:
+class User(Document):
     """
     User model representing a user in the TrueCred system.
+    
+    Attributes:
+        username: User's unique username
+        email: User's email address
+        password: Hashed password
+        role: User role (default: 'user')
+        first_name: User's first name (optional)
+        last_name: User's last name (optional)
+        is_active: Whether the user account is active
+        created_at: Timestamp when the user was created
+        updated_at: Timestamp when the user was last updated
     """
     
-    collection_name = 'users'
+    # Basic user information
+    username = StringField(
+        required=True, 
+        unique=True, 
+        min_length=3, 
+        max_length=50,
+        regex=r'^[a-zA-Z0-9_]+$'  # Only alphanumeric and underscore
+    )
+    email = EmailField(required=True, unique=True)
+    password = StringField(required=True, min_length=8)  # Stores hashed password
     
-    def __init__(self, mongo):
-        """
-        Initialize the User model with the MongoDB connection.
-        
-        Args:
-            mongo: PyMongo instance for database operations
-        """
-        self.mongo = mongo
-        self.collection = self.mongo.db[self.collection_name]
+    # User details
+    role = StringField(
+        required=True, 
+        choices=['user', 'issuer', 'admin'],
+        default='user'
+    )
+    first_name = StringField(max_length=50)
+    last_name = StringField(max_length=50)
+    profile_image = StringField()  # URL or path to profile image
     
-    def create(self, username, email, password_hash, role='user'):
-        """
-        Create a new user in the database.
-        
-        Args:
-            username: User's username
-            email: User's email address
-            password_hash: Hashed password
-            role: User role (default: 'user')
-        
-        Returns:
-            User ID if successful
-        """
-        user_data = {
-            'username': username,
-            'email': email,
-            'password': password_hash,
-            'role': role,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
-        }
-        
-        result = self.collection.insert_one(user_data)
-        return str(result.inserted_id)
+    # Account status
+    is_active = BooleanField(default=True)
+    email_verified = BooleanField(default=False)
     
-    def find_by_id(self, user_id):
-        """
-        Find a user by ID.
-        
-        Args:
-            user_id: User ID to search for
-        
-        Returns:
-            User document or None if not found
-        """
-        return self.collection.find_one({'_id': ObjectId(user_id)})
+    # Password reset
+    reset_token = StringField()
+    reset_token_expires = DateTimeField()
     
-    def find_by_email(self, email):
+    # Metadata
+    created_at = DateTimeField(default=datetime.utcnow)
+    updated_at = DateTimeField(default=datetime.utcnow)
+    
+    # Configuration
+    meta = {
+        'collection': 'users',
+        'indexes': [
+            {'fields': ['username'], 'unique': True},
+            {'fields': ['email'], 'unique': True}
+        ],
+        'ordering': ['-created_at']
+    }
+    
+    def clean(self):
+        """
+        Custom validation for the user model.
+        """
+        # Ensure email is lowercase
+        if self.email:
+            self.email = self.email.lower()
+        
+        # Username validation - more complex than just the regex
+        if self.username:
+            if not re.match(r'^[a-zA-Z0-9_]+$', self.username):
+                raise ValidationError('Username can only contain letters, numbers, and underscores')
+            
+            if self.username.isdigit():
+                raise ValidationError('Username cannot be all numbers')
+    
+    def save(self, *args, **kwargs):
+        """
+        Override save method to update the updated_at field.
+        """
+        self.updated_at = datetime.utcnow()
+        return super(User, self).save(*args, **kwargs)
+    
+    @classmethod
+    def find_by_email(cls, email):
         """
         Find a user by email.
         
@@ -69,9 +102,10 @@ class User:
         Returns:
             User document or None if not found
         """
-        return self.collection.find_one({'email': email})
+        return cls.objects(email=email.lower()).first()
     
-    def find_by_username(self, username):
+    @classmethod
+    def find_by_username(cls, username):
         """
         Find a user by username.
         
@@ -81,22 +115,80 @@ class User:
         Returns:
             User document or None if not found
         """
-        return self.collection.find_one({'username': username})
+        return cls.objects(username=username).first()
     
-    def update(self, user_id, update_data):
+    def to_json(self):
         """
-        Update a user's information.
-        
-        Args:
-            user_id: User ID to update
-            update_data: Dictionary of fields to update
+        Convert user to JSON-serializable dictionary.
         
         Returns:
-            True if successful, False otherwise
+            Dictionary representation of the user (excluding password)
         """
-        update_data['updated_at'] = datetime.utcnow()
-        result = self.collection.update_one(
-            {'_id': ObjectId(user_id)},
-            {'$set': update_data}
-        )
-        return result.modified_count > 0
+        return {
+            'id': str(self.id),
+            'username': self.username,
+            'email': self.email,
+            'role': self.role,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'profile_image': self.profile_image,
+            'is_active': self.is_active,
+            'email_verified': self.email_verified,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __str__(self):
+        """String representation of the user."""
+        return f"User(username={self.username}, email={self.email}, role={self.role})"
+    
+    @classmethod
+    def find_by_email(cls, email):
+        """
+        Find a user by email.
+        
+        Args:
+            email: Email to search for
+        
+        Returns:
+            User document or None if not found
+        """
+        return cls.objects(email=email.lower()).first()
+    
+    @classmethod
+    def find_by_username(cls, username):
+        """
+        Find a user by username.
+        
+        Args:
+            username: Username to search for
+        
+        Returns:
+            User document or None if not found
+        """
+        return cls.objects(username=username).first()
+    
+    def to_json(self):
+        """
+        Convert user to JSON-serializable dictionary.
+        
+        Returns:
+            Dictionary representation of the user (excluding password)
+        """
+        return {
+            'id': str(self.id),
+            'username': self.username,
+            'email': self.email,
+            'role': self.role,
+            'first_name': self.first_name,
+            'last_name': self.last_name,
+            'profile_image': self.profile_image,
+            'is_active': self.is_active,
+            'email_verified': self.email_verified,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+    
+    def __str__(self):
+        """String representation of the user."""
+        return f"User(username={self.username}, email={self.email}, role={self.role})"

@@ -1,11 +1,30 @@
 """
-Setup script for MongoDB connection.
+Setup script for MongoDB connection and initialization.
 """
 import os
 import sys
 import subprocess
 import platform
 from dotenv import load_dotenv
+from pathlib import Path
+
+# Add the parent directory to the path so we can import from the root
+parent_dir = str(Path(__file__).parent.parent)
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+import logging
+from mongoengine import connect, disconnect
+
+# Import models to register them with MongoEngine
+from models.user import User
+from models.credential import Credential
+from models.experience import Experience
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, 
+                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def check_mongodb_installed():
     """
@@ -69,28 +88,59 @@ def setup_mongodb():
             with open('.env', 'a') as f:
                 f.write(f"\nMONGO_URI={default_uri}\n")
             print(f"✅ Added MONGO_URI={default_uri} to .env file.")
+            mongo_uri = default_uri
         else:
             uri = input("Enter your MongoDB URI: ")
             with open('.env', 'a') as f:
                 f.write(f"\nMONGO_URI={uri}\n")
             print(f"✅ Added MONGO_URI={uri} to .env file.")
+            mongo_uri = uri
     else:
         print(f"✅ MONGO_URI is set to {mongo_uri}")
     
-    # Verify the connection
+    # Initialize database with MongoEngine
+    initialize_mongodb(mongo_uri)
+    
+    return True
+
+def initialize_mongodb(mongo_uri):
+    """
+    Initialize MongoDB with the required collections and indexes using MongoEngine.
+    
+    Args:
+        mongo_uri: MongoDB connection URI
+    """
     try:
-        import pymongo
-        client = pymongo.MongoClient(os.environ.get('MONGO_URI', "mongodb://localhost:27017/truecred"))
-        # The ismaster command is cheap and does not require auth
-        client.admin.command('ismaster')
-        print("✅ Successfully connected to MongoDB.")
-        return True
-    except pymongo.errors.ConnectionFailure:
-        print("❌ Failed to connect to MongoDB. Please make sure MongoDB is running.")
-        return False
+        logger.info("Connecting to MongoDB with MongoEngine...")
+        
+        # Disconnect any existing connections
+        disconnect()
+        
+        # Connect to MongoDB using MongoEngine
+        connect(host=mongo_uri)
+        logger.info("Connected to MongoDB successfully")
+        
+        # Ensure indexes are created for each model
+        logger.info("Creating indexes for User model...")
+        User.ensure_indexes()
+        
+        logger.info("Creating indexes for Credential model...")
+        Credential.ensure_indexes()
+        
+        logger.info("Creating indexes for Experience model...")
+        Experience.ensure_indexes()
+        
+        logger.info("MongoDB initialization completed successfully")
+        print("✅ Successfully initialized MongoDB with required collections and indexes.")
+        
     except Exception as e:
-        print(f"❌ Error connecting to MongoDB: {e}")
-        return False
+        logger.error(f"Error initializing MongoDB: {e}")
+        print(f"❌ Error initializing MongoDB: {e}")
+    
+    finally:
+        # Disconnect from MongoDB
+        disconnect()
+        logger.info("Disconnected from MongoDB")
 
 if __name__ == "__main__":
     print("TrueCred MongoDB Setup Script")
