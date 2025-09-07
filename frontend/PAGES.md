@@ -5,20 +5,24 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Authentication Pages
 
 1. **Login Page** (`/login`)
+
    - User login form
    - OAuth options
    - Password reset link
 
 2. **Registration Page** (`/register`)
+
    - User registration form
    - Terms of service agreement
    - Email verification notification
 
 3. **Forgot Password Page** (`/forgot-password`)
+
    - Email input for password reset
    - Reset instructions
 
 4. **Reset Password Page** (`/reset-password/:token`)
+
    - New password input
    - Password confirmation
 
@@ -36,20 +40,24 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Credential Management
 
 7. **Credentials List** (`/credentials`)
+
    - List of all user credentials
    - Filter and sort options
    - Verification status indicators
 
 8. **Add Credential** (`/credentials/add`)
+
    - Form to add a new credential
    - Document upload
    - Issuer information
 
 9. **Edit Credential** (`/credentials/:id/edit`)
+
    - Form to edit an existing credential
    - Update documents
 
 10. **Credential Details** (`/credentials/:id`)
+
     - Detailed view of a credential
     - Verification status
     - Blockchain verification info
@@ -63,19 +71,23 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Experience Management
 
 12. **Experiences List** (`/experiences`)
+
     - List of all user experiences
     - Filter and sort options
     - Verification status indicators
 
 13. **Add Experience** (`/experiences/add`)
+
     - Form to add a new experience
     - Link to credentials
     - Company/organization information
 
 14. **Edit Experience** (`/experiences/:id/edit`)
+
     - Form to edit an existing experience
 
 15. **Experience Details** (`/experiences/:id`)
+
     - Detailed view of an experience
     - Verification status
     - Associated credentials
@@ -89,10 +101,12 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Verification Dashboard (for Issuers/Verifiers)
 
 17. **Verification Requests** (`/verification/requests`)
+
     - List of pending verification requests
     - Filter by type (credential/experience)
 
 18. **Verify Credential** (`/verification/credentials/:id`)
+
     - Credential details
     - Verification action buttons
     - Notes/feedback form
@@ -105,11 +119,13 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Blockchain Integration
 
 20. **Blockchain Verification** (`/blockchain/verify/:type/:id`)
+
     - Verification status on blockchain
     - Transaction details
     - Timestamp information
 
 21. **Credential Blockchain Preparation** (`/blockchain/credentials/:id/prepare`)
+
     - Preparation details
     - Confirmation screen
 
@@ -120,16 +136,19 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Profile and Settings
 
 23. **User Profile** (`/profile`)
+
     - Personal information
     - Professional summary
     - Profile picture
     - Contact information
 
 24. **Profile Settings** (`/settings/profile`)
+
     - Edit profile information
     - Privacy settings
 
 25. **Account Settings** (`/settings/account`)
+
     - Change password
     - Email preferences
     - Delete account
@@ -142,16 +161,19 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Public Pages
 
 27. **Landing Page** (`/`)
+
     - Introduction to TrueCred
     - Features overview
     - Call-to-action buttons
 
 28. **About Page** (`/about`)
+
     - About TrueCred
     - Mission and vision
     - Team information
 
 29. **Public Profile** (`/users/:username`)
+
     - Public view of user profile
     - Verified credentials and experiences
     - Contact options (if enabled)
@@ -164,21 +186,25 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Admin Panel
 
 31. **Admin Dashboard** (`/admin`)
+
     - System overview
     - User statistics
     - Verification statistics
 
 32. **User Management** (`/admin/users`)
+
     - List of users
     - User actions (suspend, delete, etc.)
     - Role management
 
 33. **Credential Management** (`/admin/credentials`)
+
     - List of all credentials
     - Filter and search options
     - Verification status management
 
 34. **Experience Management** (`/admin/experiences`)
+
     - List of all experiences
     - Filter and search options
     - Verification status management
@@ -191,21 +217,26 @@ This document lists all the pages that need to be implemented for the TrueCred f
 ## Additional Pages
 
 36. **Search Results** (`/search`)
+
     - Search results for users, credentials, and experiences
     - Filter options
 
 37. **Help Center** (`/help`)
+
     - FAQ
     - User guides
     - Contact support
 
 38. **Privacy Policy** (`/privacy`)
+
     - Privacy policy details
 
 39. **Terms of Service** (`/terms`)
+
     - Terms of service details
 
 40. **404 Page** (`/404`)
+
     - Not found page
 
 41. **Error Page** (`/error`)
