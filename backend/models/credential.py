@@ -1,6 +1,7 @@
 """
 Credential model for the TrueCred application.
 """
+import os
 from datetime import datetime
 from mongoengine import (
     Document, StringField, DateTimeField, BooleanField, 
@@ -53,6 +54,8 @@ class Credential(Document):
     # Verification information
     blockchain_hash = StringField()
     ipfs_hash = StringField()
+    ipfs_metadata_hash = StringField()      # IPFS hash for credential metadata
+    document_hashes = DictField()           # Dictionary of associated document IPFS hashes (key: document name, value: IPFS hash)
     document_url = URLField()
     verified = BooleanField(default=False)
     verified_at = DateTimeField()
@@ -88,7 +91,8 @@ class Credential(Document):
             {'fields': ['pending_verification']},
             {'fields': ['verified']},
             {'fields': ['blockchain_hash'], 'sparse': True, 'unique': True, 'name': 'blockchain_hash_unique'},
-            {'fields': ['ipfs_hash'], 'sparse': True, 'unique': True, 'name': 'ipfs_hash_unique'}
+            {'fields': ['ipfs_hash'], 'sparse': True, 'unique': True, 'name': 'ipfs_hash_unique'},
+            {'fields': ['ipfs_metadata_hash'], 'sparse': True}
         ],
         'ordering': ['-created_at']
     }
@@ -243,6 +247,114 @@ class Credential(Document):
                 
         return self
     
+    def store_in_ipfs(self, ipfs_service, document_data=None, metadata=None):
+        """
+        Store the credential data in IPFS.
+        
+        Args:
+            ipfs_service: IPFS service to use for storage
+            document_data: Optional document data to store (bytes)
+            metadata: Optional additional metadata
+            
+        Returns:
+            Self for method chaining
+        """
+        if not ipfs_service:
+            raise ValueError("IPFS service is required")
+            
+        # Create credential data dictionary
+        credential_data = self.to_json()
+        
+        # Add any additional metadata
+        if metadata:
+            credential_data.update(metadata)
+        
+        # Store credential data as JSON in IPFS
+        result = ipfs_service.add_json(credential_data)
+        
+        if 'error' in result:
+            raise ValueError(f"Failed to store credential data in IPFS: {result['error']}")
+            
+        # Update credential with IPFS hash
+        self.ipfs_hash = result['Hash']
+        
+        # If document provided, store that too
+        if document_data:
+            # If this is a string path to a file, read it first
+            if isinstance(document_data, str) and os.path.isfile(document_data):
+                with open(document_data, 'rb') as f:
+                    document_data = f.read()
+            
+            # Store document data
+            doc_result = ipfs_service.add_file(document_data)
+            
+            if 'error' in doc_result:
+                raise ValueError(f"Failed to store document in IPFS: {doc_result['error']}")
+                
+            # Initialize document_hashes if needed
+            if not hasattr(self, 'document_hashes') or not self.document_hashes:
+                self.document_hashes = {}
+                
+            # Add document hash to the credential's document hashes
+            doc_name = f"credential_{self.id}_document"
+            self.document_hashes[doc_name] = doc_result['Hash']
+            
+            # Create metadata with both hashes
+            meta_data = {
+                'credential_hash': self.ipfs_hash,
+                'document_hash': doc_result['Hash'],
+                'credential_id': str(self.id),
+                'user_id': str(self.user.id),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            # Store metadata
+            meta_result = ipfs_service.add_json(meta_data)
+            
+            if 'error' not in meta_result:
+                self.ipfs_metadata_hash = meta_result['Hash']
+        
+        # Save changes to the database
+        self.save()
+        return self
+        
+    def add_document_to_ipfs(self, ipfs_service, document_data, document_name):
+        """
+        Add a document related to this credential to IPFS.
+        
+        Args:
+            ipfs_service: IPFS service to use for storage
+            document_data: Document data to store (bytes)
+            document_name: Name to associate with the document
+            
+        Returns:
+            Self for method chaining
+        """
+        if not ipfs_service:
+            raise ValueError("IPFS service is required")
+            
+        # If this is a string path to a file, read it first
+        if isinstance(document_data, str) and os.path.isfile(document_data):
+            with open(document_data, 'rb') as f:
+                document_data = f.read()
+                
+        # Store document in IPFS
+        result = ipfs_service.add_file(document_data)
+        
+        if 'error' in result:
+            raise ValueError(f"Failed to store document in IPFS: {result['error']}")
+            
+        # Initialize document_hashes if needed
+        if not hasattr(self, 'document_hashes') or not self.document_hashes:
+            self.document_hashes = {}
+            
+        # Add document hash to the credential's document hashes
+        self.document_hashes[document_name] = result['Hash']
+        
+        # Save changes to the database
+        self.save()
+        return self
+    
     def to_json(self):
         """
         Convert credential to JSON-serializable dictionary.
@@ -261,6 +373,8 @@ class Credential(Document):
             'expiry_date': self.expiry_date.isoformat() if self.expiry_date else None,
             'blockchain_hash': self.blockchain_hash,
             'ipfs_hash': self.ipfs_hash,
+            'ipfs_metadata_hash': self.ipfs_metadata_hash,
+            'document_hashes': getattr(self, 'document_hashes', {}),
             'document_url': self.document_url,
             'verified': self.verified,
             'verified_at': self.verified_at.isoformat() if self.verified_at else None,
