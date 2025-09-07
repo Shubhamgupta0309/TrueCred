@@ -56,21 +56,33 @@ def verify_experience(experience_id):
         experience_id: ID of the experience to verify
         
     Returns:
-        JSON response with updated experience
+        JSON response with verification results
     """
     try:
         verifier_id = g.user_id
         verification_data = request.json or {}
         
-        experience = VerificationService.verify_experience(
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Verify experience
+        verification_result = verification_service.verify_experience(
             experience_id=experience_id,
             verifier_id=verifier_id,
             verification_data=verification_data
         )
         
+        if 'error' in verification_result or not verification_result.get('verified', False):
+            message = verification_result.get('message', 'Experience verification failed')
+            return error_response(
+                message=message, 
+                status_code=400, 
+                data=verification_result
+            )
+        
         return success_response(
             message="Experience verified successfully",
-            data=experience.to_json()
+            data=verification_result
         )
     except DoesNotExist as e:
         return error_response(message=str(e), status_code=404)
@@ -175,21 +187,33 @@ def verify_credential(credential_id):
         credential_id: ID of the credential to verify
         
     Returns:
-        JSON response with updated credential
+        JSON response with verification results
     """
     try:
         verifier_id = g.user_id
         verification_data = request.json or {}
         
-        credential = VerificationService.verify_credential(
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Verify credential
+        verification_result = verification_service.verify_credential(
             credential_id=credential_id,
             verifier_id=verifier_id,
             verification_data=verification_data
         )
         
+        if 'error' in verification_result or not verification_result.get('verified', False):
+            message = verification_result.get('message', 'Credential verification failed')
+            return error_response(
+                message=message, 
+                status_code=400, 
+                data=verification_result
+            )
+        
         return success_response(
             message="Credential verified successfully",
-            data=credential.to_json()
+            data=verification_result
         )
     except DoesNotExist as e:
         return error_response(message=str(e), status_code=404)
@@ -200,7 +224,165 @@ def verify_credential(credential_id):
     except Exception as e:
         return error_response(message=f"Error verifying credential: {str(e)}", status_code=500)
 
-@verification_bp.route('/credential/reject/<credential_id>', methods=['POST'])
+@verification_bp.route('/credential/verify-blockchain/<credential_id>', methods=['GET'])
+def verify_credential_blockchain(credential_id):
+    """
+    Verify a credential using only blockchain and IPFS, without requiring authentication.
+    
+    Args:
+        credential_id: ID of the credential to verify
+        
+    Returns:
+        JSON response with verification results
+    """
+    try:
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Verify credential without manual verification
+        verification_result = verification_service.verify_credential(
+            credential_id=credential_id,
+            verifier_id=None  # No manual verification
+        )
+        
+        return success_response(
+            message="Blockchain verification completed",
+            data=verification_result
+        )
+    except DoesNotExist as e:
+        return error_response(message=str(e), status_code=404)
+    except Exception as e:
+        return error_response(message=f"Error verifying credential: {str(e)}", status_code=500)
+
+@verification_bp.route('/experience/verify-blockchain/<experience_id>', methods=['GET'])
+def verify_experience_blockchain(experience_id):
+    """
+    Verify an experience using only blockchain and IPFS, without requiring authentication.
+    
+    Args:
+        experience_id: ID of the experience to verify
+        
+    Returns:
+        JSON response with verification results
+    """
+    try:
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Verify experience without manual verification
+        verification_result = verification_service.verify_experience(
+            experience_id=experience_id,
+            verifier_id=None  # No manual verification
+        )
+        
+        return success_response(
+            message="Blockchain verification completed",
+            data=verification_result
+        )
+    except DoesNotExist as e:
+        return error_response(message=str(e), status_code=404)
+    except Exception as e:
+        return error_response(message=f"Error verifying experience: {str(e)}", status_code=500)
+
+@verification_bp.route('/user-profile/<user_id>', methods=['GET'])
+def verify_user_profile(user_id):
+    """
+    Verify all credentials and experiences for a user.
+    
+    Args:
+        user_id: ID of the user
+        
+    Returns:
+        JSON response with verification results
+    """
+    try:
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Verify user profile
+        verification_result = verification_service.verify_user_profile(user_id)
+        
+        if 'error' in verification_result:
+            return error_response(
+                message=verification_result['error'], 
+                status_code=400, 
+                data=verification_result
+            )
+        
+        return success_response(
+            message="User profile verification completed",
+            data=verification_result
+        )
+    except Exception as e:
+        return error_response(message=f"Error verifying user profile: {str(e)}", status_code=500)
+        
+@verification_bp.route('/batch/credentials', methods=['POST'])
+@login_required
+def batch_verify_credentials():
+    """
+    Verify multiple credentials in a batch.
+    
+    Body:
+        credential_ids: List of credential IDs to verify
+        
+    Returns:
+        JSON response with verification results
+    """
+    try:
+        data = request.json
+        if not data or 'credential_ids' not in data:
+            return error_response(message="Missing credential_ids in request body", status_code=400)
+        
+        credential_ids = data['credential_ids']
+        if not isinstance(credential_ids, list):
+            return error_response(message="credential_ids must be a list", status_code=400)
+        
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Perform batch verification
+        verification_result = verification_service.batch_verify_credentials(credential_ids)
+        
+        return success_response(
+            message=f"Verified {verification_result['summary']['verified']} of {verification_result['summary']['total']} credentials",
+            data=verification_result
+        )
+    except Exception as e:
+        return error_response(message=f"Error verifying credentials: {str(e)}", status_code=500)
+        
+@verification_bp.route('/batch/experiences', methods=['POST'])
+@login_required
+def batch_verify_experiences():
+    """
+    Verify multiple experiences in a batch.
+    
+    Body:
+        experience_ids: List of experience IDs to verify
+        
+    Returns:
+        JSON response with verification results
+    """
+    try:
+        data = request.json
+        if not data or 'experience_ids' not in data:
+            return error_response(message="Missing experience_ids in request body", status_code=400)
+        
+        experience_ids = data['experience_ids']
+        if not isinstance(experience_ids, list):
+            return error_response(message="experience_ids must be a list", status_code=400)
+        
+        # Initialize service
+        verification_service = VerificationService()
+        
+        # Perform batch verification
+        verification_result = verification_service.batch_verify_experiences(experience_ids)
+        
+        return success_response(
+            message=f"Verified {verification_result['summary']['verified']} of {verification_result['summary']['total']} experiences",
+            data=verification_result
+        )
+    except Exception as e:
+        return error_response(message=f"Error verifying experiences: {str(e)}", status_code=500)
 @login_required
 @role_required(['verifier', 'admin'])
 def reject_credential_verification(credential_id):
