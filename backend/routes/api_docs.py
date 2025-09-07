@@ -3,6 +3,7 @@ API Documentation for the TrueCred API.
 
 This module provides a structured overview of all API endpoints.
 """
+from routes.verification_docs import VERIFICATION_ENDPOINTS
 
 API_ENDPOINTS = {
     "Authentication": [
@@ -331,6 +332,73 @@ API_ENDPOINTS = {
             }
         }
     ],
+    "Search": [
+        {
+            "path": "/api/search",
+            "method": "GET",
+            "description": "Perform a combined search across credentials and experiences",
+            "auth": True,
+            "query_params": {
+                "q": "Search query (required)",
+                "include_credentials": "Include credentials in search (true/false, default: true)",
+                "include_experiences": "Include experiences in search (true/false, default: true)",
+                "page": "Page number (default: 1)",
+                "per_page": "Results per page (default: 10, max: 50)"
+            },
+            "responses": {
+                "200": "Combined search results with pagination metadata",
+                "400": "Invalid search parameters",
+                "401": "Unauthorized"
+            }
+        },
+        {
+            "path": "/api/search/credentials",
+            "method": "GET",
+            "description": "Search credentials with filters and pagination",
+            "auth": True,
+            "query_params": {
+                "q": "Search query for title, description",
+                "issuer": "Filter by issuer",
+                "type": "Filter by credential type",
+                "verified": "Filter by verification status (true/false)",
+                "include_expired": "Include expired credentials (true/false)",
+                "start_date": "Filter by issue date (from) in ISO format",
+                "end_date": "Filter by issue date (to) in ISO format",
+                "sort_by": "Field to sort by (prepend with - for descending)",
+                "page": "Page number (default: 1)",
+                "per_page": "Results per page (default: 10, max: 50)"
+            },
+            "responses": {
+                "200": "Credential search results with pagination metadata",
+                "400": "Invalid search parameters",
+                "401": "Unauthorized"
+            }
+        },
+        {
+            "path": "/api/search/experiences",
+            "method": "GET",
+            "description": "Search experiences with filters and pagination",
+            "auth": True,
+            "query_params": {
+                "q": "Search query for title, description, organization",
+                "organization": "Filter by organization",
+                "type": "Filter by experience type (work, education)",
+                "current": "Filter by current status (true/false)",
+                "verified": "Filter by verification status (true/false)",
+                "has_credentials": "Filter to experiences with linked credentials (true/false)",
+                "start_date": "Filter by start date (from) in ISO format",
+                "end_date": "Filter by start date (to) in ISO format",
+                "sort_by": "Field to sort by (prepend with - for descending)",
+                "page": "Page number (default: 1)",
+                "per_page": "Results per page (default: 10, max: 50)"
+            },
+            "responses": {
+                "200": "Experience search results with pagination metadata",
+                "400": "Invalid search parameters",
+                "401": "Unauthorized"
+            }
+        }
+    ],
     "Health Check": [
         {
             "path": "/api/health",
@@ -370,3 +438,6 @@ API_ENDPOINTS = {
         }
     ]
 }
+
+# Update API_ENDPOINTS with verification endpoints
+API_ENDPOINTS.update(VERIFICATION_ENDPOINTS)

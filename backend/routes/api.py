@@ -68,12 +68,18 @@ def register_blueprints(app):
     from routes.credentials import credentials_bp
     from routes.experiences import experiences_bp
     from routes.health import health_bp
+    from routes.search import search_bp
+    from routes.verification import verification_bp
+    from routes.blockchain import blockchain_bp
     
     # Register blueprints
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(credentials_bp, url_prefix='/api/credentials')
     app.register_blueprint(experiences_bp, url_prefix='/api/experiences')
+    app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(health_bp, url_prefix='/api/health')
+    app.register_blueprint(verification_bp)
+    app.register_blueprint(blockchain_bp)
     
     logger.info("All blueprints registered successfully")

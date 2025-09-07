@@ -11,6 +11,7 @@ from utils.database import init_db
 from utils.simple_logging import configure_logging
 from utils.error_handlers import register_error_handlers
 from utils.api_response import error_response
+from datetime import datetime
 import logging
 import os
 
@@ -49,6 +50,9 @@ def create_app(config_name='default'):
     logger.info("Initializing database connection...")
     init_db(app)
     logger.info("Database connection initialized successfully")
+    
+    # Set current time (useful for tests)
+    app.config['CURRENT_TIME'] = datetime.utcnow()
     
     # Initialize JWT
     jwt.init_app(app)
