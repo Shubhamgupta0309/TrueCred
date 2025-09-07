@@ -1,6 +1,7 @@
 """
 Experience model for the TrueCred application.
 """
+import os
 from datetime import datetime
 from mongoengine import (
     Document, StringField, DateTimeField, ReferenceField, 
@@ -66,6 +67,12 @@ class Experience(Document):
         'pending', 'verified', 'rejected', 'revoked', 'expired'
     ])
     
+    # IPFS Storage
+    ipfs_hash = StringField()               # IPFS hash for the main experience document
+    ipfs_metadata_hash = StringField()      # IPFS hash for experience metadata
+    document_hashes = DictField()           # Dictionary of associated document IPFS hashes (key: document name, value: IPFS hash)
+    blockchain_hash = StringField()         # Hash stored on the blockchain for verification
+    
     # Linked credentials
     credentials = ListField(ReferenceField('Credential'))
     
@@ -87,7 +94,10 @@ class Experience(Document):
             'is_current',
             'is_verified',
             'pending_verification',
-            'type'
+            'type',
+            {'fields': ['ipfs_hash'], 'sparse': True, 'unique': True},
+            {'fields': ['ipfs_metadata_hash'], 'sparse': True},
+            {'fields': ['blockchain_hash'], 'sparse': True, 'unique': True}
         ],
         'ordering': ['-start_date']
     }
@@ -196,6 +206,114 @@ class Experience(Document):
         self.save()
         return self
     
+    def store_in_ipfs(self, ipfs_service, document_data=None, metadata=None):
+        """
+        Store the experience data in IPFS.
+        
+        Args:
+            ipfs_service: IPFS service to use for storage
+            document_data: Optional document data to store (bytes)
+            metadata: Optional additional metadata
+            
+        Returns:
+            Self for method chaining
+        """
+        if not ipfs_service:
+            raise ValueError("IPFS service is required")
+            
+        # Create experience data dictionary
+        experience_data = self.to_json()
+        
+        # Add any additional metadata
+        if metadata:
+            experience_data.update(metadata)
+        
+        # Store experience data as JSON in IPFS
+        result = ipfs_service.add_json(experience_data)
+        
+        if 'error' in result:
+            raise ValueError(f"Failed to store experience data in IPFS: {result['error']}")
+            
+        # Update experience with IPFS hash
+        self.ipfs_hash = result['Hash']
+        
+        # If document provided, store that too
+        if document_data:
+            # If this is a string path to a file, read it first
+            if isinstance(document_data, str) and os.path.isfile(document_data):
+                with open(document_data, 'rb') as f:
+                    document_data = f.read()
+            
+            # Store document data
+            doc_result = ipfs_service.add_file(document_data)
+            
+            if 'error' in doc_result:
+                raise ValueError(f"Failed to store document in IPFS: {doc_result['error']}")
+                
+            # Initialize document_hashes if needed
+            if not hasattr(self, 'document_hashes') or not self.document_hashes:
+                self.document_hashes = {}
+                
+            # Add document hash to the experience's document hashes
+            doc_name = f"experience_{self.id}_document"
+            self.document_hashes[doc_name] = doc_result['Hash']
+            
+            # Create metadata with both hashes
+            meta_data = {
+                'experience_hash': self.ipfs_hash,
+                'document_hash': doc_result['Hash'],
+                'experience_id': str(self.id),
+                'user_id': str(self.user.id),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+            # Store metadata
+            meta_result = ipfs_service.add_json(meta_data)
+            
+            if 'error' not in meta_result:
+                self.ipfs_metadata_hash = meta_result['Hash']
+        
+        # Save changes to the database
+        self.save()
+        return self
+        
+    def add_document_to_ipfs(self, ipfs_service, document_data, document_name):
+        """
+        Add a document related to this experience to IPFS.
+        
+        Args:
+            ipfs_service: IPFS service to use for storage
+            document_data: Document data to store (bytes)
+            document_name: Name to associate with the document
+            
+        Returns:
+            Self for method chaining
+        """
+        if not ipfs_service:
+            raise ValueError("IPFS service is required")
+            
+        # If this is a string path to a file, read it first
+        if isinstance(document_data, str) and os.path.isfile(document_data):
+            with open(document_data, 'rb') as f:
+                document_data = f.read()
+                
+        # Store document in IPFS
+        result = ipfs_service.add_file(document_data)
+        
+        if 'error' in result:
+            raise ValueError(f"Failed to store document in IPFS: {result['error']}")
+            
+        # Initialize document_hashes if needed
+        if not hasattr(self, 'document_hashes') or not self.document_hashes:
+            self.document_hashes = {}
+            
+        # Add document hash to the experience's document hashes
+        self.document_hashes[document_name] = result['Hash']
+        
+        # Save changes to the database
+        self.save()
+        return self
+    
     def to_json(self):
         """
         Convert experience to JSON-serializable dictionary.
@@ -222,6 +340,10 @@ class Experience(Document):
             'rejection_reason': self.rejection_reason,
             'verification_attempts': self.verification_attempts,
             'credentials': [str(cred.id) for cred in self.credentials] if self.credentials else [],
+            'ipfs_hash': self.ipfs_hash,
+            'ipfs_metadata_hash': self.ipfs_metadata_hash,
+            'document_hashes': self.document_hashes,
+            'blockchain_hash': self.blockchain_hash,
             'metadata': self.metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

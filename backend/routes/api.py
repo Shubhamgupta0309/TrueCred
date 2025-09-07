@@ -71,6 +71,7 @@ def register_blueprints(app):
     from routes.search import search_bp
     from routes.verification import verification_bp
     from routes.blockchain import blockchain_bp
+    from routes.ipfs import ipfs_bp
     
     # Register blueprints
     app.register_blueprint(api_bp, url_prefix='/api')
@@ -81,5 +82,6 @@ def register_blueprints(app):
     app.register_blueprint(health_bp, url_prefix='/api/health')
     app.register_blueprint(verification_bp)
     app.register_blueprint(blockchain_bp)
+    app.register_blueprint(ipfs_bp)
     
     logger.info("All blueprints registered successfully")
