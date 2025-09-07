@@ -13,3 +13,6 @@ mongoengine==0.27.0
 python-jose==3.3.0
 pydantic==2.3.0
 flask-swagger-ui==4.11.1
+cryptography==41.0.3
+eth-account==0.8.0
+py-solc-x==1.1.1
