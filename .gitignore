@@ -27,7 +27,6 @@ env/
 venv/
 ENV/
 .env.*
-!.env.sample
 
 # Flask
 instance/
