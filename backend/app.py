@@ -43,8 +43,9 @@ def create_app(config_name='default'):
     configure_logging(app, log_level=app.config.get('LOG_LEVEL', logging.INFO))
     logger = logging.getLogger(__name__)
     
-    # Initialize extensions
-    CORS(app)
+    # Initialize extensions with custom CORS settings
+    from middleware.cors import configure_cors
+    configure_cors(app)
     
     # Initialize database
     logger.info("Initializing database connection...")
