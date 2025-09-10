@@ -1,18 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-import CollegeDashboardHeader from '../components/college/CollegeDashboardHeader';
+import { useAuth } from '../context/AuthContext.jsx';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
 import SearchFilterPanel from '../components/college/SearchFilterPanel';
 import PendingRequests from '../components/college/PendingRequests';
 import VerificationHistory from '../components/college/VerificationHistory';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 
-// Mock Data
-const mockCollegeUser = {
-  name: 'Prestige College',
-  email: 'teacher@gmail.com',
-  role: 'College',
-};
+// Mock Data - will be replaced with API calls later
 
 const initialPendingRequests = [
   { id: 1, studentName: 'Alex Doe', credentialTitle: 'B.Sc. Computer Science Degree', submissionDate: 'Nov 20, 2023' },
@@ -31,8 +26,39 @@ const mockNotifications = [
 ];
 
 export default function CollegeDashboard() {
+  const { user } = useAuth();
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [history, setHistory] = useState(initialHistory);
+  const [loading, setLoading] = useState(true);
+  
+  // Format the user data for the header
+  const userForHeader = {
+    name: user?.first_name && user?.last_name 
+      ? `${user.first_name} ${user.last_name}` 
+      : user?.username || 'College Admin',
+    email: user?.email || '',
+    role: 'College'
+  };
+  
+  // Fetch user data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // In a real app, you would fetch actual data here
+        // For now, we're using the mock data
+        // Example: const response = await api.get('/college/pending-requests');
+        // setPendingRequests(response.data);
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleAction = (requestId, newStatus) => {
     const requestToMove = pendingRequests.find(req => req.id === requestId);
@@ -57,10 +83,21 @@ export default function CollegeDashboard() {
     visible: { opacity: 1, y: 0 },
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-100 p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-700">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <CollegeDashboardHeader user={mockCollegeUser} />
+        <DashboardHeader user={userForHeader} />
 
         <motion.div
           variants={containerVariants}

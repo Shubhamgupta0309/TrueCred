@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_URL = 'http://localhost:5000/api';
 
 // Create an axios instance with default config
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -14,7 +14,7 @@ const api = axios.create({
 // Request interceptor for adding auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -50,15 +50,16 @@ api.interceptors.response.use(
         });
         
         const { access_token } = response.data;
-        localStorage.setItem('token', access_token);
+        localStorage.setItem('accessToken', access_token);
         
         // Retry the original request with the new token
         originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
         return axios(originalRequest);
       } catch (err) {
         // Refresh token failed, redirect to login
-        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userRole');
         window.location.href = '/auth';
         return Promise.reject(error);
       }
@@ -75,6 +76,8 @@ export const authService = {
   logout: () => api.post('/auth/logout'),
   refreshToken: (refreshToken) => api.post('/auth/refresh', { refresh_token: refreshToken }),
   connectWallet: (walletAddress) => api.post('/auth/connect-wallet', { wallet_address: walletAddress }),
+  verifyEmail: (token) => api.get(`/auth/verify-email?token=${token}`),
+  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
 };
 
 // Credential services

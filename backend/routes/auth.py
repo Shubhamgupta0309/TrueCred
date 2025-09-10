@@ -288,31 +288,70 @@ def change_password():
     }), 200
 
 @auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
 def refresh_token():
     """
     Refresh an expired access token.
     ---
-    Requires a valid refresh token.
+    Request Body:
+      refresh_token: The refresh token
     
     Returns:
-      New access token
+      New access and refresh tokens
     """
-    current_user_id = get_jwt_identity()
-    claims = get_jwt()
+    data = request.json
+    if not data or 'refresh_token' not in data:
+        return jsonify({
+            'success': False,
+            'message': 'Refresh token is required'
+        }), 400
     
-    # Generate new access token
-    access_token = create_access_token(
-        identity=current_user_id,
-        additional_claims={'role': claims.get('role', 'user')}
-    )
+    refresh_token = data['refresh_token']
     
-    # Return new access token
-    return jsonify({
-        'success': True,
-        'access_token': access_token,
-        'token_type': 'Bearer'
-    }), 200
+    try:
+        # Verify and decode the refresh token
+        user_id = AuthService.verify_refresh_token(refresh_token)
+        
+        if not user_id:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid or expired refresh token'
+            }), 401
+        
+        # Get the user from database
+        user = User.objects(id=user_id).first()
+        
+        if not user:
+            return jsonify({
+                'success': False,
+                'message': 'User not found'
+            }), 404
+        
+        # Generate new tokens
+        access_token = create_access_token(
+            identity=str(user.id),
+            additional_claims={'role': user.role}
+        )
+        
+        new_refresh_token = create_refresh_token(
+            identity=str(user.id),
+            additional_claims={'role': user.role}
+        )
+        
+        # Return new tokens
+        return jsonify({
+            'success': True,
+            'tokens': {
+                'access_token': access_token,
+                'refresh_token': new_refresh_token,
+                'token_type': 'Bearer'
+            }
+        }), 200
+    except Exception as e:
+        logger.error(f"Error refreshing token: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Error refreshing token'
+        }), 500
 
 @auth_bp.route('/users', methods=['GET'])
 @jwt_required()
@@ -479,6 +518,101 @@ def forgot_password():
     
     return jsonify(response), 200 if success else 400
 
+@auth_bp.route('/verify-email', methods=['GET'])
+def verify_email():
+    """
+    Verify a user's email using a verification token.
+    ---
+    Endpoint for verifying a user's email.
+    
+    Query Parameters:
+      token: Verification token
+    
+    Returns:
+      Success message and user data
+    """
+    token = request.args.get('token')
+    
+    if not token:
+        return jsonify({
+            'success': False,
+            'message': 'Missing verification token'
+        }), 400
+    
+    # Verify email
+    success, message, user = AuthService.verify_email(token)
+    
+    if not success:
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 400
+    
+    # Generate tokens for auto-login after verification
+    tokens = AuthService.generate_tokens(
+        user_id=str(user.id),
+        additional_claims={'role': user.role}
+    )
+    
+    return jsonify({
+        'success': True,
+        'message': message,
+        'user': user.to_json(),
+        'tokens': tokens
+    }), 200
+
+@auth_bp.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """
+    Resend verification email.
+    ---
+    Endpoint for resending verification email.
+    
+    Request Body:
+      email: User's email address
+    
+    Returns:
+      Success message
+    """
+    data = request.json
+    
+    if 'email' not in data:
+        return jsonify({
+            'success': False,
+            'message': 'Missing required field: email'
+        }), 400
+    
+    # Find user by email
+    user = User.objects(email=data.get('email').lower()).first()
+    
+    if not user:
+        # For security reasons, don't reveal if email exists or not
+        return jsonify({
+            'success': True,
+            'message': 'If an account with this email exists, a verification link will be sent'
+        }), 200
+    
+    # If already verified, don't send verification email
+    if user.email_verified:
+        return jsonify({
+            'success': True,
+            'message': 'Email is already verified'
+        }), 200
+    
+    # Send verification email
+    success, message, token = AuthService.send_verification_email(user)
+    
+    if not success:
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 500
+    
+    return jsonify({
+        'success': True,
+        'message': 'Verification email sent'
+    }), 200
+
 @auth_bp.route('/reset-password', methods=['POST'])
 def reset_password():
     """
@@ -512,3 +646,91 @@ def reset_password():
         'success': success,
         'message': message
     }), 200 if success else 400
+
+@auth_bp.route('/connect-wallet', methods=['POST'])
+@jwt_required()
+def connect_wallet():
+    """
+    Connect a wallet address to the current user account.
+    ---
+    Endpoint for connecting a wallet address to the current user.
+    
+    Request Body:
+      wallet_address: Ethereum wallet address
+    
+    Returns:
+      Success message
+    """
+    data = request.json
+    
+    # Validate required fields
+    if 'wallet_address' not in data:
+        return jsonify({
+            'success': False,
+            'message': 'Missing wallet address'
+        }), 400
+    
+    wallet_address = data.get('wallet_address')
+    user_id = get_jwt_identity()
+    
+    # Connect wallet
+    success, error = AuthService.connect_wallet(user_id, wallet_address)
+    
+    if not success:
+        return jsonify({
+            'success': False,
+            'message': error
+        }), 400
+    
+    return jsonify({
+        'success': True,
+        'message': 'Wallet connected successfully'
+    }), 200
+
+@auth_bp.route('/wallet-auth', methods=['POST'])
+def wallet_auth():
+    """
+    Authenticate using a wallet address.
+    ---
+    Endpoint for authenticating using an Ethereum wallet address.
+    
+    Request Body:
+      wallet_address: Ethereum wallet address
+      signature: Signed message proving ownership (optional)
+    
+    Returns:
+      User profile data and access tokens
+    """
+    data = request.json
+    
+    # Validate required fields
+    if 'wallet_address' not in data:
+        return jsonify({
+            'success': False,
+            'message': 'Missing wallet address'
+        }), 400
+    
+    wallet_address = data.get('wallet_address')
+    
+    # Authenticate user
+    user, error = AuthService.authenticate_wallet(wallet_address)
+    
+    if error:
+        return jsonify({
+            'success': False,
+            'message': error
+        }), 401
+    
+    # Generate tokens
+    tokens = AuthService.generate_tokens(
+        user_id=str(user.id),
+        additional_claims={'role': user.role}
+    )
+    
+    # Return user data and tokens
+    return jsonify({
+        'success': True,
+        'message': 'Authentication successful',
+        'user': user.to_json(),
+        'tokens': tokens
+    }), 200

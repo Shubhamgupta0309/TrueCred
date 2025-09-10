@@ -1,55 +1,217 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-export default function MetaMaskConnect() {
+export default function MetaMaskConnect({ isDashboard = false }) {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [account, setAccount] = useState('');
+  const [error, setError] = useState('');
+  const { walletAuth, connectWallet, isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
+  // Check if MetaMask is already connected on component mount
+  useEffect(() => {
+    // Skip the auto authentication process if already authenticated and not in dashboard
+    if (isAuthenticated && !isDashboard) {
+      console.log('User is already authenticated and not in dashboard, skipping MetaMask connection check');
+      return;
+    }
+
+    const checkConnection = async () => {
+      if (!window.isMetaMaskAvailable()) {
+        console.log('MetaMask is not installed');
+        return;
+      }
+
+      try {
+        // Check if we have access to accounts
+        const accounts = await window.safeMetaMaskRequest('eth_accounts');
+        if (accounts && accounts.length > 0) {
+          setAccount(accounts[0]);
+          setIsConnected(true);
+          
+          // In dashboard mode, we're just checking if connected, not authenticating
+          if (isDashboard) {
+            console.log('In dashboard mode, detected connected wallet:', accounts[0]);
+            return;
+          }
+          
+          // For authentication page: if there's a wallet address in localStorage, the user previously connected
+          const storedWalletAddress = localStorage.getItem('walletAddress');
+          // Only try to auto-login if we're not already authenticated
+          if (storedWalletAddress === accounts[0] && !isAuthenticated) {
+            // Auto-login with wallet if address matches - but only once
+            handleWalletAuth(accounts[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Error checking MetaMask connection:', err);
+        setError('Error connecting to MetaMask. Please ensure MetaMask is installed and unlocked.');
+      }
+    };
+
+    checkConnection();
+  }, [isAuthenticated, isDashboard]); // Add isDashboard to dependency array
+
+  const handleWalletAuth = async (walletAddress) => {
+    // Skip if already authenticated
+    if (isAuthenticated) {
+      console.log('User is already authenticated, skipping wallet authentication');
+      return { success: true };
+    }
+    
+    try {
+      // Normalize the wallet address to lowercase to avoid case sensitivity issues
+      const normalizedAddress = walletAddress.toLowerCase();
+      console.log('Attempting wallet authentication with address:', normalizedAddress);
+      const result = await walletAuth(normalizedAddress);
+      if (result.success) {
+        // Redirect based on role
+        if (result.role === 'student') {
+          navigate('/student-dashboard');
+        } else if (result.role === 'college') {
+          navigate('/college-dashboard');
+        } else if (result.role === 'company') {
+          navigate('/company-dashboard');
+        } else {
+          navigate('/student-dashboard'); // Default
+        }
+      } else {
+        console.error('Wallet auth failed:', result.error);
+        setError(result.error || 'Wallet authentication failed. This wallet may not be registered.');
+      }
+      return result;
+    } catch (err) {
+      console.error('Wallet auth error:', err);
+      setError('Authentication failed. Please try again.');
+      throw err;
+    }
+  };
 
   const handleConnect = async () => {
+    setError('');
+    
+    // If already authenticated but not in dashboard, redirect to the appropriate dashboard
+    if (isAuthenticated && !isDashboard) {
+      console.log('User is already authenticated and not in dashboard, redirecting to dashboard');
+      if (user?.role === 'student') {
+        navigate('/student-dashboard');
+      } else if (user?.role === 'college') {
+        navigate('/college-dashboard');
+      } else if (user?.role === 'company') {
+        navigate('/company-dashboard');
+      } else {
+        navigate('/student-dashboard'); // Default
+      }
+      return;
+    }
+    
+    // If already connected, disconnect
+    if (isConnected && !isDashboard) {
+      setIsConnected(false);
+      setAccount('');
+      return;
+    }
+
+    // Check if MetaMask is installed
+    if (!window.isMetaMaskAvailable()) {
+      setError('MetaMask is not installed. Please install MetaMask to connect.');
+      return;
+    }
+
     setIsConnecting(true);
     
-    // Simulate MetaMask connection (replace with actual MetaMask integration later)
-    setTimeout(() => {
-      setIsConnected(!isConnected);
+    try {
+      // Request account access
+      const accounts = await window.safeMetaMaskRequest('eth_requestAccounts');
+      
+      if (accounts && accounts.length > 0) {
+        const walletAddress = accounts[0];
+        setAccount(walletAddress);
+        setIsConnected(true);
+        
+        // If in dashboard or already authenticated, connect wallet to account
+        if (isDashboard || isAuthenticated) {
+          try {
+            const success = await connectWallet(walletAddress);
+            if (success) {
+              // Show success message or update UI
+              console.log('Wallet connected successfully to account');
+            }
+          } catch (err) {
+            console.error('Error connecting wallet to account:', err);
+            setError('Failed to connect wallet to your account. Please try again.');
+          }
+        } else {
+          // Try to authenticate with wallet
+          try {
+            await handleWalletAuth(walletAddress);
+          } catch (err) {
+            console.error('Error authenticating with wallet:', err);
+            setError('Wallet authentication failed. This wallet may not be registered.');
+          }
+        }
+      } else {
+        setError('No accounts found. Please check MetaMask.');
+      }
+    } catch (err) {
+      console.error('Error connecting to MetaMask:', err);
+      if (err.code === 4001) {
+        // User rejected the request
+        setError('MetaMask connection was rejected. Please approve the connection request.');
+      } else {
+        setError('Failed to connect to MetaMask. Please try again.');
+      }
+    } finally {
       setIsConnecting(false);
-    }, 1500);
+    }
   };
 
   return (
-    <button
-      onClick={handleConnect}
-      disabled={isConnecting}
-      className={`w-full flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg transition-all duration-200 hover:border-purple-400 hover:bg-purple-50 ${
-        isConnected ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-300 text-gray-600'
-      } ${isConnecting ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-md'}`}
-    >
-      <div className="flex items-center space-x-3">
-        {/* MetaMask Fox Icon */}
-        <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
-          <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-        </div>
-        
-        <div className="text-left">
-          <div className="font-medium">
-            {isConnecting ? 'Connecting...' : isConnected ? 'Wallet Connected' : 'Connect MetaMask'}
+    <div>
+      <button
+        onClick={handleConnect}
+        disabled={isConnecting}
+        className={`w-full flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg transition-all duration-200 hover:border-purple-400 hover:bg-purple-50 ${
+          isConnected ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-300 text-gray-600'
+        } ${isConnecting ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-md'}`}
+      >
+        <div className="flex items-center space-x-3">
+          {/* MetaMask Fox Icon */}
+          <div className="w-6 h-6 bg-gradient-to-br from-orange-400 to-orange-600 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-white" viewBox="0 0 35 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32.9582 1L19.8241 10.7183L22.2667 5.3585L32.9582 1Z" fill="#E17726" stroke="#E17726" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M2.04183 1L15.052 10.809L12.7333 5.35846L2.04183 1Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M28.2647 23.4894L24.7109 28.5973L32.2512 30.5635L34.3697 23.5999L28.2647 23.4894Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M0.652222 23.5999L2.7486 30.5635L10.2889 28.5973L6.75722 23.4894L0.652222 23.5999Z" fill="#E27625" stroke="#E27625" strokeWidth="0.25" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
           </div>
-          <div className="text-xs opacity-75">
-            {isConnecting ? 'Please wait...' : isConnected ? 'Ready for Web3' : 'For blockchain features'}
+          
+          <div className="text-left">
+            <div className="font-medium">
+              {isConnecting ? 'Connecting...' : isConnected ? 'Wallet Connected' : 'Connect MetaMask'}
+            </div>
+            <div className="text-xs opacity-75">
+              {isConnecting ? 'Please wait...' : isConnected ? `${account.substring(0, 6)}...${account.substring(account.length - 4)}` : 'Login with MetaMask wallet'}
+            </div>
           </div>
+          
+          {isConnecting && (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+          )}
+          
+          {isConnected && (
+            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+          )}
         </div>
-        
-        {isConnecting && (
-          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
-        )}
-        
-        {isConnected && (
-          <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-        )}
-      </div>
-    </button>
+      </button>
+      
+      {error && (
+        <div className="mt-2 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+    </div>
   );
 }

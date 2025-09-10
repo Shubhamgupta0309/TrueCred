@@ -5,7 +5,11 @@ This service provides functionality to send notifications to users,
 organizations, and external systems.
 """
 import logging
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime
+from flask import current_app
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -14,9 +18,7 @@ class NotificationService:
     """
     Service for sending notifications in the TrueCred system.
     
-    This is a placeholder implementation. In a production system,
-    this would integrate with email services, push notification
-    providers, or other communication channels.
+    This class handles email notifications and other types of notifications.
     """
     
     @staticmethod
@@ -34,10 +36,12 @@ class NotificationService:
         Returns:
             Dictionary with status and notification ID
         """
-        # In a real implementation, this would send an actual notification
-        # For now, we'll just log it
-        logger.info(f"NOTIFICATION [{notification_type}] To: {to}, Subject: {subject}")
-        logger.info(f"Message: {message}")
+        if notification_type == 'email':
+            return NotificationService.send_email(to, subject, message, metadata)
+        else:
+            # For non-email notifications, just log for now
+            logger.info(f"NOTIFICATION [{notification_type}] To: {to}, Subject: {subject}")
+            logger.info(f"Message: {message}")
         
         # Mock a successful notification
         notification_id = f"notif_{datetime.utcnow().timestamp()}"
@@ -50,6 +54,105 @@ class NotificationService:
             'notification_id': notification_id,
             'timestamp': datetime.utcnow().isoformat()
         }
+    
+    @staticmethod
+    def send_email(to, subject, message, metadata=None):
+        """
+        Send an email notification.
+        
+        Args:
+            to: Email recipient
+            subject: Email subject
+            message: Email body
+            metadata: Additional metadata for the email
+            
+        Returns:
+            Dictionary with status and notification ID
+        """
+        try:
+            is_html = metadata and metadata.get('html', False)
+            
+            # Try to get email configuration from the app config
+            mail_server = current_app.config.get('MAIL_SERVER')
+            mail_port = current_app.config.get('MAIL_PORT')
+            mail_username = current_app.config.get('MAIL_USERNAME')
+            mail_password = current_app.config.get('MAIL_PASSWORD')
+            mail_use_tls = current_app.config.get('MAIL_USE_TLS')
+            default_sender = current_app.config.get('MAIL_DEFAULT_SENDER')
+            
+            # If mail settings are not configured, log the email instead
+            if not all([mail_server, mail_port, mail_username, mail_password]):
+                logger.warning("Email settings not configured. Email not sent. Would send:")
+                logger.info(f"To: {to}, Subject: {subject}")
+                logger.info(f"Message: {message}")
+                
+                # Generate a notification ID for tracking
+                notification_id = f"email_{datetime.utcnow().timestamp()}"
+                
+                return {
+                    'status': 'logged',
+                    'notification_id': notification_id,
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+            
+            # Create message container
+            msg = MIMEMultipart('alternative')
+            msg['Subject'] = subject
+            msg['From'] = default_sender
+            msg['To'] = to
+            
+            # Attach parts
+            if is_html:
+                # Create both plain text and HTML versions
+                text_part = MIMEText(NotificationService._html_to_text(message), 'plain')
+                html_part = MIMEText(message, 'html')
+                msg.attach(text_part)
+                msg.attach(html_part)
+            else:
+                # Plain text only
+                msg.attach(MIMEText(message, 'plain'))
+            
+            # Send the message
+            with smtplib.SMTP(mail_server, mail_port) as server:
+                if mail_use_tls:
+                    server.starttls()
+                server.login(mail_username, mail_password)
+                server.send_message(msg)
+            
+            logger.info(f"Email sent successfully to {to}")
+            notification_id = f"email_{datetime.utcnow().timestamp()}"
+            
+            return {
+                'status': 'sent',
+                'notification_id': notification_id,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Error sending email: {str(e)}")
+            return {
+                'status': 'error',
+                'error': str(e),
+                'timestamp': datetime.utcnow().isoformat()
+            }
+    
+    @staticmethod
+    def _html_to_text(html):
+        """
+        Convert HTML to plain text.
+        
+        Args:
+            html: HTML content
+            
+        Returns:
+            Plain text version
+        """
+        # This is a very simple HTML to text conversion
+        # For a real app, you might want to use a library like html2text
+        import re
+        text = re.sub('<.*?>', ' ', html)
+        text = re.sub(' +', ' ', text)
+        return text.strip()
     
     @staticmethod
     def send_verification_request_notification(to, user, item_type, item_title):

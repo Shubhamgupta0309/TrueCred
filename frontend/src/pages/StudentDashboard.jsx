@@ -1,19 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
+import { useAuth } from '../context/AuthContext.jsx';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import CredentialsList from '../components/dashboard/CredentialsList';
 import ExperienceList from '../components/dashboard/ExperienceList';
 import ActionButtons from '../components/dashboard/ActionButtons';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 
-// Mock Data
-const mockUser = {
-  name: 'Alex Doe',
-  email: 'alex.doe@example.com',
-  role: 'Student',
-};
-
+// Mock Data - will be replaced with API calls
 const mockCredentials = [
   { id: 1, title: 'B.Sc. Computer Science Degree', date: 'Oct 15, 2023', status: 'Verified' },
   { id: 2, title: 'Web Development Bootcamp Certificate', date: 'Nov 01, 2023', status: 'Pending' },
@@ -35,6 +29,41 @@ const mockNotifications = [
 
 
 export default function StudentDashboard() {
+  const { user } = useAuth();
+  const [credentials, setCredentials] = useState(mockCredentials);
+  const [experiences, setExperiences] = useState(mockExperiences);
+  const [notifications, setNotifications] = useState(mockNotifications);
+  const [loading, setLoading] = useState(true);
+  
+  // Format the user data for the header
+  const userForHeader = {
+    name: user?.first_name && user?.last_name 
+      ? `${user.first_name} ${user.last_name}` 
+      : user?.username || 'Student',
+    email: user?.email || '',
+    role: 'Student'
+  };
+
+  // Fetch user data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // In a real app, you would fetch actual data here
+        // For now, we're using the mock data
+        // Example: const response = await api.get('/student/credentials');
+        // setCredentials(response.data);
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -50,6 +79,17 @@ export default function StudentDashboard() {
     visible: { opacity: 1, y: 0 },
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-700">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-100 p-4 md:p-8">
       {/* Background decoration */}
@@ -59,7 +99,7 @@ export default function StudentDashboard() {
       </div>
       
       <div className="max-w-7xl mx-auto">
-        <DashboardHeader user={mockUser} />
+        <DashboardHeader user={userForHeader} />
 
         <motion.div
           variants={containerVariants}
