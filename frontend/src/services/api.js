@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for the API
-const API_URL = 'http://localhost:5000/api';
+// Base URL for the API - use Vite's environment variables
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create an axios instance with default config
 export const api = axios.create({
@@ -33,6 +33,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
+    // If there's no response (network/CORS), propagate a friendly error
+    if (!error.response) {
+      return Promise.reject({
+        message: 'Network error or CORS blocked the request',
+        isNetworkError: true,
+        originalError: error,
+      });
+    }
+
     // If the error is 401 and we haven't retried yet
     if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
