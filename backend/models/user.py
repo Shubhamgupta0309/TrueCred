@@ -49,6 +49,9 @@ class User(Document):
     
     # Account status
     is_active = BooleanField(default=True)
+    is_email_verified = BooleanField(default=False)
+    organization = StringField()  # For college/company admin users
+    is_active = BooleanField(default=True)
     email_verified = BooleanField(default=False)
     
     # Password reset

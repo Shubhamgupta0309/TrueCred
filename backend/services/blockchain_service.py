@@ -1,473 +1,611 @@
+#!/usr/bin/env python3
 """
-Blockchain service for the TrueCred application.
-
-This service provides functionality to interact with Ethereum blockchain
-for storing and verifying credential and experience hashes.
+Blockchain Service for TrueCred
+Provides functionality for interacting with the TrueCred smart contract on Ethereum.
 """
 import json
-import time
-import logging
 import os
-from datetime import datetime
+import hashlib
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional, Any
+
 from web3 import Web3
 from web3.middleware import geth_poa_middleware
 from eth_account import Account
-from eth_account.signers.local import LocalAccount
+from eth_account.messages import encode_defunct
+from eth_typing import ChecksumAddress
+from hexbytes import HexBytes
+from dotenv import load_dotenv
 
-# Set up logging
-logger = logging.getLogger(__name__)
+# Load environment variables
+load_dotenv()
 
 class BlockchainService:
-    """
-    Service for interacting with the Ethereum blockchain for TrueCred.
+    """Service for interacting with the TrueCred smart contract."""
     
-    This service provides:
-    - Ethereum testnet integration 
-    - Credential hash storage and verification
-    - Experience hash storage and verification
-    - Transaction status tracking
-    """
-    
-    def __init__(self, contract_address=None, contract_abi=None, network='goerli'):
-        """
-        Initialize the blockchain service.
-        
-        Args:
-            contract_address (str, optional): Address of deployed contract
-            contract_abi (dict, optional): ABI of the deployed contract
-            network (str): Network to use ('goerli', 'sepolia', 'mainnet')
-        """
-        # Load configuration
-        self.network = network
-        self.contract_address = contract_address or os.getenv('CONTRACT_ADDRESS')
-        self.provider_url = os.getenv('ETHEREUM_PROVIDER_URL', f'https://{network}.infura.io/v3/{os.getenv("INFURA_API_KEY", "")}')
-        self.private_key = os.getenv('ETHEREUM_PRIVATE_KEY')
-        self.chain_id = int(os.getenv('ETHEREUM_CHAIN_ID', self._get_chain_id(network)))
-        
-        # Load contract ABI
-        if contract_abi:
-            self.contract_abi = contract_abi
-        else:
-            try:
-                with open(os.path.join(os.path.dirname(__file__), '../contracts/build/TrueCred.json'), 'r') as f:
-                    contract_data = json.load(f)
-                    self.contract_abi = contract_data['abi']
-            except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
-                logger.error(f"Error loading contract ABI: {str(e)}")
-                self.contract_abi = None
+    def __init__(self):
+        """Initialize the blockchain service."""
+        # Get configuration from environment
+        self.infura_project_id = os.getenv("INFURA_PROJECT_ID")
+        self.ethereum_network = os.getenv("ETHEREUM_NETWORK", "goerli")
+        self.contract_address = os.getenv("CONTRACT_ADDRESS")
+        self.private_key = os.getenv("BLOCKCHAIN_PRIVATE_KEY")
         
         # Initialize Web3 connection
-        try:
-            self.web3 = Web3(Web3.HTTPProvider(self.provider_url))
+        self.web3 = self._initialize_web3()
+        
+        # Load contract ABI
+        self.contract = self._load_contract()
+        
+        # Set up account from private key if available
+        self.account = None
+        if self.private_key:
+            self.account = Account.from_key(self.private_key)
+    
+    def _initialize_web3(self) -> Web3:
+        """Initialize Web3 connection to Ethereum network."""
+        # Check for local network first
+        if os.getenv("ETHEREUM_PROVIDER_URL"):
+            provider_url = os.getenv("ETHEREUM_PROVIDER_URL")
+            web3 = Web3(Web3.HTTPProvider(provider_url))
+        elif self.infura_project_id and self.infura_project_id != "your_infura_project_id":
+            # Use Infura for Ethereum network access
+            provider_url = f"https://{self.ethereum_network}.infura.io/v3/{self.infura_project_id}"
+            web3 = Web3(Web3.HTTPProvider(provider_url))
+        else:
+            # Use local node for testing (e.g., Ganache)
+            web3 = Web3(Web3.HTTPProvider("http://127.0.0.1:8545"))
+        
+        # Add middleware for PoA networks (e.g., Goerli)
+        web3.middleware_onion.inject(geth_poa_middleware, layer=0)
+        
+        return web3
+    
+    def _load_contract(self) -> Optional[Any]:
+        """Load the TrueCred contract."""
+        if not self.web3.is_connected():
+            return None
             
-            # Add middleware for testnet compatibility
-            if network in ['goerli', 'sepolia']:
-                self.web3.middleware_onion.inject(geth_poa_middleware, layer=0)
+        if not self.contract_address or self.contract_address == "0x0000000000000000000000000000000000000000":
+            return None
             
-            # Set up account if private key is available
-            if self.private_key:
-                self.account = Account.from_key(self.private_key)
-                logger.info(f"Account loaded: {self.account.address}")
-            else:
-                self.account = None
-                logger.warning("No private key provided. Transactions will not be possible.")
+        # Load ABI from contract build file
+        contract_path = Path(__file__).parent / "build" / "TrueCred.json"
+        if not contract_path.exists():
+            return None
             
-            # Set up contract if address and ABI are available
-            if self.contract_address and self.contract_abi:
-                self.contract = self.web3.eth.contract(address=self.contract_address, abi=self.contract_abi)
-                logger.info(f"Contract loaded at {self.contract_address}")
-            else:
-                self.contract = None
-                logger.warning("Contract not loaded. Check address and ABI.")
+        with open(contract_path, "r") as f:
+            contract_data = json.load(f)
             
-            logger.info(f"Connected to Ethereum {network} network. Chain ID: {self.chain_id}")
-        except Exception as e:
-            logger.error(f"Failed to initialize blockchain service: {str(e)}")
-            self.web3 = None
-            self.contract = None
-            self.account = None
-            
-    def _get_chain_id(self, network):
-        """Get the chain ID for a given network."""
-        chain_ids = {
-            'mainnet': 1,
-            'goerli': 5,
-            'sepolia': 11155111,
+        contract_abi = contract_data["abi"]
+        
+        # Return contract instance
+        return self.web3.eth.contract(
+            address=self.web3.to_checksum_address(self.contract_address), 
+            abi=contract_abi
+        )
+    
+    def is_connected(self) -> bool:
+        """Check if connected to Ethereum network."""
+        return self.web3.is_connected() and self.contract is not None
+    
+    def get_connection_status(self) -> Dict[str, Any]:
+        """Get detailed connection status."""
+        is_connected = self.web3.is_connected()
+        contract_loaded = self.contract is not None
+        has_account = self.account is not None
+        
+        result = {
+            "web3_connected": is_connected,
+            "contract_loaded": contract_loaded,
+            "has_account": has_account,
+            "network": self.ethereum_network,
+            "contract_address": self.contract_address if contract_loaded else None,
         }
-        return chain_ids.get(network, 5)  # Default to Goerli
+        
+        if is_connected:
+            result["block_number"] = self.web3.eth.block_number
+            
+            if has_account:
+                account_address = self.account.address
+                result["account_address"] = account_address
+                result["account_balance"] = self.web3.from_wei(
+                    self.web3.eth.get_balance(account_address), 
+                    "ether"
+                )
+        
+        return result
     
-    def store_credential_hash(self, credential_id, data_hash, issuer_address=None):
-        """
-        Store a credential hash on the blockchain.
+    def generate_credential_id(self, credential_data: Dict[str, Any]) -> bytes:
+        """Generate a unique identifier for a credential."""
+        # Create a deterministic ID based on credential data
+        data_string = f"{credential_data['issuer']}:{credential_data['recipient']}:{credential_data['title']}:{credential_data['issue_date']}"
         
-        Args:
-            credential_id (str): ID of the credential
-            data_hash (str): Hash of credential data
-            issuer_address (str, optional): Ethereum address of issuer
+        # Hash the data
+        hash_bytes = hashlib.sha256(data_string.encode()).digest()
+        
+        return hash_bytes
+    
+    def issue_credential(
+        self,
+        subject: str,
+        credential_type: str,
+        metadata_uri: str,
+        expiration_date: int = 0
+    ) -> Optional[Dict[str, Any]]:
+        """Issue a new credential on the blockchain."""
+        if not self.is_connected() or not self.account:
+            return None
             
-        Returns:
-            dict: Transaction information
-        """
-        if not self.web3 or not self.contract or not self.account:
-            logger.error("Blockchain service not properly initialized")
-            return self._mock_transaction_data(credential_id, data_hash, issuer_address, 'failed')
-        
         try:
-            # Use the account address if no issuer address is provided
-            issuer_address = issuer_address or self.account.address
+            # Convert addresses to checksum format
+            subject_address = self.web3.to_checksum_address(subject)
+            issuer_address = self.account.address
             
-            # Build transaction
-            tx = self.contract.functions.storeCredentialHash(
+            # Generate credential ID
+            credential_data = {
+                "issuer": issuer_address,
+                "recipient": subject_address,
+                "title": credential_type,
+                "issue_date": self.web3.eth.get_block('latest').timestamp
+            }
+            credential_id = self.generate_credential_id(credential_data)
+            
+            # Estimate gas for the transaction
+            gas_estimate = self.contract.functions.issueCredential(
                 credential_id,
-                data_hash
-            ).build_transaction({
-                'chainId': self.chain_id,
-                'gas': 2000000,
-                'gasPrice': self.web3.eth.gas_price,
-                'nonce': self.web3.eth.get_transaction_count(self.account.address),
-                'from': self.account.address
+                subject_address,
+                credential_type,
+                metadata_uri,
+                expiration_date
+            ).estimate_gas({
+                "from": issuer_address
             })
             
-            # Sign and send transaction
-            signed_tx = self.web3.eth.account.sign_transaction(tx, private_key=self.private_key)
-            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            
-            # Wait for transaction receipt
-            logger.info(f"Transaction sent: {tx_hash.hex()}")
-            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-            
-            # Get block information
-            block = self.web3.eth.get_block(receipt.blockNumber)
-            
-            # Create transaction data
-            transaction = {
-                'credential_id': credential_id,
-                'data_hash': data_hash,
-                'issuer_address': issuer_address,
-                'transaction_hash': receipt.transactionHash.hex(),
-                'block_number': receipt.blockNumber,
-                'timestamp': datetime.utcfromtimestamp(block.timestamp).isoformat(),
-                'network': self.network,
-                'status': 'confirmed' if receipt.status == 1 else 'failed',
-                'gas_used': receipt.gasUsed
-            }
-            
-            logger.info(f"Credential hash stored on blockchain. Transaction: {transaction['transaction_hash']}")
-            return transaction
-            
-        except Exception as e:
-            logger.error(f"Error storing credential hash: {str(e)}")
-            return self._mock_transaction_data(credential_id, data_hash, issuer_address, 'failed')
-    
-    def _mock_transaction_data(self, item_id, data_hash, address=None, status='pending'):
-        """Create mock transaction data when actual blockchain interaction fails."""
-        return {
-            'item_id': item_id,
-            'data_hash': data_hash,
-            'address': address or '0x0000000000000000000000000000000000000000',
-            'transaction_hash': f"0x{data_hash[:40]}",  # Mock transaction hash
-            'block_number': 0,
-            'timestamp': datetime.utcnow().isoformat(),
-            'network': self.network,
-            'status': status,
-            'error': 'Blockchain service not properly initialized or connection failed',
-            'is_mock': True
-        }
-    
-    def store_experience_hash(self, experience_id, data_hash, verifier_address=None):
-        """
-        Store an experience hash on the blockchain.
-        
-        Args:
-            experience_id (str): ID of the experience
-            data_hash (str): Hash of experience data
-            verifier_address (str, optional): Ethereum address of verifier
-            
-        Returns:
-            dict: Transaction information
-        """
-        if not self.web3 or not self.contract or not self.account:
-            logger.error("Blockchain service not properly initialized")
-            return self._mock_transaction_data(experience_id, data_hash, verifier_address, 'failed')
-        
-        try:
-            # Use the account address if no verifier address is provided
-            verifier_address = verifier_address or self.account.address
+            # Get current gas price
+            gas_price = self.web3.eth.gas_price
             
             # Build transaction
-            tx = self.contract.functions.storeExperienceHash(
-                experience_id,
-                data_hash
-            ).build_transaction({
-                'chainId': self.chain_id,
-                'gas': 2000000,
-                'gasPrice': self.web3.eth.gas_price,
-                'nonce': self.web3.eth.get_transaction_count(self.account.address),
-                'from': self.account.address
-            })
-            
-            # Sign and send transaction
-            signed_tx = self.web3.eth.account.sign_transaction(tx, private_key=self.private_key)
-            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            
-            # Wait for transaction receipt
-            logger.info(f"Transaction sent: {tx_hash.hex()}")
-            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
-            
-            # Get block information
-            block = self.web3.eth.get_block(receipt.blockNumber)
-            
-            # Create transaction data
-            transaction = {
-                'experience_id': experience_id,
-                'data_hash': data_hash,
-                'verifier_address': verifier_address,
-                'transaction_hash': receipt.transactionHash.hex(),
-                'block_number': receipt.blockNumber,
-                'timestamp': datetime.utcfromtimestamp(block.timestamp).isoformat(),
-                'network': self.network,
-                'status': 'confirmed' if receipt.status == 1 else 'failed',
-                'gas_used': receipt.gasUsed
-            }
-            
-            logger.info(f"Experience hash stored on blockchain. Transaction: {transaction['transaction_hash']}")
-            return transaction
-            
-        except Exception as e:
-            logger.error(f"Error storing experience hash: {str(e)}")
-            return self._mock_transaction_data(experience_id, data_hash, verifier_address, 'failed')
-    
-    def verify_credential_hash(self, credential_id, data_hash):
-        """
-        Verify a credential hash against the blockchain.
-        
-        Args:
-            credential_id (str): ID of the credential
-            data_hash (str): Hash to verify
-            
-        Returns:
-            bool: True if verified, False otherwise
-        """
-        if not self.web3 or not self.contract:
-            logger.error("Blockchain service not properly initialized")
-            return False
-        
-        try:
-            # Call the contract to get the stored hash
-            stored_hash = self.contract.functions.getCredentialHash(credential_id).call()
-            
-            # Compare with the provided hash
-            is_verified = (stored_hash == data_hash)
-            logger.info(f"Credential hash verification for {credential_id}: {'Successful' if is_verified else 'Failed'}")
-            
-            # Also check if the credential is revoked
-            is_revoked = self.contract.functions.isCredentialRevoked(credential_id).call()
-            if is_revoked:
-                logger.warning(f"Credential {credential_id} is revoked")
-                return False
-            
-            return is_verified
-            
-        except Exception as e:
-            logger.error(f"Error verifying credential hash: {str(e)}")
-            return False
-    
-    def verify_experience_hash(self, experience_id, data_hash):
-        """
-        Verify an experience hash against the blockchain.
-        
-        Args:
-            experience_id (str): ID of the experience
-            data_hash (str): Hash to verify
-            
-        Returns:
-            bool: True if verified, False otherwise
-        """
-        if not self.web3 or not self.contract:
-            logger.error("Blockchain service not properly initialized")
-            return False
-        
-        try:
-            # Call the contract to get the stored hash
-            stored_hash = self.contract.functions.getExperienceHash(experience_id).call()
-            
-            # Compare with the provided hash
-            is_verified = (stored_hash == data_hash)
-            logger.info(f"Experience hash verification for {experience_id}: {'Successful' if is_verified else 'Failed'}")
-            return is_verified
-            
-        except Exception as e:
-            logger.error(f"Error verifying experience hash: {str(e)}")
-            return False
-    
-    def get_transaction_status(self, transaction_hash):
-        """
-        Get the status of a blockchain transaction.
-        
-        Args:
-            transaction_hash (str): Hash of the transaction
-            
-        Returns:
-            dict: Transaction status information
-        """
-        if not self.web3:
-            logger.error("Blockchain service not properly initialized")
-            return {
-                'transaction_hash': transaction_hash,
-                'status': 'unknown',
-                'error': 'Blockchain service not properly initialized'
-            }
-        
-        try:
-            # Get transaction receipt
-            receipt = self.web3.eth.get_transaction_receipt(transaction_hash)
-            
-            if not receipt:
-                # Transaction is pending
-                return {
-                    'transaction_hash': transaction_hash,
-                    'status': 'pending',
-                    'confirmations': 0
-                }
-            
-            # Get block information
-            block = self.web3.eth.get_block(receipt['blockNumber'])
-            current_block = self.web3.eth.block_number
-            confirmations = current_block - receipt['blockNumber'] + 1
-            
-            # Status information
-            status = {
-                'transaction_hash': transaction_hash,
-                'block_number': receipt['blockNumber'],
-                'block_hash': receipt['blockHash'].hex(),
-                'gas_used': receipt['gasUsed'],
-                'status': 'confirmed' if receipt['status'] == 1 else 'failed',
-                'confirmations': confirmations,
-                'timestamp': datetime.utcfromtimestamp(block['timestamp']).isoformat(),
-                'network': self.network
-            }
-            
-            return status
-            
-        except Exception as e:
-            logger.error(f"Error getting transaction status: {str(e)}")
-            return {
-                'transaction_hash': transaction_hash,
-                'status': 'error',
-                'error': str(e)
-            }
-    
-    def get_contract_events(self, event_name, from_block=0, to_block='latest'):
-        """
-        Get events emitted by the smart contract.
-        
-        Args:
-            event_name (str): Name of the event to filter by
-            from_block (int): Starting block number
-            to_block (str/int): Ending block number
-            
-        Returns:
-            list: List of events
-        """
-        if not self.web3 or not self.contract:
-            logger.error("Blockchain service not properly initialized")
-            return []
-        
-        try:
-            # Get the event filter
-            event = getattr(self.contract.events, event_name)
-            if not event:
-                logger.error(f"Event {event_name} not found in contract")
-                return []
-            
-            # Get logs for the event
-            logs = event.get_logs(fromBlock=from_block, toBlock=to_block)
-            
-            # Process logs to get event data
-            events = []
-            for log in logs:
-                # Get block information for timestamp
-                block = self.web3.eth.get_block(log['blockNumber'])
-                
-                # Create event data
-                event_data = {
-                    'event': event_name,
-                    'args': dict(log['args']),
-                    'block_number': log['blockNumber'],
-                    'transaction_hash': log['transactionHash'].hex(),
-                    'log_index': log['logIndex'],
-                    'timestamp': datetime.utcfromtimestamp(block['timestamp']).isoformat()
-                }
-                
-                events.append(event_data)
-            
-            return events
-            
-        except Exception as e:
-            logger.error(f"Error getting contract events: {str(e)}")
-            return []
-    
-    def revoke_credential(self, credential_id, reason=None):
-        """
-        Revoke a credential on the blockchain.
-        
-        Args:
-            credential_id (str): ID of the credential to revoke
-            reason (str, optional): Reason for revocation
-            
-        Returns:
-            dict: Transaction information
-        """
-        if not self.web3 or not self.contract or not self.account:
-            logger.error("Blockchain service not properly initialized")
-            return {
-                'status': 'failed',
-                'error': 'Blockchain service not properly initialized'
-            }
-        
-        try:
-            # Build transaction
-            tx = self.contract.functions.revokeCredential(
+            nonce = self.web3.eth.get_transaction_count(issuer_address)
+            transaction = self.contract.functions.issueCredential(
                 credential_id,
-                reason or "Credential revoked"
+                subject_address,
+                credential_type,
+                metadata_uri,
+                expiration_date
             ).build_transaction({
-                'chainId': self.chain_id,
-                'gas': 200000,
-                'gasPrice': self.web3.eth.gas_price,
-                'nonce': self.web3.eth.get_transaction_count(self.account.address),
-                'from': self.account.address
+                "from": issuer_address,
+                "gas": gas_estimate,
+                "gasPrice": gas_price,
+                "nonce": nonce
             })
             
             # Sign and send transaction
-            signed_tx = self.web3.eth.account.sign_transaction(tx, private_key=self.private_key)
+            signed_tx = self.web3.eth.account.sign_transaction(
+                transaction, 
+                private_key=self.private_key
+            )
             tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
             
             # Wait for transaction receipt
-            logger.info(f"Revocation transaction sent: {tx_hash.hex()}")
-            receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
             
-            # Get block information
-            block = self.web3.eth.get_block(receipt.blockNumber)
-            
-            # Create transaction data
-            transaction = {
-                'credential_id': credential_id,
-                'transaction_hash': receipt.transactionHash.hex(),
-                'block_number': receipt.blockNumber,
-                'timestamp': datetime.utcfromtimestamp(block.timestamp).isoformat(),
-                'network': self.network,
-                'status': 'confirmed' if receipt.status == 1 else 'failed',
-                'gas_used': receipt.gasUsed,
-                'reason': reason
+            return {
+                "transaction_hash": self.web3.to_hex(tx_hash),
+                "block_number": tx_receipt.blockNumber,
+                "gas_used": tx_receipt.gasUsed,
+                "credential_id": self.web3.to_hex(credential_id),
+                "status": "success" if tx_receipt.status == 1 else "failed"
             }
-            
-            logger.info(f"Credential revoked on blockchain. Transaction: {transaction['transaction_hash']}")
-            return transaction
             
         except Exception as e:
-            logger.error(f"Error revoking credential: {str(e)}")
             return {
-                'credential_id': credential_id,
-                'status': 'failed',
-                'error': str(e)
+                "status": "error",
+                "error": str(e)
             }
+    
+    def batch_issue_credentials(
+        self,
+        subjects: List[str],
+        credential_types: List[str],
+        metadata_uris: List[str],
+        expiration_dates: List[int]
+    ) -> Optional[Dict[str, Any]]:
+        """Issue multiple credentials in a batch."""
+        if not self.is_connected() or not self.account:
+            return None
+            
+        # Validate input arrays have the same length
+        if not (len(subjects) == len(credential_types) == len(metadata_uris) == len(expiration_dates)):
+            return {
+                "status": "error",
+                "error": "Input arrays must have the same length"
+            }
+            
+        try:
+            # Convert addresses to checksum format
+            subject_addresses = [self.web3.to_checksum_address(subject) for subject in subjects]
+            issuer_address = self.account.address
+            
+            # Generate credential IDs
+            credential_ids = []
+            for i, subject in enumerate(subject_addresses):
+                credential_data = {
+                    "issuer": issuer_address,
+                    "recipient": subject,
+                    "title": credential_types[i],
+                    "issue_date": self.web3.eth.get_block('latest').timestamp
+                }
+                credential_id = self.generate_credential_id(credential_data)
+                credential_ids.append(credential_id)
+            
+            # Estimate gas for the transaction
+            gas_estimate = self.contract.functions.batchIssueCredentials(
+                credential_ids,
+                subject_addresses,
+                credential_types,
+                metadata_uris,
+                expiration_dates
+            ).estimate_gas({
+                "from": issuer_address
+            })
+            
+            # Get current gas price
+            gas_price = self.web3.eth.gas_price
+            
+            # Build transaction
+            nonce = self.web3.eth.get_transaction_count(issuer_address)
+            transaction = self.contract.functions.batchIssueCredentials(
+                credential_ids,
+                subject_addresses,
+                credential_types,
+                metadata_uris,
+                expiration_dates
+            ).build_transaction({
+                "from": issuer_address,
+                "gas": gas_estimate,
+                "gasPrice": gas_price,
+                "nonce": nonce
+            })
+            
+            # Sign and send transaction
+            signed_tx = self.web3.eth.account.sign_transaction(
+                transaction, 
+                private_key=self.private_key
+            )
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            
+            # Wait for transaction receipt
+            tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            return {
+                "transaction_hash": self.web3.to_hex(tx_hash),
+                "block_number": tx_receipt.blockNumber,
+                "gas_used": tx_receipt.gasUsed,
+                "credential_ids": [self.web3.to_hex(cid) for cid in credential_ids],
+                "status": "success" if tx_receipt.status == 1 else "failed"
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def revoke_credential(self, credential_id: bytes) -> Optional[Dict[str, Any]]:
+        """Revoke a credential on the blockchain."""
+        if not self.is_connected() or not self.account:
+            return None
+            
+        try:
+            issuer_address = self.account.address
+            
+            # Estimate gas for the transaction
+            gas_estimate = self.contract.functions.revokeCredential(
+                credential_id
+            ).estimate_gas({
+                "from": issuer_address
+            })
+            
+            # Get current gas price
+            gas_price = self.web3.eth.gas_price
+            
+            # Build transaction
+            nonce = self.web3.eth.get_transaction_count(issuer_address)
+            transaction = self.contract.functions.revokeCredential(
+                credential_id
+            ).build_transaction({
+                "from": issuer_address,
+                "gas": gas_estimate,
+                "gasPrice": gas_price,
+                "nonce": nonce
+            })
+            
+            # Sign and send transaction
+            signed_tx = self.web3.eth.account.sign_transaction(
+                transaction, 
+                private_key=self.private_key
+            )
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            
+            # Wait for transaction receipt
+            tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            return {
+                "transaction_hash": self.web3.to_hex(tx_hash),
+                "block_number": tx_receipt.blockNumber,
+                "gas_used": tx_receipt.gasUsed,
+                "credential_id": self.web3.to_hex(credential_id),
+                "status": "success" if tx_receipt.status == 1 else "failed"
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def verify_credential(self, credential_id: bytes) -> Optional[Dict[str, Any]]:
+        """Verify a credential's validity on the blockchain."""
+        if not self.is_connected():
+            return None
+            
+        try:
+            # Call the verifyCredential function
+            valid, status, issuer = self.contract.functions.verifyCredential(
+                credential_id
+            ).call()
+            
+            return {
+                "credential_id": self.web3.to_hex(credential_id),
+                "valid": valid,
+                "status": status,
+                "issuer": issuer
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def get_credential_details(self, credential_id: bytes) -> Optional[Dict[str, Any]]:
+        """Get detailed information about a credential."""
+        if not self.is_connected():
+            return None
+            
+        try:
+            # Call the getCredentialDetails function
+            credential = self.contract.functions.getCredentialDetails(
+                credential_id
+            ).call()
+            
+            # Convert the returned tuple to a dictionary
+            result = {
+                "id": self.web3.to_hex(credential[0]),
+                "issuer": credential[1],
+                "subject": credential[2],
+                "credential_type": credential[3],
+                "metadata_uri": credential[4],
+                "issuance_date": credential[5],
+                "expiration_date": credential[6],
+                "status": credential[7]
+            }
+            
+            return result
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def get_subject_credentials(self, subject: str) -> Optional[List[bytes]]:
+        """Get all credential IDs owned by a subject."""
+        if not self.is_connected():
+            return None
+            
+        try:
+            subject_address = self.web3.to_checksum_address(subject)
+            
+            # Call the getSubjectCredentials function
+            credential_ids = self.contract.functions.getSubjectCredentials(
+                subject_address
+            ).call()
+            
+            return [self.web3.to_hex(cid) for cid in credential_ids]
+            
+        except Exception as e:
+            return None
+    
+    def get_issuer_credentials(self, issuer: str) -> Optional[List[bytes]]:
+        """Get all credential IDs issued by an issuer."""
+        if not self.is_connected():
+            return None
+            
+        try:
+            issuer_address = self.web3.to_checksum_address(issuer)
+            
+            # Call the getIssuerCredentials function
+            credential_ids = self.contract.functions.getIssuerCredentials(
+                issuer_address
+            ).call()
+            
+            return [self.web3.to_hex(cid) for cid in credential_ids]
+            
+        except Exception as e:
+            return None
+    
+    def is_authorized_issuer(self, issuer: str) -> bool:
+        """Check if an address is an authorized issuer."""
+        if not self.is_connected():
+            return False
+            
+        try:
+            issuer_address = self.web3.to_checksum_address(issuer)
+            
+            # Call the isAuthorizedIssuer function
+            return self.contract.functions.isAuthorizedIssuer(
+                issuer_address
+            ).call()
+            
+        except Exception as e:
+            return False
+    
+    def authorize_issuer(self, issuer: str) -> Optional[Dict[str, Any]]:
+        """Authorize an address to issue credentials."""
+        if not self.is_connected() or not self.account:
+            return None
+            
+        try:
+            issuer_address = self.web3.to_checksum_address(issuer)
+            owner_address = self.account.address
+            
+            # Estimate gas for the transaction
+            gas_estimate = self.contract.functions.authorizeIssuer(
+                issuer_address
+            ).estimate_gas({
+                "from": owner_address
+            })
+            
+            # Get current gas price
+            gas_price = self.web3.eth.gas_price
+            
+            # Build transaction
+            nonce = self.web3.eth.get_transaction_count(owner_address)
+            transaction = self.contract.functions.authorizeIssuer(
+                issuer_address
+            ).build_transaction({
+                "from": owner_address,
+                "gas": gas_estimate,
+                "gasPrice": gas_price,
+                "nonce": nonce
+            })
+            
+            # Sign and send transaction
+            signed_tx = self.web3.eth.account.sign_transaction(
+                transaction, 
+                private_key=self.private_key
+            )
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            
+            # Wait for transaction receipt
+            tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            return {
+                "transaction_hash": self.web3.to_hex(tx_hash),
+                "block_number": tx_receipt.blockNumber,
+                "gas_used": tx_receipt.gasUsed,
+                "issuer": issuer_address,
+                "status": "success" if tx_receipt.status == 1 else "failed"
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def revoke_issuer(self, issuer: str) -> Optional[Dict[str, Any]]:
+        """Revoke an issuer's authorization."""
+        if not self.is_connected() or not self.account:
+            return None
+            
+        try:
+            issuer_address = self.web3.to_checksum_address(issuer)
+            owner_address = self.account.address
+            
+            # Estimate gas for the transaction
+            gas_estimate = self.contract.functions.revokeIssuer(
+                issuer_address
+            ).estimate_gas({
+                "from": owner_address
+            })
+            
+            # Get current gas price
+            gas_price = self.web3.eth.gas_price
+            
+            # Build transaction
+            nonce = self.web3.eth.get_transaction_count(owner_address)
+            transaction = self.contract.functions.revokeIssuer(
+                issuer_address
+            ).build_transaction({
+                "from": owner_address,
+                "gas": gas_estimate,
+                "gasPrice": gas_price,
+                "nonce": nonce
+            })
+            
+            # Sign and send transaction
+            signed_tx = self.web3.eth.account.sign_transaction(
+                transaction, 
+                private_key=self.private_key
+            )
+            tx_hash = self.web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+            
+            # Wait for transaction receipt
+            tx_receipt = self.web3.eth.wait_for_transaction_receipt(tx_hash)
+            
+            return {
+                "transaction_hash": self.web3.to_hex(tx_hash),
+                "block_number": tx_receipt.blockNumber,
+                "gas_used": tx_receipt.gasUsed,
+                "issuer": issuer_address,
+                "status": "success" if tx_receipt.status == 1 else "failed"
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def sign_message(self, message: str) -> Optional[Dict[str, Any]]:
+        """Sign a message with the account's private key."""
+        if not self.account:
+            return None
+            
+        try:
+            # Create the message hash
+            message_hash = encode_defunct(text=message)
+            
+            # Sign the message
+            signed_message = self.web3.eth.account.sign_message(
+                message_hash,
+                private_key=self.private_key
+            )
+            
+            return {
+                "message": message,
+                "signature": self.web3.to_hex(signed_message.signature),
+                "signer": self.account.address
+            }
+            
+        except Exception as e:
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+    
+    def verify_signature(self, message: str, signature: str, address: str) -> bool:
+        """Verify a signature."""
+        try:
+            signer_address = self.web3.to_checksum_address(address)
+            signature_bytes = HexBytes(signature)
+            
+            # Create the message hash
+            message_hash = encode_defunct(text=message)
+            
+            # Recover the signer's address
+            recovered_address = self.web3.eth.account.recover_message(
+                message_hash,
+                signature=signature_bytes
+            )
+            
+            return recovered_address == signer_address
+            
+        except Exception as e:
+            return False
+
+# Create a singleton instance
+blockchain_service = BlockchainService()
