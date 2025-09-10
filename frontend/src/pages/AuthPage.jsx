@@ -103,7 +103,6 @@ export default function AuthPage() {
       } else if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match';
       }
-
       if (!formData.role) {
         newErrors.role = 'Please select your role';
       }
@@ -189,6 +188,8 @@ export default function AuthPage() {
           username: sanitizedUsername,
           email: formData.email,
           password: formData.password,
+          // No name collected on UI; provide a sensible default for backend
+          name: `User ${sanitizedUsername}`,
           role: formData.role
         };
         
@@ -368,7 +369,7 @@ export default function AuthPage() {
                         required
                         autoComplete="new-password"
                       />
-
+                      
                       <InputField
                         label="Role"
                         type="select"
