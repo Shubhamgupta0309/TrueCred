@@ -12,6 +12,27 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def login_required(fn):
+    """
+    Decorator to check if the user is authenticated.
+    
+    Returns:
+        Decorator function
+    """
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        # Verify JWT is valid
+        try:
+            verify_jwt_in_request()
+            return fn(*args, **kwargs)
+        except Exception as e:
+            logger.warning(f"Authentication failed: {e}")
+            return jsonify({
+                'success': False,
+                'message': 'Authentication required. Please log in.'
+            }), 401
+    return wrapper
+
 def role_required(roles):
     """
     Decorator to check if the authenticated user has one of the required roles.

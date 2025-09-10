@@ -1,6 +1,7 @@
 # TrueCred - Blockchain Verification System Documentation
 
 ## Table of Contents
+
 1. [Introduction](#introduction)
 2. [System Architecture](#system-architecture)
 3. [Blockchain Implementation](#blockchain-implementation)
@@ -11,6 +12,7 @@
 8. [Future Enhancements](#future-enhancements)
 
 ## Introduction <a name="introduction"></a>
+
 TrueCred is a unified platform that leverages blockchain technology to verify and showcase skills, experience, and credentials. This system provides:
 
 - **Immutable verification** of credentials using Ethereum blockchain
@@ -20,6 +22,7 @@ TrueCred is a unified platform that leverages blockchain technology to verify an
 - **LinkedIn-style verification badges** for user profiles
 
 ## System Architecture <a name="system-architecture"></a>
+
 ```mermaid
 graph TD
     A[User Browser] -->|HTTP| B[React Frontend]
@@ -33,31 +36,37 @@ graph TD
 ```
 
 ### Components
+
 1. **Frontend**: React-based user interface
 2. **Backend**: Flask API server
 3. **Blockchain**: Ethereum network (local/testnet/mainnet)
-4. **Storage**: 
+4. **Storage**:
    - IPFS for documents
    - PostgreSQL/SQLite for metadata
 5. **Smart Contracts**: Core verification logic
 
 ## Blockchain Implementation <a name="blockchain-implementation"></a>
+
 ### Technology Stack
+
 - **Blockchain Network**: Ethereum (Ganache for development, Goerli for testing)
 - **Smart Contracts**: Solidity (v0.8.0)
 - **Web3 Library**: Web3.py (Python), ethers.js (JavaScript)
-- **Development Tools**: 
+- **Development Tools**:
   - Truffle Suite (Contract compilation)
   - Hardhat (Alternative to Truffle)
   - Remix IDE (Contract testing)
 
 ### Key Features
+
 1. **Credential Verification**:
+
    - Permanent record on blockchain
    - Cryptographic proof of authenticity
    - Revocation capability for issuers
 
 2. **Experience Verification**:
+
    - Company-authorized verification
    - Tamper-proof work history
    - Skill certification
@@ -67,9 +76,10 @@ graph TD
    - Content-addressed hashes stored on-chain
    - Immutable document references
 
-
 ## Verification Workflow <a name="verification-workflow"></a>
+
 ### Credential Issuance Process
+
 ```mermaid
 sequenceDiagram
     participant User
@@ -77,7 +87,7 @@ sequenceDiagram
     participant Backend
     participant Blockchain
     participant IPFS
-    
+
     User->>Frontend: Submit credential details + document
     Frontend->>Backend: Send credential data
     Backend->>IPFS: Upload document (get hash)
@@ -89,13 +99,14 @@ sequenceDiagram
 ```
 
 ### Experience Verification Process
+
 ```mermaid
 sequenceDiagram
     participant Employee
     participant Company
     participant Backend
     participant Blockchain
-    
+
     Employee->>Backend: Submit experience claim
     Backend->>Database: Store pending verification
     Company->>Backend: Login to verification portal
@@ -109,25 +120,29 @@ sequenceDiagram
 ```
 
 ## API Documentation <a name="api-documentation"></a>
+
 ### Base URL: `https://api.truecred.app`
 
 ### 1. Credential Endpoints
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/credentials` | POST | Issue new credential | `holder_id`, `type`, `ipfs_hash` |
-| `/credentials/{id}` | GET | Get credential details | `id` |
-| `/credentials/{id}/verify` | GET | Verify credential status | `id` |
-| `/credentials/{id}/revoke` | POST | Revoke credential | `id` |
+
+| Endpoint                   | Method | Description              | Parameters                       |
+| -------------------------- | ------ | ------------------------ | -------------------------------- |
+| `/credentials`             | POST   | Issue new credential     | `holder_id`, `type`, `ipfs_hash` |
+| `/credentials/{id}`        | GET    | Get credential details   | `id`                             |
+| `/credentials/{id}/verify` | GET    | Verify credential status | `id`                             |
+| `/credentials/{id}/revoke` | POST   | Revoke credential        | `id`                             |
 
 ### 2. Experience Endpoints
-| Endpoint | Method | Description | Parameters |
-|----------|--------|-------------|------------|
-| `/experiences` | POST | Submit experience claim | `user_address`, `organization`, `role`, `start_date`, `end_date`, `skills`, `ipfs_hash` |
-| `/experiences/pending` | GET | Get pending verifications | - |
-| `/experiences/{id}/verify` | POST | Verify experience | `id` |
-| `/users/{address}/experiences` | GET | Get user experiences | `address` |
+
+| Endpoint                       | Method | Description               | Parameters                                                                              |
+| ------------------------------ | ------ | ------------------------- | --------------------------------------------------------------------------------------- |
+| `/experiences`                 | POST   | Submit experience claim   | `user_address`, `organization`, `role`, `start_date`, `end_date`, `skills`, `ipfs_hash` |
+| `/experiences/pending`         | GET    | Get pending verifications | -                                                                                       |
+| `/experiences/{id}/verify`     | POST   | Verify experience         | `id`                                                                                    |
+| `/users/{address}/experiences` | GET    | Get user experiences      | `address`                                                                               |
 
 ### Sample Request
+
 ```bash
 curl -X POST https://api.truecred.app/credentials \
   -H "Content-Type: application/json" \
@@ -138,9 +153,10 @@ curl -X POST https://api.truecred.app/credentials \
   }'
 ```
 
-
 ## Setup Guide <a name="setup-guide"></a>
+
 ### Prerequisites
+
 - Node.js v16+
 - Python 3.9+
 - Ganache CLI
@@ -148,6 +164,7 @@ curl -X POST https://api.truecred.app/credentials \
 - IPFS Desktop
 
 ### Backend Setup
+
 ```bash
 # Clone repository
 git clone https://github.com/yourusername/truecred.git
@@ -176,6 +193,7 @@ python app.py
 ```
 
 ### Frontend Setup
+
 ```bash
 cd ../frontend
 
@@ -191,7 +209,9 @@ npm start
 ```
 
 ## Testing <a name="testing"></a>
+
 ### Test Cases
+
 1. **Credential Issuance**
    - Input: Valid credential data
    - Expected: Blockchain transaction success, DB record created
@@ -207,8 +227,13 @@ npm start
 5. **Unauthorized Access**
    - Input: Invalid credentials for privileged operations
    - Expected: Proper error responses
+6. **Email Verification**
+   - Input: Valid verification token
+   - Expected: User email marked as verified, login succeeds
+   - See [Email Verification Testing](./docs/email_verification_testing.md) for details
 
 ### Test Command
+
 ```bash
 # Backend tests
 cd backend
@@ -220,23 +245,21 @@ truffle test
 ```
 
 ## Future Enhancements <a name="future-enhancements"></a>
+
 1. **Multi-Chain Support**:
    - Polygon for low-cost transactions
    - Binance Smart Chain for alternative ecosystem
-   
 2. **Zero-Knowledge Proofs**:
    - Private credential verification
    - Selective disclosure of information
-   
 3. **Decentralized Identity**:
    - DID (Decentralized Identifiers) integration
    - Verifiable Credentials (VC) standard
-   
 4. **Mobile Wallet**:
    - Credential storage in mobile wallet
    - QR code-based verification
-   
 5. **Tokenization**:
+
    - Reward tokens for verifiers
    - Governance tokens for platform management
 
@@ -248,6 +271,6 @@ truffle test
 
 **TrueCred Team**  
 Kirti Singh | Shubham Gupta | Saniya Singh  
-*Final Year Project*  
-*Information Technology Department*  
-*University of Mumbai*
+_Final Year Project_  
+_Information Technology Department_  
+_University of Mumbai_

@@ -3,9 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import InputField from '../components/auth/InputField';
 import MetaMaskConnect from '../components/auth/MetaMaskConnect';
+import ManualWalletInput from '../components/auth/ManualWalletInput';
 import ToggleLink from '../components/auth/ToggleLink';
+import EmailVerificationReminder from '../components/auth/EmailVerificationReminder';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '../utils';
+import { useAuth } from '../context/AuthContext.jsx';
 
 
 export default function AuthPage() {
@@ -19,13 +22,34 @@ export default function AuthPage() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showVerificationReminder, setShowVerificationReminder] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
   const navigate = useNavigate();
+  const { login, register, error: authError, loading, isAuthenticated, user } = useAuth();
 
   const roleOptions = [
     { value: 'student', label: 'Student' },
     { value: 'college', label: 'College' },
     { value: 'company', label: 'Company' }
   ];
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      console.log('User already authenticated, redirecting to dashboard');
+      
+      // Redirect based on user role
+      if (user.role === 'student') {
+        navigate('/student-dashboard');
+      } else if (user.role === 'college') {
+        navigate('/college-dashboard');
+      } else if (user.role === 'company') {
+        navigate('/company-dashboard');
+      } else {
+        navigate('/student-dashboard'); // Default
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // Reset form when switching between login/register
   useEffect(() => {
@@ -89,10 +113,11 @@ export default function AuthPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // Prevent the default form submission
     const newErrors = validateForm();
 
     if (Object.keys(newErrors).length > 0) {
+      console.log('Form validation errors:', newErrors);
       setErrors(newErrors);
       return;
     }
@@ -100,34 +125,130 @@ export default function AuthPage() {
     setIsSubmitting(true);
     setErrors({});
     setSuccessMessage('');
+    
+    console.log('Submitting form data:', formData);
+    console.log('Current auth error state:', authError);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-
+    try {
       if (isLogin) {
-        // Handle login attempt
-        if (formData.email === 'saniya49singh@gmail.com' && formData.password === '123456') {
-          setSuccessMessage('Student login successful! Redirecting...');
-          setTimeout(() => navigate("student-dashboard"), 1500);
-        } else if (formData.email === 'teacher@gmail.com' && formData.password === '123456') {
-          setSuccessMessage('College login successful! Redirecting...');
-          setTimeout(() => navigate("college-dashboard"), 1500);
-        } else if (formData.email === 'company@gmail.com' && formData.password === '123456') {
-          setSuccessMessage('Company login successful! Redirecting...');
-          setTimeout(() => navigate("company-dashboard"), 1500);
+        // Handle login with real API
+        const result = await login(formData.email, formData.password);
+        
+        if (result === true) {
+          // Clear any existing errors
+          setErrors({});
+          setSuccessMessage('Login successful! Redirecting...');
+          
+          // Redirect based on role after a short delay
+          setTimeout(() => {
+            const role = localStorage.getItem('userRole');
+            if (role === 'issuer') {
+              navigate('/issuer-dashboard');
+            } else {
+              navigate('/holder-dashboard'); // Default for holder
+            }
+          }, 1500);
+        } else if (result && result.needsVerification) {
+          // Store email for verification page
+          localStorage.setItem('verificationEmail', result.email || formData.email);
+          
+          // Redirect to verification pending page
+          setTimeout(() => {
+            navigate('/verification-pending');
+          }, 500);
         } else {
-          setErrors({ email: 'Invalid email or password. Please try again.' });
+          // Display the error from auth system with a clear message
+          console.log('Authentication error from context:', authError);
+          
+          // Use the most specific error message available
+          const errorMessage = authError || 
+                              (result && result.message) || 
+                              'Invalid email or password. Please try again.';
+          
+          setErrors({ general: errorMessage });
+          // Make sure the error is prominently displayed
+          setTimeout(() => {
+            document.querySelector('.auth-error-message')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+          setSuccessMessage('');
         }
       } else {
-        // Handle registration attempt
-        setSuccessMessage('Account created successfully! You can now log in.');
-        setTimeout(() => {
-          setIsLogin(true);
+        // Handle registration with real API
+        // Generate username from email and make sure it only contains valid characters
+        const emailPrefix = formData.email.split('@')[0];
+        // Replace any non-alphanumeric characters (except underscore) with empty string
+        let sanitizedUsername = emailPrefix.replace(/[^a-zA-Z0-9_]/g, '');
+        
+        // If username would be empty after sanitization, use a default plus random number
+        if (!sanitizedUsername || sanitizedUsername.length < 3) {
+          const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+          sanitizedUsername = `user${randomSuffix}`;
+        }
+        
+        const userData = {
+          username: sanitizedUsername,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role
+        };
+        
+        const result = await register(userData);
+        
+        if (result.success) {
+          // Check if email verification is required
+          if (result.needsEmailVerification) {
+            // Store the email for verification page
+            localStorage.setItem('verificationEmail', formData.email);
+            
+            setSuccessMessage('Account created successfully! Please verify your email.');
+            setErrors({}); // Clear any errors
+            
+            // Redirect to verification pending page
+            setTimeout(() => {
+              navigate('/verification-pending');
+            }, 1500);
+          } else {
+            // User is verified and logged in, redirect to dashboard
+            setSuccessMessage('Account created successfully! Redirecting to dashboard...');
+            setErrors({}); // Clear any errors
+            
+            // Redirect to dashboard based on role
+            setTimeout(() => {
+              const role = localStorage.getItem('userRole');
+              const redirectPath = role === 'issuer' ? '/issuer-dashboard' : '/holder-dashboard';
+              navigate(redirectPath);
+            }, 1500);
+          }
+        } else {
+          // Display the error from auth system
+          console.log('Registration error from context:', authError);
+          
+          // Use the most specific error message available
+          const errorMessage = result.error || authError || 'Registration failed. Please try again.';
+          
+          setErrors({ general: errorMessage });
+          // Make sure the error is prominently displayed
+          setTimeout(() => {
+            document.querySelector('.auth-error-message')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
           setSuccessMessage('');
-        }, 2000);
+        }
       }
-    }, 1500);
+    } catch (error) {
+      console.error('Auth error:', error);
+      setErrors({ general: 'An unexpected error occurred. Please try again.' });
+      // Ensure the error is visible
+      setTimeout(() => {
+        document.querySelector('.auth-error-message')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } finally {
+      setIsSubmitting(false);
+      
+      // Log the final state for debugging
+      console.log('Form submission completed');
+      console.log('Current errors:', errors);
+      console.log('Auth error after submission:', authError);
+    }
   };
 
   const toggleMode = () => {
@@ -141,6 +262,16 @@ export default function AuthPage() {
       <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full opacity-20 blur-3xl"></div>
       <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl"></div>
     </div>
+
+      {/* Email Verification Reminder */}
+      <AnimatePresence>
+        {showVerificationReminder && (
+          <EmailVerificationReminder 
+            email={verificationEmail} 
+            onClose={() => setShowVerificationReminder(false)} 
+          />
+        )}
+      </AnimatePresence>
 
       <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -187,7 +318,7 @@ export default function AuthPage() {
 
           {/* Form */}
           <div className="px-8 py-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={isLogin ? 'login' : 'register'}
@@ -201,22 +332,26 @@ export default function AuthPage() {
                     label="Email Address"
                     type="email"
                     name="email"
+                    id="email"
                     value={formData.email}
                     onChange={handleInputChange}
                     error={errors.email}
                     placeholder="Enter your email"
                     required
+                    autoComplete="email"
                   />
 
                   <InputField
                     label="Password"
                     type="password"
                     name="password"
+                    id="password"
                     value={formData.password}
                     onChange={handleInputChange}
                     error={errors.password}
                     placeholder="Enter your password"
                     required
+                    autoComplete="current-password"
                   />
 
                   {!isLogin && (
@@ -225,27 +360,51 @@ export default function AuthPage() {
                         label="Confirm Password"
                         type="password"
                         name="confirmPassword"
+                        id="confirmPassword"
                         value={formData.confirmPassword}
                         onChange={handleInputChange}
                         error={errors.confirmPassword}
                         placeholder="Confirm your password"
                         required
+                        autoComplete="new-password"
                       />
 
                       <InputField
                         label="Role"
                         type="select"
                         name="role"
+                        id="role"
                         value={formData.role}
                         onChange={handleInputChange}
                         error={errors.role}
                         options={roleOptions}
                         required
+                        autoComplete="off"
                       />
                     </>
                   )}
                 </motion.div>
               </AnimatePresence>
+
+              {/* General Error Message */}
+              {errors.general && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mt-4 bg-red-50 border-l-4 border-red-500 p-4 shadow-sm auth-error-message"
+                >
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-red-700">{errors.general}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Submit Button */}
               <motion.button
@@ -279,23 +438,44 @@ export default function AuthPage() {
                   </button>
                 </div>
               )}
+
+              {/* Registration note about wallet connection */}
+              {!isLogin && (
+                <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm text-blue-700">
+                        Create an account with your details first. You'll be able to connect your wallet after registration.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </form>
 
-            {/* MetaMask Connect */}
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300"></div>
+            {/* MetaMask Connect - Only shown on login page */}
+            {isLogin && (
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Or login with wallet</span>
+                  </div>
                 </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">Or connect with</span>
+                
+                <div className="mt-4">
+                  <MetaMaskConnect />
+                  <ManualWalletInput />
                 </div>
               </div>
-              
-              <div className="mt-4">
-                <MetaMaskConnect />
-              </div>
-            </div>
+            )}
 
             {/* Toggle Link */}
             <ToggleLink isLogin={isLogin} onToggle={toggleMode} />

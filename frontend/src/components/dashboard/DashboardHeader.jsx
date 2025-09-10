@@ -3,8 +3,16 @@ import { motion } from 'framer-motion';
 import { LogOut, User, Mail } from 'lucide-react';
 import MetaMaskConnect from './../auth/MetaMaskConnect'; // Reusing the component
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext.jsx';
+
 export default function DashboardHeader({ user }) {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
+  };
 
   return (
     <motion.div
@@ -34,9 +42,9 @@ export default function DashboardHeader({ user }) {
         {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
           <div className="w-full sm:w-auto">
-            <MetaMaskConnect />
+            <MetaMaskConnect isDashboard={true} />
           </div>
-          <motion.button onClick={() => navigate('/')}
+          <motion.button onClick={handleLogout}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors duration-200 shadow-md hover:shadow-lg"

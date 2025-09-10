@@ -68,6 +68,11 @@ class AuthService:
             # Save user
             user.save()
             
+            # Send verification email
+            success, message, token = AuthService.send_verification_email(user)
+            if not success:
+                logger.warning(f"Failed to send verification email: {message}")
+            
             logger.info(f"User registered successfully: {username}")
             return user, None
             
@@ -114,12 +119,92 @@ class AuthService:
             if not verify_password(password, user.password):
                 return None, "Invalid username/email or password"
             
+            # Check if email is verified
+            if not user.email_verified:
+                # Re-send verification email
+                success, message, token = AuthService.send_verification_email(user)
+                return None, "Email not verified. We've sent a new verification link to your email."
+            
             logger.info(f"User authenticated successfully: {user.username}")
             return user, None
             
         except Exception as e:
             logger.error(f"Error authenticating user: {e}")
             return None, "An error occurred during authentication"
+    
+    @staticmethod
+    def authenticate_wallet(wallet_address):
+        """
+        Authenticate a user with wallet address.
+        
+        Args:
+            wallet_address: Ethereum wallet address
+            
+        Returns:
+            (user, error): (User object, None) if successful, (None, error_message) otherwise
+        """
+        try:
+            # Log the wallet address for debugging
+            logger.info(f"Attempting to authenticate with wallet address: {wallet_address}")
+            
+            # Find user by wallet address
+            user = User.find_by_wallet_address(wallet_address)
+            
+            # Log the user lookup result
+            if user:
+                logger.info(f"Found user with wallet address: {user.username}")
+            else:
+                logger.info(f"No user found with wallet address: {wallet_address}")
+            
+            # If no user found, create a new one
+            if not user:
+                return None, "No account found with this wallet address"
+            
+            # Check if user is active
+            if not user.is_active:
+                return None, "Account is disabled"
+            
+            logger.info(f"User authenticated via wallet successfully: {user.username}")
+            return user, None
+            
+        except Exception as e:
+            logger.error(f"Error authenticating user with wallet: {str(e)}")
+            return None, "An error occurred during wallet authentication"
+    
+    @staticmethod
+    def connect_wallet(user_id, wallet_address):
+        """
+        Connect a wallet address to an existing user account.
+        
+        Args:
+            user_id: User ID
+            wallet_address: Ethereum wallet address
+            
+        Returns:
+            (success, error): (True, None) if successful, (False, error_message) otherwise
+        """
+        try:
+            # Check if wallet is already connected to another account
+            existing_user = User.find_by_wallet_address(wallet_address)
+            if existing_user and str(existing_user.id) != user_id:
+                return False, "Wallet address is already connected to another account"
+            
+            # Get user
+            user = User.objects(id=user_id).first()
+            if not user:
+                return False, "User not found"
+            
+            # Update wallet address
+            user.wallet_address = wallet_address.lower()
+            user.updated_at = datetime.utcnow()
+            user.save()
+            
+            logger.info(f"Wallet connected successfully for user: {user.username}")
+            return True, None
+            
+        except Exception as e:
+            logger.error(f"Error connecting wallet: {e}")
+            return False, "An error occurred while connecting wallet"
     
     @staticmethod
     def generate_tokens(user_id, additional_claims=None):
@@ -327,3 +412,167 @@ class AuthService:
         except Exception as e:
             logger.error(f"Error resetting password: {e}")
             return False, "An error occurred while resetting password"
+    
+    @staticmethod
+    def generate_verification_token():
+        """
+        Generate a secure random email verification token.
+        
+        Returns:
+            String: Random verification token
+        """
+        # Generate a random 32-character token
+        alphabet = string.ascii_letters + string.digits
+        return ''.join(secrets.choice(alphabet) for _ in range(32))
+    
+    @staticmethod
+    def send_verification_email(user):
+        """
+        Generate and store verification token and send a verification email.
+        
+        Args:
+            user: User object
+            
+        Returns:
+            (success, message, token): (True, success_message, verification_token) if successful,
+                                      (False, error_message, None) otherwise
+        """
+        try:
+            # Generate verification token
+            verification_token = AuthService.generate_verification_token()
+            
+            # Save token to user
+            user.verification_token = verification_token
+            user.verification_token_expires = datetime.utcnow() + timedelta(days=7)
+            user.save()
+            
+            # Get the app URL from config or use a default for development
+            from flask import current_app
+            base_url = current_app.config.get('FRONTEND_URL', 'http://localhost:5173')
+            verification_url = f"{base_url}/verify-email?token={verification_token}"
+            
+            # Create email content
+            subject = "TrueCred: Verify Your Email Address"
+            message = f"""
+            <html>
+            <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background-color: #f9f9f9; margin: 0; padding: 0;">
+                <div style="max-width: 600px; margin: 20px auto; padding: 30px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="https://placeholder.com/wp-content/uploads/2018/10/placeholder.com-logo1.png" alt="TrueCred Logo" style="max-width: 200px; height: auto;">
+                    </div>
+                    <h2 style="color: #6047ff; text-align: center; margin-bottom: 20px;">Verify Your Email Address</h2>
+                    <p>Hello {user.first_name or user.username},</p>
+                    <p>Thank you for registering with TrueCred. To complete your registration and access your account, please verify your email address by clicking the button below:</p>
+                    <div style="text-align: center; margin: 30px 0;">
+                        <a href="{verification_url}" style="background-color: #6047ff; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Verify My Email</a>
+                    </div>
+                    <p style="font-size: 13px; color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
+                    <p style="background-color: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all; font-size: 13px;"><a href="{verification_url}" style="color: #6047ff; text-decoration: none;">{verification_url}</a></p>
+                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 13px; color: #666;">
+                        <p><strong>Important:</strong> This link will expire in 7 days.</p>
+                        <p>If you did not create a TrueCred account, you can safely ignore this email.</p>
+                        <p>For help or questions, contact our support team at support@truecred.com</p>
+                        <p style="text-align: center; margin-top: 20px;">© 2023 TrueCred. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Import here to avoid circular imports
+            from services.notification_service import NotificationService
+            
+            # Send the email using NotificationService
+            notification_result = NotificationService.send_notification(
+                to=user.email,
+                subject=subject,
+                message=message,
+                notification_type='email',
+                metadata={'html': True, 'verification_token': verification_token}
+            )
+            
+            # Log for development purposes
+            logger.info(f"Verification email would be sent to: {user.email} with token: {verification_token}")
+            
+            return True, "Verification email sent", verification_token
+            
+        except Exception as e:
+            logger.error(f"Error sending verification email: {e}")
+            return False, "An error occurred while sending verification email", None
+    
+    @staticmethod
+    def verify_email(verification_token):
+        """
+        Verify a user's email using a verification token.
+        
+        Args:
+            verification_token: Verification token
+            
+        Returns:
+            (success, message, user): (True, success_message, user) if successful,
+                                     (False, error_message, None) otherwise
+        """
+        try:
+            # Find user with matching verification token
+            user = User.objects(
+                verification_token=verification_token,
+                verification_token_expires__gt=datetime.utcnow()
+            ).first()
+            
+            if not user:
+                return False, "Invalid or expired verification token", None
+            
+            # Mark email as verified and clear verification token
+            user.email_verified = True
+            user.verification_token = None
+            user.verification_token_expires = None
+            user.updated_at = datetime.utcnow()
+            user.save()
+            
+            logger.info(f"Email verified successfully for user: {user.username}")
+            return True, "Email has been verified successfully", user
+            
+        except Exception as e:
+            logger.error(f"Error verifying email: {e}")
+            return False, "An error occurred while verifying email", None
+    
+    @staticmethod
+    def verify_refresh_token(refresh_token):
+        """
+        Verify a refresh token and extract the user ID.
+        
+        Args:
+            refresh_token: JWT refresh token
+            
+        Returns:
+            user_id: User ID if token is valid, None otherwise
+        """
+        try:
+            from utils.jwt_helpers import verify_token
+            
+            # Verify the token
+            payload = verify_token(refresh_token, is_refresh=True)
+            
+            if not payload:
+                logger.error("Invalid refresh token")
+                return None
+            
+            # Extract user ID from the token payload
+            user_id = payload.get('sub') or payload.get('identity')
+            
+            if not user_id:
+                logger.error("No user ID in refresh token")
+                return None
+            
+            # Check if user exists
+            user = User.objects(id=user_id).first()
+            
+            if not user:
+                logger.error(f"User not found for ID: {user_id}")
+                return None
+            
+            return user_id
+            
+        except Exception as e:
+            logger.error(f"Error verifying refresh token: {e}")
+            return None

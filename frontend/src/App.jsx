@@ -1,32 +1,27 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-
-// Import your components
-import AuthPage from './pages/AuthPage';
-import StudentDashboard from './pages/StudentDashboard';
-import CollegeDashboard from './pages/CollegeDashboard';
-import CompanyDashboard from './pages/CompanyDashboard';
+import { RouterProvider } from 'react-router-dom';
+import { useAuth } from './context/AuthContext.jsx';
+import router from './router';
 
 function App() {
+  const { loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-purple-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-700">Loading TrueCred...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-purple-50">
-      <Router>
-        <Routes>
-          {/* Route for authentication page */}
-          <Route path="/" element={<AuthPage />} />
-
-        {/* Route for student dashboard */}
-        <Route path="/student-dashboard" element={<StudentDashboard />} />
-
-        {/* Route for college dashboard */}
-        <Route path="/college-dashboard" element={<CollegeDashboard />} />
-
-        {/* Route for company dashboard */}
-        <Route path="/company-dashboard" element={<CompanyDashboard />} />
-
-        {/* Add more routes as needed */}
-      </Routes>
-    </Router>
+    <div className="min-h-screen flex flex-col bg-purple-50">      
+      <div className="flex-grow flex items-center justify-center">
+        <RouterProvider router={router} />
+      </div>
     </div>
   );
 }

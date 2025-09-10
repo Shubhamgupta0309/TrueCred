@@ -84,4 +84,13 @@ def register_blueprints(app):
     app.register_blueprint(blockchain_bp)
     app.register_blueprint(ipfs_bp)
     
+    # Register development-only blueprints if in development mode
+    if app.config.get('DEBUG', False):
+        try:
+            from routes.dev_endpoints import dev_bp
+            app.register_blueprint(dev_bp, url_prefix='/api/dev')
+            logger.info("Development endpoints registered")
+        except ImportError:
+            logger.warning("Development endpoints not found, skipping registration")
+    
     logger.info("All blueprints registered successfully")

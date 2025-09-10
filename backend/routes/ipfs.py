@@ -1,4 +1,4 @@
-"""
+﻿"""
 IPFS document API routes for TrueCred.
 
 This module handles API routes for storing and retrieving documents from IPFS.
@@ -12,7 +12,7 @@ from models.user import User
 from models.credential import Credential
 from models.experience import Experience
 from services.ipfs_service import IPFSService
-from middleware.auth import token_required, admin_required
+from middleware.auth_middleware import login_required, admin_required
 from utils.api_response import success_response, error_response
 
 # Initialize logger
@@ -32,7 +32,7 @@ def get_ipfs_service():
     return ipfs_service
 
 @ipfs_bp.route('/status', methods=['GET'])
-@token_required
+@login_required
 def get_ipfs_status():
     """
     Get IPFS node status.
@@ -71,7 +71,7 @@ def get_ipfs_status():
             ipfs_service.disconnect()
 
 @ipfs_bp.route('/upload', methods=['POST'])
-@token_required
+@login_required
 def upload_document():
     """
     Upload a document to IPFS.
@@ -205,7 +205,7 @@ def upload_document():
             ipfs_service.disconnect()
 
 @ipfs_bp.route('/retrieve/<ipfs_hash>', methods=['GET'])
-@token_required
+@login_required
 def retrieve_document(ipfs_hash):
     """
     Retrieve a document from IPFS.
@@ -240,7 +240,7 @@ def retrieve_document(ipfs_hash):
             ipfs_service.disconnect()
 
 @ipfs_bp.route('/pin/<ipfs_hash>', methods=['POST'])
-@token_required
+@login_required
 def pin_hash(ipfs_hash):
     """
     Pin an IPFS hash to keep it in the IPFS node.
@@ -276,7 +276,7 @@ def pin_hash(ipfs_hash):
             ipfs_service.disconnect()
 
 @ipfs_bp.route('/unpin/<ipfs_hash>', methods=['POST'])
-@token_required
+@login_required
 def unpin_hash(ipfs_hash):
     """
     Unpin an IPFS hash to allow garbage collection.
@@ -312,7 +312,7 @@ def unpin_hash(ipfs_hash):
             ipfs_service.disconnect()
 
 @ipfs_bp.route('/credential/<credential_id>/documents', methods=['GET'])
-@token_required
+@login_required
 def get_credential_documents(credential_id):
     """
     Get all documents associated with a credential.
@@ -376,7 +376,7 @@ def get_credential_documents(credential_id):
             ipfs_service.disconnect()
 
 @ipfs_bp.route('/experience/<experience_id>/documents', methods=['GET'])
-@token_required
+@login_required
 def get_experience_documents(experience_id):
     """
     Get all documents associated with an experience.
@@ -467,3 +467,4 @@ def gateway_redirect(ipfs_hash):
         # Disconnect to avoid keeping connection open
         if ipfs_service:
             ipfs_service.disconnect()
+
