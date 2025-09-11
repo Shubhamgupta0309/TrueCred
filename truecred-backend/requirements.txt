@@ -1,0 +1,17 @@
+# TrueCred Backend Requirements
+# Core
+flask==2.3.3
+flask-cors==4.0.0
+python-dotenv==1.0.0
+pymongo==4.5.0
+pyjwt==2.8.0
+
+# Blockchain
+web3==6.9.0
+eth-account==0.8.0
+eth-typing==3.4.0
+hexbytes==0.3.1
+
+# Utils
+cryptography==41.0.4
+requests==2.31.0
