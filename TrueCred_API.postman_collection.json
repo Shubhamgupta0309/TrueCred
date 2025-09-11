@@ -1,0 +1,678 @@
+{
+  "info": {
+    "name": "TrueCred API",
+    "description": "Collection for testing TrueCred API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "description": "Authentication related endpoints",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\",\n    \"name\": \"Test User\",\n    \"username\": \"test_user\",\n    \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with user credentials"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh_token\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "description": "Refresh access token using refresh token"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify/{{verificationToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify", "{{verificationToken}}"]
+            },
+            "description": "Verify user email with token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "description": "User profile management endpoints",
+      "item": [
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Get current user profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Name\",\n    \"profile_image\": \"https://example.com/profile.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/user/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "user", "profile"]
+            },
+            "description": "Update current user profile"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Credentials",
+      "description": "Credential management endpoints",
+      "item": [
+        {
+          "name": "Create Credential",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Bachelor of Computer Science\",\n    \"description\": \"Bachelor's degree in Computer Science\",\n    \"recipient_email\": \"recipient@example.com\",\n    \"expiration_date\": \"2025-12-31T23:59:59\",\n    \"metadata\": {\n        \"institution\": \"Example University\",\n        \"graduation_year\": 2023,\n        \"honors\": \"Cum Laude\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credentials"]
+            },
+            "description": "Create a new credential"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Credential by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials/{{credentialId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credentials", "{{credentialId}}"]
+            },
+            "description": "Get a specific credential by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Credentials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credentials"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "all",
+                  "description": "Filter by type: all, issued, or received"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "description": "Filter by status",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all credentials for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Issued Credentials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials/issued",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credentials", "issued"]
+            },
+            "description": "Get credentials issued by the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke Credential",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Information error\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials/{{credentialId}}/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credentials", "{{credentialId}}", "revoke"]
+            },
+            "description": "Revoke a credential"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Credential",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/credentials/{{credentialId}}/verify",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "credentials", "{{credentialId}}", "verify"]
+            },
+            "description": "Verify a credential"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Experiences",
+      "description": "Experience verification endpoints",
+      "item": [
+        {
+          "name": "Get User Experiences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/experiences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiences"]
+            },
+            "description": "Get all experiences for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Request Experience Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"title\": \"Software Engineer\",\n    \"company\": \"Example Corp\",\n    \"duration\": \"Jan 2022 - Dec 2022\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/experiences/request",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiences", "request"]
+            },
+            "description": "Request verification for a work experience"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Pending Experiences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/experiences/pending",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiences", "pending"]
+            },
+            "description": "Get pending experience verification requests"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Experience History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/experiences/history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiences", "history"]
+            },
+            "description": "Get history of experience verifications"
+          },
+          "response": []
+        },
+        {
+          "name": "Approve Experience",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"notes\": \"Verification confirmed through HR records\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/experiences/{{experienceId}}/approve",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiences", "{{experienceId}}", "approve"]
+            },
+            "description": "Approve an experience verification request"
+          },
+          "response": []
+        },
+        {
+          "name": "Reject Experience",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"reason\": \"Unable to verify employment records\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/experiences/{{experienceId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "experiences", "{{experienceId}}", "reject"]
+            },
+            "description": "Reject an experience verification request"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Institution Dashboard",
+      "description": "Institution/College dashboard endpoints",
+      "item": [
+        {
+          "name": "Get Pending Verification Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/college/pending-requests",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "college", "pending-requests"]
+            },
+            "description": "Get pending verification requests for the institution"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Verification History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/college/verification-history",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "college", "verification-history"]
+            },
+            "description": "Get verification history for the institution"
+          },
+          "response": []
+        },
+        {
+          "name": "Respond to Verification Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"status\": \"approved\",\n    \"notes\": \"Verified from academic records\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/college/verification-requests/{{requestId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "college", "verification-requests", "{{requestId}}"]
+            },
+            "description": "Respond to a verification request"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Miscellaneous",
+      "description": "Other utility endpoints",
+      "item": [
+        {
+          "name": "User Search",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/search?q={{searchQuery}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "{{searchQuery}}",
+                  "description": "Search query"
+                }
+              ]
+            },
+            "description": "Search for users"
+          },
+          "response": []
+        },
+        {
+          "name": "Upload to IPFS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "/path/to/your/file.pdf"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/ipfs/upload",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "ipfs", "upload"]
+            },
+            "description": "Upload a file to IPFS"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notifications"]
+            },
+            "description": "Get notifications for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blockchain Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/blockchain/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "blockchain", "status"]
+            },
+            "description": "Check blockchain connection status"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string",
+      "description": "Base URL for the TrueCred API"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT access token for authorization"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string",
+      "description": "JWT refresh token"
+    },
+    {
+      "key": "credentialId",
+      "value": "",
+      "type": "string",
+      "description": "ID of a credential"
+    },
+    {
+      "key": "experienceId",
+      "value": "",
+      "type": "string",
+      "description": "ID of an experience"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string",
+      "description": "Email verification token"
+    },
+    {
+      "key": "requestId",
+      "value": "",
+      "type": "string",
+      "description": "ID of a verification request"
+    },
+    {
+      "key": "searchQuery",
+      "value": "",
+      "type": "string",
+      "description": "Search query string"
+    }
+  ]
+}

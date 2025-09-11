@@ -1,196 +1,95 @@
+#!/usr/bin/env python3
 """
-Script to compile the TrueCred smart contract.
-
-This script compiles the TrueCred.sol smart contract and generates the 
-ABI (Application Binary Interface) and bytecode needed for deployment.
+Compile the TrueCred smart contract to produce ABI and bytecode.
 """
 import json
 import os
-import logging
 import subprocess
+import sys
 from pathlib import Path
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Define paths
-CONTRACT_PATH = Path(__file__).parent / 'TrueCred.sol'
-OUTPUT_DIR = Path(__file__).parent / 'build'
-
-def ensure_output_dir():
-    """Ensure the output directory exists."""
-    if not OUTPUT_DIR.exists():
-        OUTPUT_DIR.mkdir()
-        logger.info(f"Created output directory: {OUTPUT_DIR}")
+# Add the parent directory to sys.path to import from parent modules if needed
+sys.path.append(str(Path(__file__).parent.parent))
 
 def compile_contract():
-    """
-    Compile the TrueCred.sol smart contract using solc.
-    
-    Note: This requires solc (Solidity compiler) to be installed and in the PATH.
-    You can install it with: npm install -g solc
-    
-    Returns:
-        tuple: (abi, bytecode) if successful, (None, None) if failed
-    """
+    """Compile the TrueCred.sol contract using solc."""
     try:
-        logger.info(f"Compiling contract: {CONTRACT_PATH}")
-        
-        # In a real implementation, we would call solc directly
-        # For now, this is a placeholder that simulates the compilation process
-        
-        # Mock compilation result
-        abi = [
-            {
-                "inputs": [],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "anonymous": False,
-                "inputs": [
-                    {
-                        "indexed": True,
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "indexed": False,
-                        "internalType": "bytes32",
-                        "name": "dataHash",
-                        "type": "bytes32"
-                    },
-                    {
-                        "indexed": True,
-                        "internalType": "address",
-                        "name": "issuer",
-                        "type": "address"
-                    }
-                ],
-                "name": "CredentialHashStored",
-                "type": "event"
-            },
-            {
-                "anonymous": False,
-                "inputs": [
-                    {
-                        "indexed": True,
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "indexed": False,
-                        "internalType": "bytes32",
-                        "name": "dataHash",
-                        "type": "bytes32"
-                    },
-                    {
-                        "indexed": True,
-                        "internalType": "address",
-                        "name": "verifier",
-                        "type": "address"
-                    }
-                ],
-                "name": "ExperienceHashStored",
-                "type": "event"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    }
-                ],
-                "name": "getCredentialHash",
-                "outputs": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "dataHash",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "address",
-                        "name": "issuer",
-                        "type": "address"
-                    },
-                    {
-                        "internalType": "uint256",
-                        "name": "timestamp",
-                        "type": "uint256"
-                    },
-                    {
-                        "internalType": "bool",
-                        "name": "isRevoked",
-                        "type": "bool"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [
-                    {
-                        "internalType": "bytes32",
-                        "name": "id",
-                        "type": "bytes32"
-                    },
-                    {
-                        "internalType": "bytes32",
-                        "name": "dataHash",
-                        "type": "bytes32"
-                    }
-                ],
-                "name": "storeCredentialHash",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ]
-        
-        bytecode = "0x608060405234801561001057600080fd5b50600080546001600160a01b031916331790556108b7806100326000396000f3fe608060405234801561001057600080fd5b50600436106100885760003560e01c8063"
-        
-        ensure_output_dir()
-        
-        # Save ABI to file
-        abi_path = OUTPUT_DIR / 'TrueCred.abi.json'
-        with open(abi_path, 'w') as f:
-            json.dump(abi, f, indent=2)
-            logger.info(f"ABI saved to: {abi_path}")
-        
-        # Save bytecode to file
-        bytecode_path = OUTPUT_DIR / 'TrueCred.bin'
-        with open(bytecode_path, 'w') as f:
-            f.write(bytecode)
-            logger.info(f"Bytecode saved to: {bytecode_path}")
-        
-        # Save combined output
-        combined_path = OUTPUT_DIR / 'TrueCred.json'
-        with open(combined_path, 'w') as f:
-            json.dump({
-                'abi': abi,
-                'bytecode': bytecode
-            }, f, indent=2)
-            logger.info(f"Combined output saved to: {combined_path}")
-        
-        return abi, bytecode
-    
-    except Exception as e:
-        logger.error(f"Error compiling contract: {str(e)}")
-        return None, None
+        # Check if solc is installed
+        subprocess.run(["solc", "--version"], check=True, capture_output=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("Error: Solidity compiler (solc) not found. Please install it.")
+        print("Installation instructions: https://docs.soliditylang.org/en/v0.8.17/installing-solidity.html")
+        return False
 
-def main():
-    """Main entry point."""
-    logger.info("Starting contract compilation...")
-    abi, bytecode = compile_contract()
+    # Get the directory of this script
+    current_dir = Path(__file__).parent.absolute()
+    contract_path = current_dir / "TrueCred.sol"
+    output_dir = current_dir.parent / "build"
+
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+
+    # Compile the contract
+    print(f"Compiling contract: {contract_path}")
+    compile_command = [
+        "solc",
+        "--optimize",
+        "--combined-json", "abi,bin",
+        str(contract_path)
+    ]
+
+    try:
+        result = subprocess.run(
+            compile_command,
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        compiled_json = json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+        print(f"Error compiling contract: {e}")
+        print(f"Compiler output: {e.stderr}")
+        return False
+    except json.JSONDecodeError as e:
+        print(f"Error parsing compiler output: {e}")
+        return False
+
+    # Extract the contract data
+    contract_name = "TrueCred"
+    contract_key = f"{contract_path}:{contract_name}"
     
-    if abi and bytecode:
-        logger.info("Contract compilation successful!")
-    else:
-        logger.error("Contract compilation failed!")
+    if contract_key not in compiled_json["contracts"]:
+        # Try alternative key format
+        contract_key = next(
+            (key for key in compiled_json["contracts"].keys() if key.endswith(f":{contract_name}")),
+            None
+        )
+        
+    if not contract_key:
+        print(f"Error: Contract {contract_name} not found in compiler output")
+        return False
+        
+    contract_data = compiled_json["contracts"][contract_key]
+    
+    # Create a clean contract output
+    output = {
+        "contractName": contract_name,
+        "abi": contract_data["abi"],
+        "bytecode": contract_data["bin"],
+        "compiler": {
+            "name": "solc",
+            "version": result.stderr.split("\n")[0] if result.stderr else "Unknown"
+        }
+    }
+    
+    # Write the output to a JSON file
+    output_path = output_dir / f"{contract_name}.json"
+    with open(output_path, "w") as f:
+        json.dump(output, f, indent=2)
+    
+    print(f"Contract compiled successfully. Output written to {output_path}")
+    return True
 
 if __name__ == "__main__":
-    main()
+    success = compile_contract()
+    sys.exit(0 if success else 1)

@@ -1,0 +1,47 @@
+# TrueCred API Backend Requirements
+# Core dependencies
+Flask==2.3.7
+Flask-JWT-Extended==4.5.2
+Flask-Cors==4.0.0
+PyJWT==2.8.0
+bcrypt==4.0.1
+python-dotenv==1.0.0
+
+# Database
+pymongo==4.5.0
+mongoengine==0.27.0
+certifi==2023.7.22
+
+# Blockchain integration
+web3==6.8.0
+eth-account==0.8.0
+eth-typing==3.4.0
+eth-utils==2.2.0
+py-solc-x==1.1.1
+
+# IPFS integration
+ipfshttpclient==0.8.0
+multiaddr==0.0.9
+
+# Email handling
+sendgrid==6.10.0
+emails==0.6
+
+# Validation and serialization
+marshmallow==3.20.1
+email-validator==2.0.0
+
+# Utilities
+requests==2.31.0
+python-dateutil==2.8.2
+pytz==2023.3
+six==1.16.0
+urllib3==2.0.4
+jsonschema==4.19.0
+
+# Testing
+pytest==7.4.0
+pytest-flask==1.2.0
+
+# Logging
+structlog==23.1.0
