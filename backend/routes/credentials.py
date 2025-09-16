@@ -224,6 +224,66 @@ def delete_credential(credential_id):
         message="Credential deleted successfully"
     )
 
+
+@credentials_bp.route('/request', methods=['POST'])
+@jwt_required()
+def request_credential():
+    """Create a credential request (student -> issuer).
+
+    Persists a CredentialRequest document with status 'pending' and creates a minimal notification.
+    """
+    current_user_id = get_jwt_identity()
+    data = request.json or {}
+
+    # Basic validation
+    title = (data.get('title') or '').strip()
+    if not title:
+        return validation_error_response(errors={'title': 'Title is required'}, message='Missing title')
+
+    # Build the request object
+    try:
+        from models.credential_request import CredentialRequest
+
+        cr = CredentialRequest(
+            user_id=str(current_user_id),
+            title=title,
+            issuer=data.get('issuer') or data.get('metadata', {}).get('institution') or '',
+            issuer_id=data.get('issuer_id') or data.get('metadata', {}).get('institution_id') or '',
+            type=data.get('type') or 'credential',
+            metadata=data.get('metadata') or {},
+            attachments=data.get('attachments') or [],
+            status='pending'
+        )
+        cr.save()
+
+        # Minimal notification hook: insert into notifications collection if available
+        try:
+            note = {
+                'user_id': str(current_user_id),
+                'type': 'credential_request',
+                'title': 'Credential request submitted',
+                'message': f"Your request '{title}' was created and is pending review.",
+                'data': {'request_id': str(cr.id)},
+                'created_at': datetime.utcnow()
+            }
+            if hasattr(current_app, 'db') and current_app.db:
+                # Use pymongo directly if available
+                try:
+                    current_app.db.notifications.insert_one(note)
+                except Exception:
+                    # Fall back to logging
+                    logger.info('Notification creation failed, falling back to log')
+                    logger.info(note)
+            else:
+                logger.info('Notification (no db): %s', note)
+        except Exception as e:
+            logger.error('Failed to create notification: %s', e)
+
+        return success_response(data={'request_id': str(cr.id)}, message='Credential request submitted', status_code=201)
+    except Exception as e:
+        logger.error('Error creating credential request: %s', e, exc_info=True)
+        return error_response(message=str(e), status_code=500)
+
 @credentials_bp.route('/<credential_id>/verify', methods=['POST'])
 @jwt_required()
 @issuer_required
