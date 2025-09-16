@@ -47,6 +47,10 @@ def create_app(config_name='default'):
     from middleware.cors import configure_cors
     configure_cors(app)
     
+    # Set up request/response logging middleware
+    from middleware.logging import setup_logging_middleware
+    setup_logging_middleware(app)
+    
     # Initialize database
     logger.info("Initializing database connection...")
     init_db(app)

@@ -7,7 +7,10 @@ import PendingRequests from '../components/college/PendingRequests';
 import VerificationHistory from '../components/college/VerificationHistory';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 import CredentialIssuanceContainer from '../components/CredentialIssuanceContainer';
-import { api } from '../services/api';
+import StudentSearch from '../components/organization/StudentSearch';
+import StudentCredentialUpload from '../components/organization/StudentCredentialUpload';
+import CollegeProfileForm from '../components/college/CollegeProfileForm';
+import { api, notificationService } from '../services/api';
 
 export default function CollegeDashboard() {
   const { user } = useAuth();
@@ -17,6 +20,8 @@ export default function CollegeDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('requests');
   const [error, setError] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [collegeProfile, setCollegeProfile] = useState(null);
   
   // Format the user data for the header
   const userForHeader = {
@@ -37,7 +42,7 @@ export default function CollegeDashboard() {
         // Use try/catch for each API call to handle individual failures
         try {
           // Fetch pending requests
-          const requestsResponse = await api.get('/api/college/pending-requests');
+          const requestsResponse = await api.get('/college/pending-requests');
           setPendingRequests(requestsResponse.data.requests || []);
         } catch (requestsErr) {
           console.error('Error fetching pending requests:', requestsErr);
@@ -57,7 +62,7 @@ export default function CollegeDashboard() {
         
         try {
           // Fetch verification history
-          const historyResponse = await api.get('/api/college/verification-history');
+          const historyResponse = await api.get('/college/verification-history');
           setHistory(historyResponse.data.history || []);
         } catch (historyErr) {
           console.error('Error fetching verification history:', historyErr);
@@ -76,8 +81,8 @@ export default function CollegeDashboard() {
         
         try {
           // Fetch notifications
-          const notificationsResponse = await api.get('/api/notifications');
-          setNotifications(notificationsResponse.data.notifications || []);
+          const notificationsResponse = await notificationService.getNotifications();
+          setNotifications(notificationsResponse.data.data.notifications || []);
         } catch (notificationsErr) {
           console.error('Error fetching notifications:', notificationsErr);
           
@@ -106,7 +111,7 @@ export default function CollegeDashboard() {
   const handleAction = async (requestId, newStatus) => {
     try {
       // Call API to update the request status
-      const response = await api.post(`/api/college/verification-requests/${requestId}`, {
+      const response = await api.post(`/college/verification-requests/${requestId}`, {
         status: newStatus
       });
       
@@ -151,7 +156,7 @@ export default function CollegeDashboard() {
 
   const handleCredentialIssued = (credential) => {
     // Refresh the history data to include the newly issued credential
-    api.get('/api/college/verification-history')
+    api.get('/college/verification-history')
       .then(response => {
         if (response.data && response.data.history) {
           setHistory(response.data.history);
@@ -176,6 +181,14 @@ export default function CollegeDashboard() {
           ...prevHistory
         ]);
       });
+  };
+
+  const handleProfileUpdate = (profile) => {
+    setCollegeProfile(profile);
+    // Update user for header if needed
+    if (profile.name) {
+      userForHeader.organization = profile.name;
+    }
   };
 
   if (loading) {
@@ -239,6 +252,16 @@ export default function CollegeDashboard() {
             >
               Issue Credentials
             </button>
+            <button
+              className={`py-3 px-6 focus:outline-none ${
+                activeTab === 'profile'
+                  ? 'border-b-2 border-purple-600 text-purple-700'
+                  : 'text-gray-500 hover:text-purple-500'
+              }`}
+              onClick={() => setActiveTab('profile')}
+            >
+              College Profile
+            </button>
           </div>
         </div>
 
@@ -272,7 +295,7 @@ export default function CollegeDashboard() {
                 </motion.div>
               </div>
             </motion.div>
-          ) : (
+          ) : activeTab === 'issue' ? (
             <motion.div
               key="issue"
               initial={{ opacity: 0 }}
@@ -289,6 +312,65 @@ export default function CollegeDashboard() {
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>
                   <VerificationHistory history={history} />
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={notifications} />
+                </motion.div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            >
+              {/* Main Column */}
+              <div className="lg:col-span-2">
+                <CollegeProfileForm user={user} onUpdate={handleProfileUpdate} />
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6">
+                    <h3 className="text-lg font-bold text-gray-800 mb-4">Why Complete Your Profile?</h3>
+                    <ul className="space-y-3">
+                      <li className="flex items-start">
+                        <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
+                          <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                        <span className="text-gray-700">Enables students to easily find your institution</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
+                          <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                        <span className="text-gray-700">Adds credibility to issued certificates</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
+                          <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                        <span className="text-gray-700">Improves verification process efficiency</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
+                          <svg className="h-4 w-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                        <span className="text-gray-700">Ensures correct institution details on certificates</span>
+                      </li>
+                    </ul>
+                  </div>
                 </motion.div>
                 <motion.div variants={itemVariants}>
                   <NotificationPanel notifications={notifications} />

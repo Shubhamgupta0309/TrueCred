@@ -24,7 +24,7 @@ export default function EmailVerificationReminder({ email, onClose }) {
       if (resendVerificationEmail) {
         result = await resendVerificationEmail(userEmail);
       } else {
-        const response = await api.post('/auth/resend-verification', { email: userEmail });
+        const response = await api.post('/api/auth/resend-verification', { email: userEmail });
         result = response.data;
       }
       

@@ -17,20 +17,23 @@ export default function AuthPage() {
     email: '',
     password: '',
     confirmPassword: '',
-    role: ''
+    role: '',
+    customRole: ''
   });
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [showVerificationReminder, setShowVerificationReminder] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
   const navigate = useNavigate();
   const { login, register, error: authError, loading, isAuthenticated, user } = useAuth();
 
   const roleOptions = [
     { value: 'student', label: 'Student' },
     { value: 'college', label: 'College' },
-    { value: 'company', label: 'Company' }
+    { value: 'company', label: 'Company' },
+    { value: 'other', label: 'Other' }
   ];
 
   // Redirect if already authenticated
@@ -57,10 +60,12 @@ export default function AuthPage() {
       email: '',
       password: '',
       confirmPassword: '',
-      role: ''
+      role: '',
+      customRole: ''
     });
     setErrors({});
     setSuccessMessage('');
+    setShowCustomRoleInput(false);
   }, [isLogin]);
 
   const handleInputChange = (e) => {
@@ -69,6 +74,13 @@ export default function AuthPage() {
       ...prev,
       [name]: value
     }));
+    
+    // Check if the role is "other" to show the custom role input
+    if (name === 'role' && value === 'other') {
+      setShowCustomRoleInput(true);
+    } else if (name === 'role' && value !== 'other') {
+      setShowCustomRoleInput(false);
+    }
     
     // Clear error when user starts typing
     if (errors[name]) {
@@ -105,6 +117,9 @@ export default function AuthPage() {
       }
       if (!formData.role) {
         newErrors.role = 'Please select your role';
+      }
+      if (formData.role === 'other' && !formData.customRole) {
+        newErrors.customRole = 'Please specify your role';
       }
     }
 
@@ -190,7 +205,7 @@ export default function AuthPage() {
           password: formData.password,
           // No name collected on UI; provide a sensible default for backend
           name: `User ${sanitizedUsername}`,
-          role: formData.role
+          role: formData.role === 'other' ? formData.customRole : formData.role
         };
         
         const result = await register(userData);
@@ -382,6 +397,22 @@ export default function AuthPage() {
                         required
                         autoComplete="off"
                       />
+                      
+                      {/* Show custom role input when "Other" is selected */}
+                      {showCustomRoleInput && (
+                        <InputField
+                          label="Specify Your Role"
+                          type="text"
+                          name="customRole"
+                          id="customRole"
+                          value={formData.customRole}
+                          onChange={handleInputChange}
+                          error={errors.customRole}
+                          placeholder="Enter your specific role"
+                          required
+                          autoComplete="off"
+                        />
+                      )}
                     </>
                   )}
                 </motion.div>

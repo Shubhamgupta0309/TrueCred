@@ -72,6 +72,11 @@ def register_blueprints(app):
     from routes.verification import verification_bp
     from routes.blockchain import blockchain_bp
     from routes.ipfs import ipfs_bp
+    from routes.organizations import org_bp
+    from routes.organization_student import org_student_bp
+    from routes.college import college_bp
+    from routes.user import user_bp
+    from routes.notifications import notifications_bp
     
     # Register blueprints
     app.register_blueprint(api_bp, url_prefix='/api')
@@ -80,9 +85,14 @@ def register_blueprints(app):
     app.register_blueprint(experiences_bp, url_prefix='/api/experiences')
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(health_bp, url_prefix='/api/health')
+    app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
     app.register_blueprint(verification_bp)
     app.register_blueprint(blockchain_bp)
     app.register_blueprint(ipfs_bp)
+    app.register_blueprint(org_bp)
+    app.register_blueprint(org_student_bp)
+    app.register_blueprint(college_bp)
+    app.register_blueprint(user_bp)
     
     # Register development-only blueprints if in development mode
     if app.config.get('DEBUG', False):
