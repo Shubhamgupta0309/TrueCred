@@ -7,6 +7,7 @@ from services.auth_service import AuthService
 from datetime import datetime
 from models.user import Education
 import logging
+from mongoengine.errors import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -58,33 +59,61 @@ def update_profile():
         # Handle education data
         if 'education' in data and isinstance(data['education'], list):
             try:
-                # Clear current education list
-                user.education = []
-                
-                # Add each education entry as an Education embedded document
-                for edu_data in data['education']:
+                # Validate each incoming education entry before modifying user
+                new_education = []
+                for idx, edu_data in enumerate(data['education']):
+                    # Required fields check
+                    inst = (edu_data.get('institution') or '').strip()
+                    degree = (edu_data.get('degree') or '').strip()
+                    field = (edu_data.get('field_of_study') or '').strip()
+                    start = (edu_data.get('start_date') or '').strip()
+                    end = (edu_data.get('end_date') or '').strip()
+                    current = bool(edu_data.get('current', False))
+
+                    if not inst or not degree or not field or not start:
+                        return jsonify({
+                            'success': False,
+                            'message': f'Invalid education entry at index {idx}: institution, degree, field_of_study and start_date are required.'
+                        }), 400
+
+                    if not current and not end:
+                        return jsonify({
+                            'success': False,
+                            'message': f'Invalid education entry at index {idx}: end_date is required when current is false.'
+                        }), 400
+
+                    # Create Education embedded document (will be validated on save)
                     education = Education(
-                        institution=edu_data.get('institution', ''),
+                        institution=inst,
                         institution_id=edu_data.get('institution_id', ''),
-                        degree=edu_data.get('degree', ''),
-                        field_of_study=edu_data.get('field_of_study', ''),
-                        start_date=edu_data.get('start_date', ''),
-                        end_date=edu_data.get('end_date', ''),
-                        current=edu_data.get('current', False)
+                        degree=degree,
+                        field_of_study=field,
+                        start_date=start,
+                        end_date=end,
+                        current=current
                     )
-                    user.education.append(education)
-                    
-                # Mark profile as completed
+                    # call embedded validation to catch issues early
+                    education.clean()
+                    new_education.append(education)
+
+                # All entries validated: replace user's education list
+                user.education = new_education
                 user.profile_completed = True
                 changes['profile_completed'] = True
-                changes['education'] = 'Updated education data'
-                
+                changes['education'] = f'Updated {len(new_education)} education entries'
+
+            except ValidationError as e:
+                logger.error(f"Validation error handling education data: {str(e)}", exc_info=True)
+                return jsonify({
+                    'success': False,
+                    'message': f"Validation error processing education data: {str(e)}"
+                }), 400
             except Exception as e:
                 logger.error(f"Error handling education data: {str(e)}", exc_info=True)
                 return jsonify({
                     'success': False,
                     'message': f"Error processing education data: {str(e)}"
-                }), 400
+                }), 500
             
         if changes:
             user.updated_at = datetime.utcnow()

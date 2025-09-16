@@ -4,6 +4,7 @@ import CompanyDashboardHeader from '../components/company/CompanyDashboardHeader
 import SearchFilterPanel from '../components/college/SearchFilterPanel'; // Reusing for now
 import PendingExperienceRequests from '../components/company/PendingExperienceRequests';
 import ExperienceHistory from '../components/company/ExperienceHistory';
+import CompanyProfileForm from '../components/company/CompanyProfileForm';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 
 // Mock Data
@@ -29,6 +30,7 @@ const mockNotifications = [
 ];
 
 export default function CompanyDashboard() {
+  const [activeTab, setActiveTab] = useState('requests');
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [history, setHistory] = useState(initialHistory);
 
@@ -64,25 +66,62 @@ export default function CompanyDashboard() {
           animate="visible"
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-          {/* Main Column */}
-          <div className="lg:col-span-2 space-y-8">
-            <motion.div variants={itemVariants}>
-              <SearchFilterPanel />
-            </motion.div>
-            <motion.div variants={itemVariants}>
-                <PendingExperienceRequests requests={pendingRequests} onAction={handleAction} />
-            </motion.div>
+          <div className="bg-white shadow-sm rounded-lg mb-8 lg:col-span-3">
+            <div className="flex border-b">
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'requests' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('requests')}>Pending Requests</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'history' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('history')}>History</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('profile')}>Company Profile</button>
+            </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-8">
-            <motion.div variants={itemVariants}>
-              <ExperienceHistory history={history} />
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <NotificationPanel notifications={mockNotifications} />
-            </motion.div>
-          </div>
+          {activeTab === 'requests' ? (
+            <>
+              {/* Main Column */}
+              <div className="lg:col-span-2 space-y-8">
+                <motion.div variants={itemVariants}>
+                  <SearchFilterPanel />
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <PendingExperienceRequests requests={pendingRequests} onAction={handleAction} />
+                </motion.div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <ExperienceHistory history={history} />
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={mockNotifications} />
+                </motion.div>
+              </div>
+            </>
+          ) : activeTab === 'history' ? (
+            <>
+              <div className="lg:col-span-2">
+                <PendingExperienceRequests requests={[]} onAction={handleAction} />
+              </div>
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <ExperienceHistory history={history} />
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={mockNotifications} />
+                </motion.div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="lg:col-span-2">
+                <CompanyProfileForm user={mockCompanyUser} onUpdate={() => {}} />
+              </div>
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={mockNotifications} />
+                </motion.div>
+              </div>
+            </>
+          )}
         </motion.div>
       </div>
     </div>

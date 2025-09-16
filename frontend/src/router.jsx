@@ -7,6 +7,7 @@ import CompanyDashboard from './pages/CompanyDashboard';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import VerificationPendingPage from './pages/VerificationPendingPage';
 import TestVerificationLinks from './pages/TestVerificationLinks';
+import StudentProfile from './pages/StudentProfile';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 /**
@@ -31,6 +32,7 @@ const router = createBrowserRouter([
     path: "/company-dashboard", 
     element: <ProtectedRoute element={<CompanyDashboard />} allowedRoles={['company']} /> 
   },
+  { path: "/students/:truecredId", element: <ProtectedRoute element={<StudentProfile />} allowedRoles={['college','company','student']} /> },
   { path: "*", element: <Navigate to="/" replace /> }
 ], {
   future: {
