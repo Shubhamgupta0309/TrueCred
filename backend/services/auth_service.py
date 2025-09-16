@@ -6,6 +6,7 @@ and profile management.
 """
 from models.user import User
 from utils.password import hash_password, verify_password, password_meets_requirements
+from utils.id_generator import generate_truecred_id
 from mongoengine.errors import NotUniqueError, ValidationError
 import logging
 from datetime import datetime, timedelta
@@ -55,6 +56,14 @@ class AuthService:
             # Hash password
             hashed_password = hash_password(password)
             
+            # Generate unique TrueCred ID
+            truecred_id = None
+            for _ in range(10):  # Try up to 10 times to generate a unique ID
+                generated_id = generate_truecred_id()
+                if not User.objects(truecred_id=generated_id).first():
+                    truecred_id = generated_id
+                    break
+            
             # Create user
             user = User(
                 username=username,
@@ -62,7 +71,8 @@ class AuthService:
                 password=hashed_password,
                 first_name=first_name,
                 last_name=last_name,
-                role=role
+                role=role,
+                truecred_id=truecred_id
             )
             
             # Save user

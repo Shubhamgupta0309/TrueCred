@@ -5,9 +5,21 @@ from datetime import datetime
 import re
 from mongoengine import (
     Document, StringField, EmailField, DateTimeField, 
-    BooleanField, ListField, ReferenceField, DENY
+    BooleanField, ListField, ReferenceField, DENY,
+    EmbeddedDocument, EmbeddedDocumentListField, DictField
 )
 from mongoengine.errors import ValidationError
+
+# Define Education embedded document
+class Education(EmbeddedDocument):
+    """Education entry for a user's profile"""
+    institution = StringField(required=True)
+    institution_id = StringField()
+    degree = StringField(required=True)
+    field_of_study = StringField(required=True)
+    start_date = StringField(required=True)
+    end_date = StringField()
+    current = BooleanField(default=False)
 
 class User(Document):
     """
@@ -46,6 +58,12 @@ class User(Document):
     last_name = StringField(max_length=50)
     profile_image = StringField()  # URL or path to profile image
     wallet_address = StringField(unique=True, sparse=True)  # Ethereum wallet address
+    truecred_id = StringField(unique=True, sparse=True)  # Unique ID format: TC + 6 random digits
+    affiliated_organizations = ListField(StringField())  # List of organizations/colleges the user is affiliated with
+    
+    # Education and profile information
+    education = EmbeddedDocumentListField(Education)  # List of education history
+    profile_completed = BooleanField(default=False)  # Whether the user has completed their profile
     
     # Account status
     is_active = BooleanField(default=True)
@@ -132,6 +150,20 @@ class User(Document):
         Returns:
             Dictionary representation of the user (excluding password)
         """
+        # Convert education embedded documents to dictionaries
+        education_list = []
+        if hasattr(self, 'education') and self.education:
+            for edu in self.education:
+                education_list.append({
+                    'institution': edu.institution,
+                    'institution_id': edu.institution_id,
+                    'degree': edu.degree,
+                    'field_of_study': edu.field_of_study,
+                    'start_date': edu.start_date,
+                    'end_date': edu.end_date,
+                    'current': edu.current
+                })
+        
         return {
             'id': str(self.id),
             'username': self.username,
@@ -144,7 +176,9 @@ class User(Document):
             'is_active': self.is_active,
             'email_verified': self.email_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'education': education_list,
+            'profile_completed': self.profile_completed if hasattr(self, 'profile_completed') else False
         }
     
     def __str__(self):

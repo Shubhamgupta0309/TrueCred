@@ -1,6 +1,7 @@
-import { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback, useRef, useMemo } from 'react';
 import { api } from '../services/api';
 import { decodeToken, isTokenExpired, getTimeUntilExpiration, throttle } from '../utils/tokenUtils';
+import { Navigate, useNavigate } from 'react-router-dom';
 
 // Create the auth context
 const AuthContext = createContext();
@@ -20,6 +21,21 @@ export const AuthProvider = ({ children }) => {
   
   // Use a ref to track if a profile request is in progress
   const profileRequestInProgress = useRef(false);
+  
+  // Function to redirect to login page
+  const redirectToLogin = useCallback(() => {
+    // Clear user data
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('user');
+    
+    // Reset state
+    setUser(null);
+    
+    // Redirect to login page
+    window.location.href = '/auth';
+  }, []);
 
   // Function to refresh the access token
   const refreshAccessToken = useCallback(async () => {
@@ -30,7 +46,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('No refresh token available');
       }
 
-      const response = await api.post('/auth/refresh', {
+      const response = await api.post('/api/auth/refresh', {
         refresh_token: currentRefreshToken
       });
 
@@ -85,38 +101,61 @@ export const AuthProvider = ({ children }) => {
     }
   }, [refreshAccessToken, tokenRefreshInterval]);
 
+  // Listen for session expired events from API interceptors
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      console.log('Session expired event received');
+      redirectToLogin();
+    };
+    
+    // Add event listener
+    window.addEventListener('auth:sessionExpired', handleSessionExpired);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('auth:sessionExpired', handleSessionExpired);
+    };
+  }, [redirectToLogin]);
+
+  // Memoized function to check user profile
+  const checkUserProfile = useCallback(async () => {
+    // If a request is already in progress, don't start another one
+    if (profileRequestInProgress.current) return;
+    
+    // Skip if we've checked recently (within last 10 seconds)
+    const now = Date.now();
+    if (now - lastProfileCheck < 10000) return;
+    
+    profileRequestInProgress.current = true;
+    setLastProfileCheck(now);
+    
+    try {
+      const response = await api.get('/api/auth/profile');
+      setUser(response.data.user);
+    } catch (err) {
+      console.error('Error checking user profile:', err);
+      // Only clear on 401 Unauthorized or similar auth errors
+      if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('userRole');
+        setUser(null);
+      }
+    } finally {
+      profileRequestInProgress.current = false;
+    }
+  }, [setLastProfileCheck]); // Minimal dependencies to avoid re-creation
+  
+  // Throttled version for UI events
+  const throttledCheckUserProfile = useMemo(() => 
+    throttle(checkUserProfile, 1000), 
+  [checkUserProfile]);
+
   // Check if user is already logged in on mount
   useEffect(() => {
-    // Throttled version of profile check to prevent excessive API calls
-    const checkUserProfile = throttle(async () => {
-      // If a request is already in progress, don't start another one
-      if (profileRequestInProgress.current) return;
-      
-      // Skip if we've checked recently (within last 10 seconds)
-      const now = Date.now();
-      if (now - lastProfileCheck < 10000) return;
-      
-      profileRequestInProgress.current = true;
-      setLastProfileCheck(now);
-      
-      try {
-        const response = await api.get('/auth/profile');
-        setUser(response.data.user);
-      } catch (err) {
-        console.error('Error checking user profile:', err);
-        // Only clear on 401 Unauthorized or similar auth errors
-        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('userRole');
-          setUser(null);
-        }
-      } finally {
-        profileRequestInProgress.current = false;
-      }
-    }, 1000); // Throttle to at most once per second
     
-    const checkLoggedIn = async () => {
+    // One-time check on mount only
+    const checkLoggedInOnMount = async () => {
       setLoading(true);
       try {
         // Check if tokens exist in localStorage
@@ -145,7 +184,7 @@ export const AuthProvider = ({ children }) => {
         api.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
         
         // Get user profile once
-        checkUserProfile();
+        await checkUserProfile();
         
         // Set up token refresh
         setupTokenRefresh(currentToken);
@@ -161,7 +200,7 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    checkLoggedIn();
+    checkLoggedInOnMount();
     
     // Clean up refresh interval on unmount
     return () => {
@@ -169,7 +208,7 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(tokenRefreshInterval);
       }
     };
-  }, [refreshAccessToken, setupTokenRefresh, tokenRefreshInterval]);
+  }, []); // Empty dependency array - only run once on mount
 
   // Login function
   const login = async (usernameOrEmail, password) => {
@@ -177,7 +216,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await api.post('/auth/login', {
+      const response = await api.post('/api/auth/login', {
         username_or_email: usernameOrEmail,
         password
       });
@@ -241,7 +280,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await api.post('/auth/register', userData);
+      const response = await api.post('/api/auth/register', userData);
       
       const { user, tokens, needsEmailVerification } = response.data;
       
@@ -292,7 +331,7 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       // Call logout API if needed
-      await api.post('/auth/logout');
+      await api.post('/api/auth/logout');
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
@@ -321,7 +360,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await api.put('/auth/profile', profileData);
+      const response = await api.put('/api/auth/profile', profileData);
       setUser(response.data.user);
       return true;
     } catch (err) {
@@ -349,7 +388,7 @@ export const AuthProvider = ({ children }) => {
       const normalizedAddress = walletAddress.toLowerCase();
       console.log('AuthContext: Sending wallet auth request with address:', normalizedAddress);
       
-      const response = await api.post('/auth/wallet-auth', {
+      const response = await api.post('/api/auth/wallet-auth', {
         wallet_address: normalizedAddress
       });
 
@@ -389,7 +428,7 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
-      const response = await api.post('/auth/connect-wallet', {
+      const response = await api.post('/api/auth/connect-wallet', {
         wallet_address: walletAddress
       });
       
@@ -424,9 +463,17 @@ export const AuthProvider = ({ children }) => {
     connectWallet,
     setError,
     refreshToken: refreshAccessToken,
+    checkProfile: throttledCheckUserProfile,
+    updateUser: (userData) => {
+      // Update user state directly
+      setUser(prevUser => ({
+        ...prevUser,
+        ...userData
+      }));
+    },
     resendVerificationEmail: async (email) => {
       try {
-        const response = await api.post('/auth/resend-verification', { email });
+        const response = await api.post('/api/auth/resend-verification', { email });
         return response.data;
       } catch (err) {
         console.error('Error resending verification email:', err);
@@ -435,7 +482,7 @@ export const AuthProvider = ({ children }) => {
     },
     verifyEmail: async (token) => {
       try {
-        const response = await api.get(`/auth/verify-email?token=${token}`);
+        const response = await api.get(`/api/auth/verify-email?token=${token}`);
         if (response.data.success) {
           const { user, tokens } = response.data;
           

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Base URL for the API - use Vite's environment variables
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Create an axios instance with default config
 export const api = axios.create({
@@ -10,6 +10,21 @@ export const api = axios.create({
     'Content-Type': 'application/json',
   },
 });
+
+// Track if token refresh is in progress
+let isRefreshing = false;
+let refreshSubscribers = [];
+
+// Function to push callbacks to array
+const subscribeTokenRefresh = (callback) => {
+  refreshSubscribers.push(callback);
+};
+
+// Function to execute callbacks with new token
+const onRefreshed = (token) => {
+  refreshSubscribers.forEach(callback => callback(token));
+  refreshSubscribers = [];
+};
 
 // Request interceptor for adding auth token
 api.interceptors.request.use(
@@ -35,6 +50,7 @@ api.interceptors.response.use(
     
     // If there's no response (network/CORS), propagate a friendly error
     if (!error.response) {
+      console.error('Network error or CORS issue:', error);
       return Promise.reject({
         message: 'Network error or CORS blocked the request',
         isNetworkError: true,
@@ -42,81 +58,132 @@ api.interceptors.response.use(
       });
     }
 
-    // If the error is 401 and we haven't retried yet
-    if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    // If error is not 401 or request already retried, reject
+    if (error.response.status !== 401 || originalRequest._retry) {
+      // Add more context to server errors for easier debugging
+      if (error.response.data) {
+        console.error('API Error Response:', error.response.status, error.response.data);
+      }
+      return Promise.reject(error);
+    }
+
+    // Mark request as retried
+    originalRequest._retry = true;
+
+    // If token refresh is not in progress, start refresh
+    if (!isRefreshing) {
+      isRefreshing = true;
+
       try {
-        // Try to refresh the token
+        // Get refresh token from storage
         const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          // No refresh token, redirect to login
-          window.location.href = '/auth';
-          return Promise.reject(error);
-        }
         
-        const response = await axios.post(`${API_URL}/auth/refresh`, {
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        // Call refresh endpoint
+        const response = await axios.post(`${API_URL}/api/auth/refresh`, {
           refresh_token: refreshToken
         });
-        
+
+        // Update tokens in storage
         const { access_token } = response.data;
         localStorage.setItem('accessToken', access_token);
         
-        // Retry the original request with the new token
+        // Update auth header for original request
         originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
+        
+        // Notify all waiting requests
+        onRefreshed(access_token);
+        
+        // Reset refresh state
+        isRefreshing = false;
+        
+        // Retry original request
         return axios(originalRequest);
-      } catch (err) {
-        // Refresh token failed, redirect to login
+      } catch (refreshError) {
+        // Reset refresh state
+        isRefreshing = false;
+        
+        // Clear tokens and reject all waiting requests
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
         localStorage.removeItem('userRole');
+        
+        // Trigger session expired event
+        window.dispatchEvent(new CustomEvent('auth:sessionExpired'));
+        
+        // Redirect to login
         window.location.href = '/auth';
-        return Promise.reject(error);
+        
+        return Promise.reject(refreshError);
       }
+    } else {
+      // If refresh already in progress, wait for new token
+      return new Promise((resolve) => {
+        subscribeTokenRefresh((token) => {
+          originalRequest.headers['Authorization'] = `Bearer ${token}`;
+          resolve(axios(originalRequest));
+        });
+      });
     }
-    
-    return Promise.reject(error);
   }
 );
 
 // Auth services
 export const authService = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  register: (userData) => api.post('/auth/register', userData),
-  logout: () => api.post('/auth/logout'),
-  refreshToken: (refreshToken) => api.post('/auth/refresh', { refresh_token: refreshToken }),
-  connectWallet: (walletAddress) => api.post('/auth/connect-wallet', { wallet_address: walletAddress }),
-  verifyEmail: (token) => api.get(`/auth/verify-email?token=${token}`),
-  resendVerification: (email) => api.post('/auth/resend-verification', { email }),
+  login: (credentials) => api.post('/api/auth/login', credentials),
+  register: (userData) => api.post('/api/auth/register', userData),
+  logout: () => api.post('/api/auth/logout'),
+  refreshToken: (refreshToken) => api.post('/api/auth/refresh', { refresh_token: refreshToken }),
+  connectWallet: (walletAddress) => api.post('/api/auth/connect-wallet', { wallet_address: walletAddress }),
+  verifyEmail: (token) => api.get(`/api/auth/verify-email?token=${token}`),
+  resendVerification: (email) => api.post('/api/auth/resend-verification', { email }),
 };
 
 // Credential services
 export const credentialService = {
-  getCredentials: () => api.get('/credentials'),
-  requestCredential: (credentialData) => api.post('/credentials/request', credentialData),
-  verifyCredential: (credentialId) => api.post(`/credentials/${credentialId}/verify`),
+  getCredentials: () => api.get('/api/credentials'),
+  requestCredential: (credentialData) => api.post('/api/credentials/request', credentialData),
+  verifyCredential: (credentialId) => api.post(`/api/credentials/${credentialId}/verify`),
 };
 
 // Experience services
 export const experienceService = {
-  getExperiences: () => api.get('/experiences'),
-  requestExperience: (experienceData) => api.post('/experiences/request', experienceData),
-  verifyExperience: (experienceId) => api.post(`/experiences/${experienceId}/verify`),
+  getExperiences: () => api.get('/api/experiences'),
+  requestExperience: (experienceData) => api.post('/api/experiences/request', experienceData),
+  verifyExperience: (experienceId) => api.post(`/api/experiences/${experienceId}/verify`),
 };
 
 // College services
 export const collegeService = {
-  getPendingRequests: () => api.get('/credentials/pending'),
-  approveRequest: (requestId) => api.post(`/credentials/${requestId}/approve`),
-  rejectRequest: (requestId, reason) => api.post(`/credentials/${requestId}/reject`, { reason }),
-  getVerificationHistory: () => api.get('/credentials/history'),
+  getPendingRequests: () => api.get('/api/credentials/pending'),
+  approveRequest: (requestId) => api.post(`/api/credentials/${requestId}/approve`),
+  rejectRequest: (requestId, reason) => api.post(`/api/credentials/${requestId}/reject`, { reason }),
+  getVerificationHistory: () => api.get('/api/credentials/history'),
+  getProfile: () => api.get('/api/college/profile'),
+  updateProfile: (profileData) => api.post('/api/college/profile', profileData),
 };
 
 // Company services
 export const companyService = {
-  getPendingExperienceRequests: () => api.get('/experiences/pending'),
-  approveExperienceRequest: (requestId) => api.post(`/experiences/${requestId}/approve`),
-  rejectExperienceRequest: (requestId, reason) => api.post(`/experiences/${requestId}/reject`, { reason }),
-  getExperienceHistory: () => api.get('/experiences/history'),
+  getPendingExperienceRequests: () => api.get('/api/experiences/pending'),
+  approveExperienceRequest: (requestId) => api.post(`/api/experiences/${requestId}/approve`),
+  rejectExperienceRequest: (requestId, reason) => api.post(`/api/experiences/${requestId}/reject`, { reason }),
+  getExperienceHistory: () => api.get('/api/experiences/history'),
+};
+
+// Notification services
+export const notificationService = {
+  getNotifications: () => api.get('/api/notifications'),
+};
+
+// Organization services
+export const organizationService = {
+  getInstitutions: (query) => api.get(`/api/organizations/institutions${query ? `?query=${encodeURIComponent(query)}` : ''}`),
+  getOrganizationById: (id) => api.get(`/api/organizations/${id}`),
 };
 
 // Export the api instance for direct use if needed
