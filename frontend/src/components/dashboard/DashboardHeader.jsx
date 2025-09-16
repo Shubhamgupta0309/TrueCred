@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { LogOut, User, Mail } from 'lucide-react';
 import MetaMaskConnect from './../auth/MetaMaskConnect'; // Reusing the component
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function DashboardHeader({ user }) {
@@ -22,13 +22,13 @@ export default function DashboardHeader({ user }) {
       className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-4 mb-8"
     >
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* User Info */}
+        {/* User Info (non-clickable) */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold select-none">
             {user.name.charAt(0)}
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800">{user.name}</h1>
+            <div className="text-xl font-bold text-gray-800 block select-none">{user.name}</div>
             <p className="text-sm text-gray-500 flex items-center gap-2">
               <Mail className="w-4 h-4" />
               {user.email}

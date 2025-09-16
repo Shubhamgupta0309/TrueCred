@@ -8,9 +8,11 @@ import ActionButtons from '../components/dashboard/ActionButtons';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 import BlockchainTokenDisplay from '../components/blockchain/BlockchainTokenDisplay';
 import ProfileCompletion from '../components/profile/ProfileCompletion';
+import ProfileCard from '../components/profile/ProfileCard';
 import withAuthErrorHandling from '../components/withAuthErrorHandling';
 import AuthenticationModal from '../components/common/AuthenticationModal';
 import { api, notificationService } from '../services/api';
+import StudentSearch from '../components/organization/StudentSearch';
 
 // Mock Data - will be replaced with API calls
 const mockCredentials = [
@@ -41,6 +43,8 @@ function StudentDashboard({ onAuthError }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'blockchain'
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [activeTab, setActiveTab] = useState('overview');
   
   // Format the user data for the header
   const userForHeader = {
@@ -162,7 +166,7 @@ function StudentDashboard({ onAuthError }) {
           <>
             <DashboardHeader user={userForHeader} />
             
-            {/* View mode toggle */}
+            {/* View mode toggle and tabs */}
             <div className="flex justify-center mb-6">
               <div className="bg-white rounded-full p-1 shadow-sm inline-flex">
                 <button
@@ -188,6 +192,13 @@ function StudentDashboard({ onAuthError }) {
               </div>
             </div>
 
+            <div className="bg-white shadow-sm rounded-lg mb-8">
+              <div className="flex border-b">
+                <button className={`py-3 px-6 focus:outline-none ${activeTab === 'overview' ? 'border-b-2 border-purple-600 text-purple-700' : 'text-gray-500 hover:text-purple-500'}`} onClick={() => setActiveTab('overview')}>Overview</button>
+                <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-purple-600 text-purple-700' : 'text-gray-500 hover:text-purple-500'}`} onClick={() => setActiveTab('profile')}>Profile</button>
+              </div>
+            </div>
+
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -196,27 +207,33 @@ function StudentDashboard({ onAuthError }) {
             >
               {/* Left Column */}
               <motion.div variants={itemVariants} className="lg:col-span-2 space-y-8">
-                {viewMode === 'list' ? (
-                  <>
-                    <CredentialsList credentials={credentials} />
-                    <ExperienceList experiences={experiences} />
-                  </>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-md p-6">
-                    <h2 className="text-xl font-bold text-gray-800 mb-4">Blockchain Credentials</h2>
-                    <div className="space-y-4">
-                      {credentials.length > 0 ? (
-                        credentials.map(credential => (
-                          <BlockchainTokenDisplay key={credential.id} credential={credential} />
-                        ))
-                      ) : (
-                        <p className="text-gray-500 text-center py-8">
-                          No blockchain credentials found. Your verified credentials will appear here.
-                        </p>
-                      )}
+                {activeTab === 'overview' ? (
+                  viewMode === 'list' ? (
+                    <>
+                      <CredentialsList credentials={credentials} />
+                      <ExperienceList experiences={experiences} />
+                    </>
+                  ) : (
+                    <div className="bg-white rounded-xl shadow-md p-6">
+                      <h2 className="text-xl font-bold text-gray-800 mb-4">Blockchain Credentials</h2>
+                      <div className="space-y-4">
+                        {credentials.length > 0 ? (
+                          credentials.map(credential => (
+                            <BlockchainTokenDisplay key={credential.id} credential={credential} />
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-center py-8">
+                            No blockchain credentials found. Your verified credentials will appear here.
+                          </p>
+                        )}
+                      </div>
                     </div>
+                  )
+                ) : activeTab === 'profile' ? (
+                  <div>
+                    <ProfileCompletion onComplete={() => setNeedsProfileCompletion(false)} />
                   </div>
-                )}
+                ) : null}
               </motion.div>
 
               {/* Right Column */}
@@ -230,6 +247,8 @@ function StudentDashboard({ onAuthError }) {
                     </p>
                   </div>
                 </div>
+                <StudentSearch onStudentSelect={(s) => setSelectedStudent(s)} />
+                <ProfileCard student={selectedStudent} currentUser={user} onEditRequest={(s) => console.log('edit request', s)} />
                 <ActionButtons onAuthError={handleActionError} />
                 <NotificationPanel notifications={notifications} />
               </motion.div>

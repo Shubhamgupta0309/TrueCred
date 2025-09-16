@@ -4,13 +4,13 @@ import { useAuth } from '../../context/AuthContext';
 import { api, organizationService } from '../../services/api';
 import { ChevronDown } from 'lucide-react';
 
-export default function ProfileCompletion({ onComplete }) {
+export default function ProfileCompletion({ onComplete, initialUser }) {
   const { user, updateUser } = useAuth();
   const dropdownRef = useRef(null);
   
   const [formData, setFormData] = useState({
-    firstName: user?.first_name || '',
-    lastName: user?.last_name || '',
+  firstName: user?.first_name || '',
+  lastName: user?.last_name || '',
     education: [],
     currentEducation: {
       institution: '',
@@ -65,6 +65,34 @@ export default function ProfileCompletion({ onComplete }) {
     // Preload institutions when component mounts
     searchInstitutions('');
   }, []);
+
+  // Hydrate formData from initialUser if provided (useful when this component is rendered inside StudentProfile)
+  useEffect(() => {
+    const src = initialUser || user;
+    if (src) {
+      try {
+        const existingEducation = Array.isArray(src.education) ? src.education.map((edu, idx) => ({
+          id: edu.id || `${Date.now()}-${idx}`,
+          institution: edu.institution,
+          institutionId: edu.institution_id || edu.institutionId || '',
+          degree: edu.degree,
+          fieldOfStudy: edu.field_of_study || edu.fieldOfStudy || '',
+          startDate: edu.start_date || edu.startDate || '',
+          endDate: edu.end_date || edu.endDate || '',
+          current: !!edu.current
+        })) : [];
+
+        setFormData(prev => ({
+          ...prev,
+          firstName: src.first_name || src.firstName || prev.firstName,
+          lastName: src.last_name || src.lastName || prev.lastName,
+          education: existingEducation
+        }));
+      } catch (err) {
+        console.warn('Failed to hydrate ProfileCompletion from initialUser:', err);
+      }
+    }
+  }, [initialUser, user]);
 
   // Add click outside handler to close dropdown
   useEffect(() => {
@@ -279,7 +307,40 @@ export default function ProfileCompletion({ onComplete }) {
           ...response.data.user,
           profile_completed: true
         });
-        
+
+        // Update local form state to reflect saved education and names
+        try {
+          const savedUser = response.data.user || {};
+          const savedEducation = Array.isArray(savedUser.education) ? savedUser.education.map((edu, idx) => ({
+            id: edu.id || `${Date.now()}-${idx}`,
+            institution: edu.institution,
+            institutionId: edu.institution_id || '',
+            degree: edu.degree,
+            fieldOfStudy: edu.field_of_study || edu.fieldOfStudy || '',
+            startDate: edu.start_date || edu.startDate || '',
+            endDate: edu.end_date || edu.endDate || '',
+            current: !!edu.current
+          })) : [];
+
+          setFormData(prev => ({
+            ...prev,
+            firstName: savedUser.first_name || prev.firstName,
+            lastName: savedUser.last_name || prev.lastName,
+            education: savedEducation,
+            currentEducation: {
+              institution: '',
+              institutionId: '',
+              degree: '',
+              fieldOfStudy: '',
+              startDate: '',
+              endDate: '',
+              current: false
+            }
+          }));
+        } catch (err) {
+          console.warn('Failed to hydrate formData from saved user:', err);
+        }
+
         // Call the completion callback
         if (onComplete) {
           onComplete();

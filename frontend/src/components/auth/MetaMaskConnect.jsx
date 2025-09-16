@@ -47,7 +47,7 @@ export default function MetaMaskConnect({ isDashboard = false }) {
         }
       } catch (err) {
         console.error('Error checking MetaMask connection:', err);
-        setError('Error connecting to MetaMask. Please ensure MetaMask is installed and unlocked.');
+      setError('Error connecting to MetaMask. Please ensure MetaMask is installed and unlocked. ' + (err?.message || ''));
       }
     };
 
@@ -90,7 +90,9 @@ export default function MetaMaskConnect({ isDashboard = false }) {
   };
 
   const handleConnect = async () => {
-    setError('');
+  setError('');
+  // Prevent multiple concurrent connect flows from rapid clicks
+  if (isConnecting) return;
     
     // If already authenticated but not in dashboard, redirect to the appropriate dashboard
     if (isAuthenticated && !isDashboard) {
@@ -121,9 +123,15 @@ export default function MetaMaskConnect({ isDashboard = false }) {
     }
 
     setIsConnecting(true);
-    
+
     try {
-      // Request account access
+      // If the provider (or another tab) already has an eth_requestAccounts in progress, avoid duplicate request
+      if (window && (window.__eth_request_promise || window.__eth_request_in_progress)) {
+        setError('A wallet connection is already in progress. Please finish the existing MetaMask dialog or check the MetaMask extension and try again.');
+        return;
+      }
+
+      // Request account access. The polyfill will retry a few times if the provider reports it's busy.
       const accounts = await window.safeMetaMaskRequest('eth_requestAccounts');
       
       if (accounts && accounts.length > 0) {
@@ -157,9 +165,17 @@ export default function MetaMaskConnect({ isDashboard = false }) {
       }
     } catch (err) {
       console.error('Error connecting to MetaMask:', err);
-      if (err.code === 4001) {
-        // User rejected the request
+      // User rejected the request
+      if (err && (err.code === 4001 || (err.error && err.error.code === 4001))) {
         setError('MetaMask connection was rejected. Please approve the connection request.');
+      } else if (err && (err.code === -32001 || (err.message && err.message.includes('timed out')))) {
+        // Our polyfill timed out waiting for the provider to become available
+        setError('MetaMask did not respond in time. Please check the MetaMask popup/extension and try again.');
+      } else if (err && (err.code === -32002 || (err.message && err.message.includes('Already processing')))) {
+        // Provider reports it's already processing eth_requestAccounts
+        setError('MetaMask is already handling a connection request. Please finish the existing MetaMask dialog (check other tabs) and try again.');
+      } else if (err && err.message) {
+        setError(`Failed to connect to MetaMask: ${err.message}`);
       } else {
         setError('Failed to connect to MetaMask. Please try again.');
       }

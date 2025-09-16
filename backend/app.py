@@ -34,6 +34,9 @@ def create_app(config_name='default'):
         The configured Flask application
     """
     app = Flask(__name__)
+    # Disable strict slashes so Flask won't redirect requests that differ only by trailing slash.
+    # Redirect responses break CORS preflight (browsers disallow redirects for OPTIONS requests).
+    app.url_map.strict_slashes = False
     
     # Load configuration
     config = get_config(config_name)

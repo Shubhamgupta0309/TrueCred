@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Search, User, FileText, BadgeCheck, X } from 'lucide-react';
 import { api } from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 export default function StudentSearch({ onStudentSelect }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,6 +11,7 @@ export default function StudentSearch({ onStudentSelect }) {
   const [error, setError] = useState(null);
   const [searchTimeout, setSearchTimeout] = useState(null);
   const searchInputRef = useRef(null);
+  const navigate = useNavigate();
   
   // Effect for debounced search
   useEffect(() => {
@@ -202,7 +204,15 @@ export default function StudentSearch({ onStudentSelect }) {
                   key={student.id}
                   className="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
                   whileHover={{ backgroundColor: 'rgba(243, 244, 246, 1)' }}
-                  onClick={() => handleStudentSelect(student)}
+                  onClick={() => {
+                    // If a parent provided a selection handler, call it (e.g., for uploading credentials).
+                    if (onStudentSelect) {
+                      handleStudentSelect(student);
+                    } else {
+                      // Otherwise navigate to the student's public profile page.
+                      navigate(`/students/${encodeURIComponent(student.truecred_id)}`);
+                    }
+                  }}
                 >
                   <div className="flex items-center">
                     <div className="bg-blue-100 rounded-full p-2 mr-3">

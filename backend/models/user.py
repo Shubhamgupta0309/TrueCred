@@ -13,13 +13,31 @@ from mongoengine.errors import ValidationError
 # Define Education embedded document
 class Education(EmbeddedDocument):
     """Education entry for a user's profile"""
-    institution = StringField(required=True)
+    institution = StringField(required=True, max_length=255)
     institution_id = StringField()
-    degree = StringField(required=True)
-    field_of_study = StringField(required=True)
-    start_date = StringField(required=True)
-    end_date = StringField()
+    degree = StringField(required=True, max_length=255)
+    field_of_study = StringField(required=True, max_length=255)
+    start_date = StringField(required=True, max_length=25)
+    end_date = StringField(max_length=25)
     current = BooleanField(default=False)
+
+    def clean(self):
+        """Validate Education fields on save."""
+        # Basic required checks are handled by mongoengine, but add
+        # a sanity check for string lengths and that end_date is present
+        # when current is False.
+        if not self.institution or not self.institution.strip():
+            raise ValidationError('Education.institution is required')
+        if not self.degree or not self.degree.strip():
+            raise ValidationError('Education.degree is required')
+        if not self.field_of_study or not self.field_of_study.strip():
+            raise ValidationError('Education.field_of_study is required')
+        if not self.start_date or not self.start_date.strip():
+            raise ValidationError('Education.start_date is required')
+        if not self.current:
+            # If not current, end_date should be provided (but allow empty for legacy)
+            if not self.end_date or not self.end_date.strip():
+                raise ValidationError('Education.end_date is required when not current')
 
 class User(Document):
     """
@@ -109,6 +127,26 @@ class User(Document):
             
             if self.username.isdigit():
                 raise ValidationError('Username cannot be all numbers')
+
+        # If education present, run embedded document validation
+        if hasattr(self, 'education') and self.education:
+            valid_edu = []
+            for edu in self.education:
+                try:
+                    # call clean on embedded document to validate
+                    edu.clean()
+                    valid_edu.append(edu)
+                except ValidationError as e:
+                    # re-raise with context
+                    raise ValidationError(f'Invalid education entry: {str(e)}')
+
+        # Auto-set profile_completed: true if at least one valid education exists
+        try:
+            if hasattr(self, 'education') and self.education and len(self.education) > 0:
+                self.profile_completed = True
+        except Exception:
+            # don't block save for unexpected reasons here
+            pass
     
     def save(self, *args, **kwargs):
         """

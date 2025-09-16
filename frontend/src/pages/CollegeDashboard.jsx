@@ -9,6 +9,7 @@ import NotificationPanel from '../components/dashboard/NotificationPanel';
 import CredentialIssuanceContainer from '../components/CredentialIssuanceContainer';
 import StudentSearch from '../components/organization/StudentSearch';
 import StudentCredentialUpload from '../components/organization/StudentCredentialUpload';
+import ProfileCard from '../components/profile/ProfileCard';
 import CollegeProfileForm from '../components/college/CollegeProfileForm';
 import { api, notificationService } from '../services/api';
 
@@ -289,6 +290,9 @@ export default function CollegeDashboard() {
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>
                   <VerificationHistory history={history} />
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <ProfileCard student={selectedStudent} currentUser={user} onEditRequest={(s) => console.log('edit request', s)} />
                 </motion.div>
                 <motion.div variants={itemVariants}>
                   <NotificationPanel notifications={notifications} />
