@@ -7,9 +7,22 @@ This document outlines the phased approach to complete the TrueCred project, wit
 ### 1. User Authentication & Profile System
 
 - **Complete student profile with education info**
+
   - Ensure education data is properly saved to MongoDB
   - Add validation for education entries
   - Implement profile completion indicators
+
+  Policy decision (attachments): Students may attach supporting documents when requesting a credential, but those attachments are stored and shown as "unverified" until an issuer (college or company) reviews and uploads the authoritative document to IPFS and issues the credential on-chain. This keeps the issuance authoritative while allowing students to provide helpful supporting files.
+
+  One-day implementation checklist (high priority)
+
+  - Convert student-side "Upload New Credential" to a "Request Credential" flow that calls `/api/credentials/request` and stores any attached files as unverified attachments.
+  - Update `StudentDashboard` to show two sections: "Pending Requests" (student requests waiting for issuer action) and "Issued Credentials" (verified from issuer/blockchain).
+  - Ensure issuer dashboards (`CollegeDashboard`, `CompanyDashboard`) surface incoming credential requests and include `StudentCredentialUpload` for issuers to upload authoritative documents and finalize issuance.
+  - Backend: make sure `/api/credentials/request` persists requests and attachments with a status flag (`pending`/`issued`/`rejected`) and that `/api/organization/upload-credential/<student_id>` requires issuer auth and creates the final credential and issues it on-chain.
+  - Add a small notification entry when a request is made and when an issuer issues/rejects a request so students get immediate feedback.
+  - Run a quick manual smoke test: student creates a request, issuer approves and issues, student sees credential in "Issued Credentials".
+
 - **Finalize college/institution profiles**
   - Complete organization profile management
   - Add verification status for institutions

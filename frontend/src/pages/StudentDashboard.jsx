@@ -45,6 +45,7 @@ function StudentDashboard({ onAuthError }) {
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'blockchain'
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const [pendingRequests, setPendingRequests] = useState([]);
   
   // Format the user data for the header
   const userForHeader = {
@@ -62,9 +63,13 @@ function StudentDashboard({ onAuthError }) {
       setLoading(true);
       
       try {
-        // Check if profile needs completion
-        if (user && (!user.first_name || !user.last_name)) {
-          setNeedsProfileCompletion(true);
+        // Check if profile needs completion (either missing names or profile_completed flag false)
+        if (user) {
+          if (!user.first_name || !user.last_name || user.profile_completed === false) {
+            setNeedsProfileCompletion(true);
+          } else {
+            setNeedsProfileCompletion(false);
+          }
         }
         
         // Fetch credentials
@@ -76,6 +81,17 @@ function StudentDashboard({ onAuthError }) {
         } catch (credError) {
           console.error('Error fetching credentials:', credError);
           // Keep mock data for development
+        }
+
+        // Fetch pending credential requests (user's own pending requests)
+        try {
+          const pendingResp = await api.get('/api/credentials?status=pending');
+          if (pendingResp.data.success) {
+            setPendingRequests(pendingResp.data.credentials || []);
+          }
+        } catch (pendingError) {
+          console.error('Error fetching pending requests:', pendingError);
+          // Ignore and continue
         }
         
         // Fetch experiences
@@ -210,6 +226,25 @@ function StudentDashboard({ onAuthError }) {
                 {activeTab === 'overview' ? (
                   viewMode === 'list' ? (
                     <>
+                              {/* Pending Requests panel */}
+                              {pendingRequests.length > 0 && (
+                                <div className="bg-white rounded-xl shadow-md p-6 mb-6">
+                                  <h2 className="text-lg font-bold text-gray-800 mb-2">Pending Credential Requests</h2>
+                                  <ul className="space-y-2">
+                                    {pendingRequests.map(req => (
+                                      <li key={req.id} className="p-2 border rounded hover:bg-gray-50">
+                                        <div className="flex justify-between">
+                                          <div>
+                                            <div className="font-medium text-gray-800">{req.title || req.metadata?.institution || 'Requested Credential'}</div>
+                                            <div className="text-sm text-gray-500">{req.issuer || req.metadata?.institution || ''}</div>
+                                          </div>
+                                          <div className="text-sm text-yellow-600">Pending</div>
+                                        </div>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                       <CredentialsList credentials={credentials} />
                       <ExperienceList experiences={experiences} />
                     </>

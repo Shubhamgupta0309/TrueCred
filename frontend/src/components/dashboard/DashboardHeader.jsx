@@ -34,7 +34,12 @@ export default function DashboardHeader({ user }) {
               {user.email}
             </p>
             <div className="mt-1">
-              <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-1 rounded-full">{user.role}</span>
+              <div className="flex items-center gap-2">
+                <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-1 rounded-full">{user.role}</span>
+                {!user.profile_completed && (
+                  <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">Complete profile</span>
+                )}
+              </div>
             </div>
           </div>
         </div>

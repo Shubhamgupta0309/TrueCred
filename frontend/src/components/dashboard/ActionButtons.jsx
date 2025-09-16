@@ -332,7 +332,7 @@ export default function ActionButtons({ onAuthError }) {
     }));
 
     try {
-      // Use the enhanced api instance with token refresh
+      // Use the enhanced api instance with token refresh to upload to IPFS
       const response = await api.post('/ipfs/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -340,9 +340,28 @@ export default function ActionButtons({ onAuthError }) {
       });
 
       console.log('Upload successful:', response.data);
+      // Build a credential request payload referencing the uploaded IPFS uri
+      const ipfsUri = response.data.ipfs_uri || response.data.data?.ipfs_uri || response.data.data?.document_url || null;
+      const requestPayload = {
+        title: credentialInfo.credentialName || `Credential from ${credentialInfo.institution}`,
+        issuer: credentialInfo.institution,
+        type: 'credential',
+        issue_date: credentialInfo.issuedDate || null,
+        metadata: {
+          institution_id: credentialInfo.institution_id || null,
+          institutionType: credentialInfo.institutionType,
+          uploadedAt: new Date().toISOString(),
+          source: 'student_request',
+        },
+        attachments: ipfsUri ? [{ uri: ipfsUri, filename: selectedFile.name, verified: false }] : []
+      };
+
+      // Call the credential request API (creates a pending request)
+      const reqResp = await api.post('/api/credentials/request', requestPayload);
+      console.log('Credential request response:', reqResp.data);
+
       setUploadStatus('success');
-      setStatusMessage(`Credential from ${credentialInfo.institution} uploaded successfully! Document hash: ${
-        response.data.data.document_hash.substring(0, 10)}...`);
+      setStatusMessage(reqResp.data.message || `Credential request submitted to ${credentialInfo.institution}.`);
     } catch (error) {
       console.error('Error uploading file:', error);
       
@@ -355,7 +374,7 @@ export default function ActionButtons({ onAuthError }) {
         setStatusMessage('Authentication required. Please log in and try again.');
       } else {
         setUploadStatus('error');
-        setStatusMessage(error.response?.data?.message || 'Failed to upload credential. Please try again.');
+        setStatusMessage(error.response?.data?.message || 'Failed to submit credential request. Please try again.');
       }
     } finally {
       setUploading(false);
@@ -401,7 +420,7 @@ export default function ActionButtons({ onAuthError }) {
     }));
 
     try {
-      // Use the enhanced api instance with token refresh
+      // Use the enhanced api instance with token refresh to upload to IPFS
       const response = await api.post('/ipfs/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -409,9 +428,23 @@ export default function ActionButtons({ onAuthError }) {
       });
 
       console.log('Upload successful:', response.data);
+      const ipfsUri = response.data.ipfs_uri || response.data.data?.ipfs_uri || response.data.data?.document_url || null;
+      const experienceRequest = {
+        title: experienceInfo.position || `Experience at ${experienceInfo.company}`,
+        company: experienceInfo.company,
+        duration: experienceInfo.isCurrent ? `${experienceInfo.startDate} - Present` : `${experienceInfo.startDate} - ${experienceInfo.endDate}`,
+        metadata: {
+          company_id: experienceInfo.company_id || null,
+          uploadedAt: new Date().toISOString(),
+          source: 'student_request'
+        },
+        attachments: ipfsUri ? [{ uri: ipfsUri, filename: selectedExpFile.name, verified: false }] : []
+      };
+
+      const reqResp = await api.post('/api/experiences/request', experienceRequest);
+      console.log('Experience request response:', reqResp.data);
       setExpUploadStatus('success');
-      setExpStatusMessage(`Experience from ${experienceInfo.company} uploaded successfully! Document hash: ${
-        response.data.data.document_hash.substring(0, 10)}...`);
+      setExpStatusMessage(reqResp.data.message || `Experience request submitted to ${experienceInfo.company}.`);
     } catch (error) {
       console.error('Error uploading file:', error);
       
@@ -423,8 +456,8 @@ export default function ActionButtons({ onAuthError }) {
         setExpUploadStatus('error');
         setExpStatusMessage('Authentication required. Please log in and try again.');
       } else {
-        setExpUploadStatus('error');
-        setExpStatusMessage(error.response?.data?.message || 'Failed to upload experience document. Please try again.');
+  setExpUploadStatus('error');
+  setExpStatusMessage(error.response?.data?.message || 'Failed to submit experience request. Please try again.');
       }
     } finally {
       setUploadingExp(false);
