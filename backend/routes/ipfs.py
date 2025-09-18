@@ -70,6 +70,38 @@ def get_ipfs_status():
         if ipfs_service:
             ipfs_service.disconnect()
 
+
+@ipfs_bp.route('/diag', methods=['GET'])
+def ipfs_diag():
+    """
+    Public diagnostic endpoint to check IPFS connectivity (native client and HTTP API).
+    Returns simple JSON with connectivity flags and node info if available.
+    """
+    try:
+        ipfs = get_ipfs_service()
+
+        # Attempt to connect (this will populate http_api_available if possible)
+        connected = ipfs.connect()
+
+        # Gather status
+        native_client = bool(ipfs.client)
+        http_api = bool(getattr(ipfs, 'http_api_available', False))
+
+        # Try to fetch node info (may return error dict)
+        node_info = ipfs.get_node_info()
+
+        result = {
+            'connected': connected,
+            'native_client': native_client,
+            'http_api_available': http_api,
+            'node_info': node_info
+        }
+
+        return success_response(result)
+    except Exception as e:
+        logger.error(f"IPFS diag error: {str(e)}")
+        return error_response(f"IPFS diag error: {str(e)}", 500)
+
 @ipfs_bp.route('/upload', methods=['POST'])
 @login_required
 def upload_document():

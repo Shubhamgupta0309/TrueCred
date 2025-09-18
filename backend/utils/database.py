@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 # MongoDB instances
 mongo = None
 mongodb_uri = None
+mongo_db = None
 
 def init_db(app):
     """
@@ -37,6 +38,18 @@ def init_db(app):
     try:
         # Initialize PyMongo for Flask
         mongo = PyMongo(app)
+        # Attach the raw Database instance to the Flask app so routes can access it via current_app.db
+        try:
+            app.db = mongo.db
+        except Exception:
+            # Fallback: some PyMongo wrappers expose different attributes
+            try:
+                app.db = mongo.database
+            except Exception:
+                app.db = None
+        # also set module-level reference
+        global mongo_db
+        mongo_db = app.db
         logger.info("PyMongo initialized successfully")
         
         # Initialize MongoEngine
@@ -72,9 +85,14 @@ def get_db():
     Returns:
         PyMongo database instance
     """
-    global mongo
-    
+    # Prefer returning the raw Database instance attached to the app
+    global mongo_db, mongo
+
+    if mongo_db is not None:
+        return mongo_db
+
     if mongo is None:
         raise ValueError("Database not initialized. Call init_db() first.")
-    
+
+    # Fallback: return the PyMongo wrapper
     return mongo

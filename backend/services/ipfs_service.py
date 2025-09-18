@@ -58,6 +58,9 @@ class IPFSService:
         
         # Initialize client to None, will connect on demand
         self.client = None
+        # Track whether HTTP API is reachable as a fallback
+        self.http_api_available = False
+        self.api_base = self.api_url
         logger.info(f"IPFS service initialized with API: {self.api_url}, Gateway: {self.gateway_url}")
     
     def connect(self) -> bool:
@@ -70,15 +73,47 @@ class IPFSService:
         if self.client:
             # Already connected
             return True
-        
+
+        # Try native ipfshttpclient first
         try:
-            # Connect to IPFS node
-            self.client = ipfshttpclient.connect(self.api_url)
-            logger.info(f"Connected to IPFS node at {self.api_url}")
+            # ipfshttpclient expects a multiaddr or an API address like '/ip4/127.0.0.1/tcp/5001/http'
+            # If user provided an http:// URL, convert it to the appropriate multiaddr
+            api_parsed = urlparse(self.api_url)
+            connect_addr = None
+            if api_parsed.scheme in ('http', 'https') and api_parsed.hostname and api_parsed.port:
+                # Build multiaddr for ipfshttpclient
+                connect_addr = f"/ip4/{api_parsed.hostname}/tcp/{api_parsed.port}/http"
+            else:
+                connect_addr = self.api_url
+
+            self.client = ipfshttpclient.connect(connect_addr)
+            logger.info(f"Connected to IPFS node at {connect_addr} via ipfshttpclient")
+            # Also mark HTTP API available if reachable
+            try:
+                resp = requests.get(f"{self.api_base}/api/v0/version", timeout=3)
+                self.http_api_available = resp.ok
+            except Exception:
+                self.http_api_available = False
             return True
         except Exception as e:
-            logger.error(f"Failed to connect to IPFS node: {str(e)}")
+            logger.warning(f"ipfshttpclient connect failed: {str(e)}. Will attempt HTTP API fallback.")
             self.client = None
+
+        # Try HTTP API as a fallback
+        try:
+            # Use POST for IPFS HTTP API health check; some go-ipfs versions require POST
+            resp = requests.post(f"{self.api_base}/api/v0/version", timeout=3)
+            if resp.ok:
+                self.http_api_available = True
+                logger.info(f"IPFS HTTP API available at {self.api_base}")
+                return True
+            else:
+                logger.error(f"IPFS HTTP API responded but not OK: {resp.status_code} - {resp.text}")
+                self.http_api_available = False
+                return False
+        except Exception as e:
+            logger.error(f"Failed to contact IPFS HTTP API: {str(e)}")
+            self.http_api_available = False
             return False
     
     def disconnect(self) -> None:
@@ -105,34 +140,95 @@ class IPFSService:
         Returns:
             dict: IPFS response with hash and other metadata
         """
+        # Ensure some connectivity (native client or HTTP API)
         if not self.connect():
-            logger.error("Cannot add file: not connected to IPFS")
+            logger.error("Cannot add file: not connected to IPFS (native client and HTTP API unreachable)")
             return {"error": "Not connected to IPFS"}
         
-        try:
-            # Handle different input types
-            if isinstance(file_data, str) and os.path.isfile(file_data):
-                # It's a file path
-                ipfs_response = self.client.add(file_data)
-            elif isinstance(file_data, bytes):
-                # It's binary data
-                with io.BytesIO(file_data) as file_obj:
-                    ipfs_response = self.client.add(file_obj)
-            elif hasattr(file_data, 'read'):
-                # It's a file-like object
-                ipfs_response = self.client.add(file_data)
-            else:
-                raise ValueError("Invalid file_data type. Expected bytes, file object, or file path.")
-            
-            # Add filename to response if provided
-            if filename:
-                ipfs_response['Name'] = filename
-            
-            logger.info(f"File added to IPFS with hash: {ipfs_response['Hash']}")
-            return ipfs_response
-        except Exception as e:
-            logger.error(f"Error adding file to IPFS: {str(e)}")
-            return {"error": str(e)}
+        # Try native client if available
+        if self.client:
+            try:
+                # Handle different input types
+                if isinstance(file_data, str) and os.path.isfile(file_data):
+                    # It's a file path
+                    ipfs_response = self.client.add(file_data)
+                elif isinstance(file_data, bytes):
+                    # It's binary data
+                    with io.BytesIO(file_data) as file_obj:
+                        ipfs_response = self.client.add(file_obj)
+                elif hasattr(file_data, 'read'):
+                    # It's a file-like object
+                    ipfs_response = self.client.add(file_data)
+                else:
+                    raise ValueError("Invalid file_data type. Expected bytes, file object, or file path.")
+
+                # Add filename to response if provided
+                if filename:
+                    ipfs_response['Name'] = filename
+
+                logger.info(f"File added to IPFS with hash: {ipfs_response.get('Hash')}")
+                return ipfs_response
+            except Exception as e:
+                logger.error(f"Error adding file via ipfshttpclient: {str(e)}")
+
+        # Fallback to HTTP API if available
+        if self.http_api_available:
+            try:
+                files = {}
+                if isinstance(file_data, bytes):
+                    files['file'] = (filename or 'file', io.BytesIO(file_data))
+                elif hasattr(file_data, 'read'):
+                    files['file'] = (filename or 'file', file_data)
+                elif isinstance(file_data, str) and os.path.isfile(file_data):
+                    files['file'] = (filename or os.path.basename(file_data), open(file_data, 'rb'))
+                else:
+                    raise ValueError("Invalid file_data type for HTTP API. Expected bytes, file object, or file path.")
+
+                url = f"{self.api_base}/api/v0/add"
+                resp = requests.post(url, files=files, timeout=60)
+                # Close any opened file objects
+                if isinstance(file_data, str) and os.path.isfile(file_data):
+                    try:
+                        files['file'][1].close()
+                    except Exception:
+                        pass
+
+                resp.raise_for_status()
+                # The IPFS HTTP API returns JSON per line for chunked add; handle common cases
+                try:
+                    data = resp.json()
+                except ValueError:
+                    # If response is text with lines, parse the last JSON object
+                    lines = resp.text.strip().split('\n')
+                    data = json.loads(lines[-1])
+
+                # Normalize keys to match ipfshttpclient response
+                result = {'Hash': data.get('Hash'), 'Size': int(data.get('Size', 0)), 'Name': data.get('Name', filename)}
+                logger.info(f"File added to IPFS via HTTP API with hash: {result.get('Hash')}")
+                return result
+            except Exception as e:
+                # If we got a 405 Method Not Allowed from the API, try again with the stream-channels param
+                try:
+                    if hasattr(e, 'response') and e.response is not None and e.response.status_code == 405:
+                        logger.warning('Received 405 from IPFS HTTP API add endpoint; retrying with stream-channels=true')
+                        url = f"{self.api_base}/api/v0/add?stream-channels=true"
+                        resp2 = requests.post(url, files=files, timeout=60)
+                        resp2.raise_for_status()
+                        try:
+                            data2 = resp2.json()
+                        except ValueError:
+                            lines2 = resp2.text.strip().split('\n')
+                            data2 = json.loads(lines2[-1])
+                        result2 = {'Hash': data2.get('Hash'), 'Size': int(data2.get('Size', 0)), 'Name': data2.get('Name', filename)}
+                        logger.info(f"File added to IPFS via HTTP API (retry) with hash: {result2.get('Hash')}")
+                        return result2
+                except Exception:
+                    logger.error(f"Retry via stream-channels also failed: {e}")
+
+                logger.error(f"Error adding file via IPFS HTTP API: {str(e)}")
+                return {"error": str(e)}
+
+        return {"error": "Not connected to IPFS"}
     
     def add_json(self, json_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -145,21 +241,42 @@ class IPFSService:
             dict: IPFS response with hash and other metadata
         """
         if not self.connect():
-            logger.error("Cannot add JSON: not connected to IPFS")
+            logger.error("Cannot add JSON: not connected to IPFS (native client and HTTP API unreachable)")
             return {"error": "Not connected to IPFS"}
-        
-        try:
-            # Convert JSON to string and then to bytes
-            json_bytes = json.dumps(json_data, sort_keys=True, indent=2).encode('utf-8')
-            
-            # Add to IPFS
-            ipfs_response = self.client.add_bytes(json_bytes)
-            
-            logger.info(f"JSON data added to IPFS with hash: {ipfs_response}")
-            return {"Hash": ipfs_response, "Size": len(json_bytes), "Name": "data.json"}
-        except Exception as e:
-            logger.error(f"Error adding JSON to IPFS: {str(e)}")
-            return {"error": str(e)}
+
+        # Convert JSON to bytes
+        json_bytes = json.dumps(json_data, sort_keys=True, indent=2).encode('utf-8')
+
+        # Try native client first
+        if self.client:
+            try:
+                ipfs_hash = self.client.add_bytes(json_bytes)
+                logger.info(f"JSON data added to IPFS with hash: {ipfs_hash}")
+                return {"Hash": ipfs_hash, "Size": len(json_bytes), "Name": "data.json"}
+            except Exception as e:
+                logger.error(f"Error adding JSON via ipfshttpclient: {str(e)}")
+
+        # Fallback to HTTP API
+        if self.http_api_available:
+            try:
+                files = {'file': ('data.json', io.BytesIO(json_bytes))}
+                url = f"{self.api_base}/api/v0/add"
+                resp = requests.post(url, files=files, timeout=30)
+                resp.raise_for_status()
+                try:
+                    data = resp.json()
+                except ValueError:
+                    lines = resp.text.strip().split('\n')
+                    data = json.loads(lines[-1])
+
+                result = {"Hash": data.get('Hash'), "Size": int(data.get('Size', len(json_bytes))), "Name": data.get('Name', 'data.json')}
+                logger.info(f"JSON data added to IPFS via HTTP API with hash: {result.get('Hash')}")
+                return result
+            except Exception as e:
+                logger.error(f"Error adding JSON via IPFS HTTP API: {str(e)}")
+                return {"error": str(e)}
+
+        return {"error": "Not connected to IPFS"}
     
     def get_file(self, ipfs_hash: str) -> bytes:
         """
@@ -239,15 +356,28 @@ class IPFSService:
         if not self.connect():
             logger.error("Cannot pin hash: not connected to IPFS")
             return {"error": "Not connected to IPFS"}
-        
-        try:
-            # Pin the hash
-            pins = self.client.pin.add(ipfs_hash)
-            logger.info(f"Pinned IPFS hash: {ipfs_hash}")
-            return {"pinned": pins}
-        except Exception as e:
-            logger.error(f"Error pinning IPFS hash: {str(e)}")
-            return {"error": str(e)}
+
+        # Native client
+        if self.client:
+            try:
+                pins = self.client.pin.add(ipfs_hash)
+                logger.info(f"Pinned IPFS hash: {ipfs_hash} via native client")
+                return {"pinned": pins}
+            except Exception as e:
+                logger.error(f"Error pinning via ipfshttpclient: {str(e)}")
+
+        # HTTP API fallback
+        if self.http_api_available:
+            try:
+                url = f"{self.api_base}/api/v0/pin/add?arg={ipfs_hash}"
+                resp = requests.post(url, timeout=10)
+                resp.raise_for_status()
+                return {"pinned": True}
+            except Exception as e:
+                logger.error(f"Error pinning via IPFS HTTP API: {str(e)}")
+                return {"error": str(e)}
+
+        return {"error": "Not connected to IPFS"}
     
     def unpin_hash(self, ipfs_hash: str) -> Dict[str, Any]:
         """
@@ -262,15 +392,28 @@ class IPFSService:
         if not self.connect():
             logger.error("Cannot unpin hash: not connected to IPFS")
             return {"error": "Not connected to IPFS"}
-        
-        try:
-            # Unpin the hash
-            pins = self.client.pin.rm(ipfs_hash)
-            logger.info(f"Unpinned IPFS hash: {ipfs_hash}")
-            return {"unpinned": pins}
-        except Exception as e:
-            logger.error(f"Error unpinning IPFS hash: {str(e)}")
-            return {"error": str(e)}
+
+        # Native client
+        if self.client:
+            try:
+                pins = self.client.pin.rm(ipfs_hash)
+                logger.info(f"Unpinned IPFS hash: {ipfs_hash} via native client")
+                return {"unpinned": pins}
+            except Exception as e:
+                logger.error(f"Error unpinning via ipfshttpclient: {str(e)}")
+
+        # HTTP API fallback
+        if self.http_api_available:
+            try:
+                url = f"{self.api_base}/api/v0/pin/rm?arg={ipfs_hash}"
+                resp = requests.post(url, timeout=10)
+                resp.raise_for_status()
+                return {"unpinned": True}
+            except Exception as e:
+                logger.error(f"Error unpinning via IPFS HTTP API: {str(e)}")
+                return {"error": str(e)}
+
+        return {"error": "Not connected to IPFS"}
     
     def get_node_info(self) -> Dict[str, Any]:
         """
@@ -282,15 +425,33 @@ class IPFSService:
         if not self.connect():
             logger.error("Cannot get node info: not connected to IPFS")
             return {"error": "Not connected to IPFS"}
-        
-        try:
-            # Get node ID info
-            id_info = self.client.id()
-            logger.info(f"Retrieved IPFS node info: {id_info['ID']}")
-            return id_info
-        except Exception as e:
-            logger.error(f"Error getting IPFS node info: {str(e)}")
-            return {"error": str(e)}
+
+        # Native client
+        if self.client:
+            try:
+                id_info = self.client.id()
+                logger.info(f"Retrieved IPFS node info: {id_info.get('ID')}")
+                return id_info
+            except Exception as e:
+                logger.error(f"Error getting IPFS node info via native client: {str(e)}")
+
+        # HTTP API fallback
+        if self.http_api_available:
+            try:
+                url = f"{self.api_base}/api/v0/id"
+                resp = requests.post(url, timeout=10)
+                resp.raise_for_status()
+                try:
+                    data = resp.json()
+                except ValueError:
+                    data = json.loads(resp.text)
+                logger.info(f"Retrieved IPFS node info via HTTP API: {data.get('ID')}")
+                return data
+            except Exception as e:
+                logger.error(f"Error getting IPFS node info via HTTP API: {str(e)}")
+                return {"error": str(e)}
+
+        return {"error": "Not connected to IPFS"}
     
     def fallback_gateway_fetch(self, ipfs_hash: str) -> bytes:
         """

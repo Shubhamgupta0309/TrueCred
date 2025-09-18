@@ -1,7 +1,7 @@
 """
 Routes for college/organization interaction with students.
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.user import User
 from models.credential import Credential
@@ -195,6 +195,37 @@ def upload_student_credential(student_id):
                 student.affiliated_organizations = []
             student.affiliated_organizations.append(current_user.organization)
             student.save()
+
+        # If this upload is in response to a credential request, mark it issued
+        try:
+            request_id = data.get('request_id') if isinstance(data, dict) else None
+            if request_id:
+                from models.credential_request import CredentialRequest
+                cr = CredentialRequest.objects(id=request_id).first()
+                if cr:
+                    cr.status = 'issued'
+                    cr.issuer = current_user.organization or cr.issuer
+                    cr.issuer_id = current_user.organization or cr.issuer_id
+                    cr.save()
+
+                    # Create a notification for the student
+                    try:
+                        note = {
+                            'user_id': str(student.id),
+                            'type': 'credential_request_update',
+                            'title': 'Credential request issued',
+                            'message': f"Your credential request '{cr.title}' has been issued by {cr.issuer}.",
+                            'data': {'request_id': str(cr.id), 'credential_id': str(credential.id)},
+                            'created_at': datetime.utcnow()
+                        }
+                        if hasattr(current_app, 'db') and current_app.db:
+                            current_app.db.notifications.insert_one(note)
+                        else:
+                            logger.info('Notification (no db): %s', note)
+                    except Exception:
+                        logger.exception('Failed to create notification for issued credential')
+        except Exception:
+            logger.exception('Error while marking credential request as issued')
         
         # Return success response
         return success_response(

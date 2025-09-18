@@ -130,3 +130,24 @@ def update_profile():
             'success': False,
             'message': f"Error updating profile: {str(e)}"
         }), 500
+
+
+@user_bp.route('/requests', methods=['GET'])
+@jwt_required()
+def get_my_requests():
+    """Return credential requests created by the current student."""
+    try:
+        current_user_id = get_jwt_identity()
+        db = getattr(__import__('flask').current_app, 'db', None)
+        if db:
+            cursor = db.credential_requests.find({'user_id': str(current_user_id)}).sort('created_at', -1)
+            results = []
+            for doc in cursor:
+                doc['id'] = str(doc.get('_id'))
+                doc.pop('_id', None)
+                results.append(doc)
+            return jsonify({'success': True, 'requests': results}), 200
+        return jsonify({'success': True, 'requests': []}), 200
+    except Exception as e:
+        logger.exception(e)
+        return jsonify({'success': False, 'message': str(e)}), 500
