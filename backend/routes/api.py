@@ -86,8 +86,7 @@ def register_blueprints(app):
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(health_bp, url_prefix='/api/health')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
-    app.register_blueprint(verification_bp)
-    app.register_blueprint(blockchain_bp)
+    # Blockchain routes removed - not needed for basic functionality
     app.register_blueprint(ipfs_bp)
     app.register_blueprint(org_bp)
     app.register_blueprint(org_student_bp)

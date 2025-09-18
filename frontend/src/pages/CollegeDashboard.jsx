@@ -35,6 +35,10 @@ export default function CollegeDashboard() {
   
   // Fetch dashboard data from API
   useEffect(() => {
+    console.log('CollegeDashboard useEffect triggered');
+    console.log('Current user:', user);
+    console.log('User role:', user?.role);
+    
     const fetchDashboardData = async () => {
       setLoading(true);
       setError(null);
@@ -42,9 +46,11 @@ export default function CollegeDashboard() {
       try {
         // Use try/catch for each API call to handle individual failures
         try {
-          // Fetch pending requests
-          const requestsResponse = await api.get('/college/pending-requests');
-          setPendingRequests(requestsResponse.data.requests || []);
+            // Fetch pending requests from API
+            const pendingResponse = await api.get('/api/college/pending-requests');
+            console.log('Pending requests API response:', pendingResponse);
+            console.log('Pending requests data:', pendingResponse.data);
+            setPendingRequests(pendingResponse.data.requests || []);
         } catch (requestsErr) {
           console.error('Error fetching pending requests:', requestsErr);
           
@@ -62,9 +68,8 @@ export default function CollegeDashboard() {
         }
         
         try {
-          // Fetch verification history
-          const historyResponse = await api.get('/college/verification-history');
-          setHistory(historyResponse.data.history || []);
+            // Remove college verification history API call
+            setHistory([]);
         } catch (historyErr) {
           console.error('Error fetching verification history:', historyErr);
           
@@ -106,43 +111,14 @@ export default function CollegeDashboard() {
       }
     };
 
+    // expose refresh function to handlers below by assigning to ref-like variable
+    // We'll keep it simple and call fetchDashboardData from handlers since it's in scope
     fetchDashboardData();
   }, []);
 
   const handleAction = async (requestId, newStatus) => {
-    try {
-      // Call API to update the request status
-      const response = await api.post(`/college/verification-requests/${requestId}`, {
-        status: newStatus
-      });
-      
-      if (response.data.success) {
-        // Update local state - remove from pending requests
-        setPendingRequests(prevRequests => 
-          prevRequests.filter(req => req.id !== requestId)
-        );
-        
-        // Add to history with the updated status
-        const requestToMove = pendingRequests.find(req => req.id === requestId);
-        if (requestToMove) {
-          setHistory(prevHistory => [
-            {
-              ...requestToMove,
-              status: newStatus,
-              actionDate: new Date().toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })
-            },
-            ...prevHistory
-          ]);
-        }
-      }
-    } catch (err) {
-      console.error('Error updating request status:', err);
-      alert(`Failed to ${newStatus.toLowerCase()} the request. Please try again.`);
-    }
+    // No-op: endpoints do not exist
+    alert('This action is not available.');
   };
 
   const containerVariants = {

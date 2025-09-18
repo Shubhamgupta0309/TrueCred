@@ -463,6 +463,8 @@ export const AuthProvider = ({ children }) => {
     connectWallet,
     setError,
     refreshToken: refreshAccessToken,
+    // Provide alias for components expecting refreshAccessToken
+    refreshAccessToken: refreshAccessToken,
     checkProfile: throttledCheckUserProfile,
     updateUser: (userData) => {
       // Update user state directly

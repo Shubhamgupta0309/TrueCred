@@ -61,9 +61,19 @@ api.interceptors.response.use(
     // If error is not 401 or request already retried, reject
     if (error.response.status !== 401 || originalRequest._retry) {
       // Add more context to server errors for easier debugging
-      if (error.response.data) {
-        console.error('API Error Response:', error.response.status, error.response.data);
+      try {
+        const method = originalRequest.method ? originalRequest.method.toUpperCase() : 'GET';
+        const url = originalRequest.url || (originalRequest.baseURL ? originalRequest.baseURL + originalRequest.url : '(unknown)');
+        console.error('API Error - Request:', method, url, 'Status:', error.response.status);
+        if (error.response.data) {
+          console.error('API Error - Response Body:', error.response.data);
+        }
+        // Also include original request config for deeper debugging
+        console.debug('API Error - Original Request config:', originalRequest);
+      } catch (logErr) {
+        console.error('Error logging API error context', logErr);
       }
+
       return Promise.reject(error);
     }
 
@@ -83,13 +93,34 @@ api.interceptors.response.use(
         }
 
         // Call refresh endpoint
-        const response = await axios.post(`${API_URL}/api/auth/refresh`, {
-          refresh_token: refreshToken
-        });
+            const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+              refresh_token: refreshToken
+            });
 
-        // Update tokens in storage
-        const { access_token } = response.data;
-        localStorage.setItem('accessToken', access_token);
+            // Backend may return tokens under response.data.tokens or directly
+            // Normalize both shapes for compatibility
+            let access_token = null;
+            let refresh_token = null;
+            if (response.data) {
+              if (response.data.tokens) {
+                access_token = response.data.tokens.access_token;
+                refresh_token = response.data.tokens.refresh_token;
+              } else {
+                access_token = response.data.access_token || response.data.token || null;
+                // some backends return refresh_token at top level
+                refresh_token = response.data.refresh_token || null;
+              }
+            }
+
+            if (!access_token) {
+              throw new Error('Refresh did not return an access token');
+            }
+
+            // Update tokens in storage
+            localStorage.setItem('accessToken', access_token);
+            if (refresh_token) {
+              localStorage.setItem('refreshToken', refresh_token);
+            }
         
         // Update auth header for original request
         originalRequest.headers['Authorization'] = `Bearer ${access_token}`;
@@ -102,7 +133,7 @@ api.interceptors.response.use(
         
         // Retry original request
         return axios(originalRequest);
-      } catch (refreshError) {
+        } catch (refreshError) {
         // Reset refresh state
         isRefreshing = false;
         
@@ -148,6 +179,8 @@ export const credentialService = {
   getCredentials: () => api.get('/api/credentials'),
   requestCredential: (credentialData) => api.post('/api/credentials/request', credentialData),
   verifyCredential: (credentialId) => api.post(`/api/credentials/${credentialId}/verify`),
+  verifyCredentialBlockchain: (credentialId) => api.get(`/api/credentials/blockchain/verify/${credentialId}`),
+  getUserRequests: () => api.get('/api/user/requests'),
 };
 
 // Experience services
@@ -159,12 +192,11 @@ export const experienceService = {
 
 // College services
 export const collegeService = {
-  getPendingRequests: () => api.get('/api/credentials/pending'),
+  // Only keep endpoints that are implemented in backend
+  // Remove unused or non-existent endpoints
+  getPendingRequests: () => api.get('/api/college/pending-requests'),
   approveRequest: (requestId) => api.post(`/api/credentials/${requestId}/approve`),
   rejectRequest: (requestId, reason) => api.post(`/api/credentials/${requestId}/reject`, { reason }),
-  getVerificationHistory: () => api.get('/api/credentials/history'),
-  getProfile: () => api.get('/api/college/profile'),
-  updateProfile: (profileData) => api.post('/api/college/profile', profileData),
 };
 
 // Company services

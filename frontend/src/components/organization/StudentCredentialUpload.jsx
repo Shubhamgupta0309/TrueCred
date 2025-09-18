@@ -74,12 +74,62 @@ export default function StudentCredentialUpload({ student, onComplete }) {
     }, 300);
     
     try {
+      // If a document is attached (base64), upload it to the IPFS upload endpoint first
+      let attachments = [];
+      if (formData.document) {
+        try {
+          // Build FormData for file upload. Our formData.document is a dataURL (data:...;base64,...)
+          // Extract base64 and convert to Blob
+          const dataUrl = formData.document;
+          const parts = dataUrl.split(',');
+          const meta = parts[0] || '';
+          const base64 = parts[1] || parts[0];
+          const mimeMatch = meta.match(/data:(.*);base64/);
+          const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+
+          // Convert base64 to binary
+          const byteChars = atob(base64);
+          const byteNumbers = new Array(byteChars.length);
+          for (let i = 0; i < byteChars.length; i++) {
+            byteNumbers[i] = byteChars.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: mime });
+          const fileName = formData.title ? `${formData.title.replace(/[^a-z0-9\-_\.]/gi, '_')}.pdf` : 'document.pdf';
+
+          const uploadFd = new FormData();
+          uploadFd.append('file', blob, fileName);
+          uploadFd.append('filename', fileName);
+          uploadFd.append('metadata', JSON.stringify({
+            type: 'credential',
+            issuer: formData.issuer || 'issuer',
+            filename: fileName
+          }));
+
+          const upResp = await api.post('/api/ipfs/upload', uploadFd, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+
+          const respData = upResp.data.data || upResp.data || {};
+          const uri = respData.document_gateway_url || respData.document_url || respData.ipfs_uri || respData.document_hash || respData.Hash || respData.hash || null;
+          if (uri) {
+            attachments.push({ uri, filename: fileName, verified: true });
+          }
+        } catch (err) {
+          console.error('Failed to upload issuer document to IPFS:', err);
+          setError('Failed to upload attached document to IPFS.');
+          setLoading(false);
+          return;
+        }
+      }
+
       const payload = {
         ...formData,
-        student_id: student.id
+        student_id: student.id,
+        attachments
       };
-      
-      // Upload credential
+
+      // Upload credential (issuer endpoint)
       const response = await api.post(`/api/organization/upload-credential/${student.id}`, payload);
       
       if (response.data.success) {
@@ -167,7 +217,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
             <label className="block text-gray-700 mb-2" htmlFor="title">
-              Credential Title*
+              Credential Name* <span className="text-gray-500">(e.g., UI Test, Exam Form)</span>
             </label>
             <input
               id="title"
@@ -177,7 +227,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
               onChange={handleInputChange}
               className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              placeholder="e.g., Bachelor of Science in Computer Science"
+              placeholder="Enter credential name, e.g. UI Test, Exam Form, Degree Name"
             />
           </div>
           

@@ -14,12 +14,18 @@ class CredentialRequest(Document):
     status = StringField(default='pending')  # pending|issued|rejected
     created_at = DateTimeField(default=datetime.utcnow)
     updated_at = DateTimeField(default=datetime.utcnow)
+    
+    # Blockchain integration fields
+    blockchain_tx_hash = StringField()  # Transaction hash from blockchain
+    blockchain_credential_id = StringField()  # Credential ID from smart contract
 
     meta = {
         'collection': 'credential_requests',
         'indexes': [
             {'fields': ['user_id']},
-            {'fields': ['status']}
+            {'fields': ['status']},
+            {'fields': ['blockchain_tx_hash']},
+            {'fields': ['blockchain_credential_id']}
         ]
     }
 

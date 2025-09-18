@@ -4,6 +4,10 @@ import { Check, X, FileText, Loader2, Calendar, School } from 'lucide-react';
 
 export default function PendingExperienceRequests({ requests, onAction }) {
   const [processingId, setProcessingId] = useState(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleAction = (id, status) => {
     setProcessingId(id);
@@ -12,6 +16,48 @@ export default function PendingExperienceRequests({ requests, onAction }) {
       onAction(id, status);
       setProcessingId(null);
     }, 1500);
+  };
+
+  const handleVerify = (req) => {
+    setSelectedRequest(req);
+    setShowUploadModal(true);
+  };
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleUploadAndVerify = async () => {
+    if (!selectedRequest || !file) return;
+    setUploading(true);
+    try {
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const base64Data = ev.target.result.split(',')[1];
+        // You may need to adjust the endpoint and payload for experience verification
+        const payload = {
+          experience_id: selectedRequest.id,
+          document: base64Data,
+          filename: file.name
+        };
+        // Example endpoint, adjust as needed:
+        // const resp = await api.post(`/api/company/verify-experience/${selectedRequest.student_id}`, payload);
+        // For now, just simulate success:
+        setTimeout(() => {
+          onAction && onAction(selectedRequest.id, 'Verified');
+          setShowUploadModal(false);
+          setFile(null);
+          setSelectedRequest(null);
+          setUploading(false);
+        }, 1500);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      setUploading(false);
+      alert('Failed to verify experience');
+      console.error('Verify error', err);
+    }
   };
 
   return (
@@ -51,11 +97,11 @@ export default function PendingExperienceRequests({ requests, onAction }) {
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                  onClick={() => handleAction(req.id, 'Verified')}
+                  onClick={() => handleVerify(req)}
                   disabled={processingId === req.id}
-                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
+                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50"
                 >
-                  {processingId === req.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4" />} Approve
+                  {processingId === req.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <FileText className="w-4 h-4" />} Verify
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -76,6 +122,31 @@ export default function PendingExperienceRequests({ requests, onAction }) {
             </div>
         )}
       </div>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4">Upload Verification Document</h2>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFileChange} className="mb-4" />
+            <div className="flex gap-4 mt-4">
+              <button
+                onClick={handleUploadAndVerify}
+                disabled={!file || uploading}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {uploading ? 'Uploading...' : 'Upload & Verify'}
+              </button>
+              <button
+                onClick={() => { setShowUploadModal(false); setFile(null); setSelectedRequest(null); }}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

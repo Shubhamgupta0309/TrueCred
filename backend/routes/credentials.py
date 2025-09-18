@@ -342,6 +342,39 @@ def request_credential():
         )
         cr.save()
 
+        # Store credential request hash on blockchain for immutability
+        blockchain_result = None
+        try:
+            from services.blockchain_service import BlockchainService
+            blockchain = BlockchainService()
+            if blockchain.is_connected():
+                # Create a hash of the credential request data
+                import hashlib
+                request_data = f"{str(cr.id)}:{cr.user_id}:{cr.title}:{cr.issuer}:{datetime.utcnow().isoformat()}"
+                request_hash = hashlib.sha256(request_data.encode()).hexdigest()
+                
+                # Store on blockchain
+                blockchain_result = blockchain.store_credential_hash(
+                    title=f"Request: {cr.title}",
+                    issuer=cr.issuer or "Unknown Issuer",
+                    student_id=cr.user_id,
+                    ipfs_hash=request_hash  # Using request hash as IPFS hash for now
+                )
+                
+                if blockchain_result and blockchain_result.get('status') == 'success':
+                    # Update credential request with blockchain info
+                    cr.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                    cr.blockchain_credential_id = blockchain_result.get('credential_id')
+                    cr.save()
+                    logger.info(f"Credential request {cr.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
+                else:
+                    logger.warning(f"Failed to store credential request on blockchain: {blockchain_result}")
+            else:
+                logger.info("Blockchain service not connected, skipping blockchain storage")
+        except Exception as e:
+            logger.error(f"Error storing credential request on blockchain: {e}")
+            # Don't fail the request if blockchain storage fails
+
         # Minimal notification hook: insert into notifications collection if available
         try:
             note = {
@@ -412,7 +445,7 @@ def get_user_requests():
         # If no results via MongoEngine, try PyMongo directly if available on current_app
         try:
             db = getattr(current_app, 'db', None)
-            if db:
+            if db is not None:
                 logger.debug('Falling back to PyMongo for user_id=%s', str(current_user_id))
                 cursor = db.credential_requests.find({'user_id': str(current_user_id)}).sort('created_at', -1)
                 requests = []
@@ -601,6 +634,34 @@ def approve_request(request_id):
         # Mark request as issued and save
         cr.status = 'issued'
         cr.save()
+
+        # Store issued credential hash on blockchain
+        blockchain_result = None
+        try:
+            from services.blockchain_service import BlockchainService
+            blockchain = BlockchainService()
+            if blockchain.is_connected():
+                # Store the issued credential on blockchain
+                blockchain_result = blockchain.store_credential_hash(
+                    title=credential.title,
+                    issuer=credential.issuer or "Unknown Issuer",
+                    student_id=cr.user_id,
+                    ipfs_hash=credential.document_url or credential.document_hash or ""
+                )
+                
+                if blockchain_result and blockchain_result.get('status') == 'success':
+                    # Update credential with blockchain info
+                    credential.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                    credential.blockchain_credential_id = blockchain_result.get('credential_id')
+                    credential.save()
+                    logger.info(f"Credential {credential.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
+                else:
+                    logger.warning(f"Failed to store credential on blockchain: {blockchain_result}")
+            else:
+                logger.info("Blockchain service not connected, skipping blockchain storage")
+        except Exception as e:
+            logger.error(f"Error storing credential on blockchain: {e}")
+            # Don't fail the approval if blockchain storage fails
 
         # Create notifications: notify student and optionally log for issuer
         note_student = {
@@ -1022,3 +1083,64 @@ def verify_credential(credential_id):
         'user': current_user,
         'credential_id': credential_id
     }), 200
+
+
+@credentials_bp.route('/blockchain/verify/<credential_id>', methods=['GET'])
+@jwt_required()
+def verify_credential_blockchain(credential_id):
+    """
+    Verify a credential using blockchain data.
+    ---
+    Requires authentication.
+    """
+    try:
+        from models.credential import Credential
+        
+        # Find the credential in database
+        credential = Credential.objects(id=credential_id).first()
+        if not credential:
+            return not_found_response(resource_type='Credential', resource_id=credential_id)
+        
+        # Check if credential has blockchain data
+        if not credential.blockchain_credential_id:
+            return error_response(
+                message="Credential not stored on blockchain",
+                status_code=400
+            )
+        
+        # Verify using blockchain
+        from services.blockchain_service import BlockchainService
+        blockchain = BlockchainService()
+        
+        verification_result = blockchain.verify_credential(credential.blockchain_credential_id)
+        
+        if verification_result and verification_result.get('status') == 'success':
+            # Update credential verification status if blockchain confirms validity
+            if verification_result.get('is_valid') and not credential.verified:
+                credential.verified = True
+                credential.verified_at = datetime.utcnow()
+                credential.save()
+            
+            return success_response(
+                data={
+                    'credential_id': credential_id,
+                    'blockchain_verified': True,
+                    'blockchain_data': verification_result,
+                    'database_match': (
+                        verification_result.get('title') == credential.title and
+                        verification_result.get('issuer') == credential.issuer
+                    ),
+                    'mock_mode': verification_result.get('mock', False)
+                },
+                message="Credential verified successfully via blockchain"
+            )
+        else:
+            return error_response(
+                message="Blockchain verification failed",
+                error_code="blockchain_verification_failed",
+                status_code=400
+            )
+            
+    except Exception as e:
+        logger.exception(f"Error verifying credential {credential_id}: {e}")
+        return error_response(message=str(e), status_code=500)

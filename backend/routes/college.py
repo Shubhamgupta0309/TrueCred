@@ -153,7 +153,7 @@ def update_college_profile():
 def get_pending_requests():
     """
     Get all pending credential verification requests for the college.
-    
+
     Returns:
         A JSON response with the pending requests.
     """
@@ -163,23 +163,32 @@ def get_pending_requests():
         if not user or user.role != 'college':
             return jsonify({'success': False, 'message': 'Only college accounts can access pending requests'}), 403
 
-        # Query real credential requests from MongoDB
-        db = getattr(current_app, 'db', None)
-        if db:
-            # If your college users have an issuer_id mapping, use that. For now, filter by issuer_id == current_user_id
-            cursor = db.credential_requests.find({'issuer_id': str(current_user_id), 'status': 'pending'}).sort('created_at', -1)
-            requests = []
-            for doc in cursor:
-                doc['id'] = str(doc.get('_id'))
-                doc.pop('_id', None)
-                # Normalize created_at to ISO string if present
-                if isinstance(doc.get('created_at'), str):
-                    pass
-                requests.append(doc)
-            return jsonify({'success': True, 'requests': requests}), 200
+        # Use MongoEngine instead of PyMongo for consistency
+        from models.credential_request import CredentialRequest
 
-        # Fallback when db not configured: return empty list
-        return jsonify({'success': True, 'requests': []}), 200
+        # Query using MongoEngine - this is more reliable than PyMongo
+        requests = CredentialRequest.objects(
+            issuer_id=str(current_user_id),
+            status='pending'
+        ).order_by('-created_at')
+
+        # Convert to JSON
+        requests_data = []
+        for req in requests:
+            requests_data.append({
+                'id': str(req.id),
+                'user_id': req.user_id,
+                'title': req.title,
+                'issuer': req.issuer,
+                'issuer_id': req.issuer_id,
+                'type': req.type,
+                'status': req.status,
+                'created_at': req.created_at.isoformat() if req.created_at else None,
+                'updated_at': req.updated_at.isoformat() if req.updated_at else None
+            })
+
+        return jsonify({'success': True, 'requests': requests_data}), 200
+
     except Exception as e:
         logger.exception(f'Error getting pending requests: {str(e)}')
         return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500

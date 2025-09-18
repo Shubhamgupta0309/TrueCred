@@ -41,7 +41,7 @@ def get_notifications():
         # If the application has a pymongo db attached, read notifications collection
         notifications = []
         try:
-            if hasattr(current_app, 'db') and current_app.db:
+            if hasattr(current_app, 'db') and current_app.db is not None:
                 cursor = current_app.db.notifications.find({'user_id': current_user_id}).sort('created_at', -1).limit(50)
                 notifications = list(cursor)
                 # Convert ObjectId and datetime to serializable form

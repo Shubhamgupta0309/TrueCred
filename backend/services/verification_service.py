@@ -14,7 +14,7 @@ from models.experience import Experience
 from models.credential import Credential
 from models.user import User
 from services.notification_service import send_notification
-from services.blockchain_service import BlockchainService
+# from services.blockchain_service import BlockchainService
 from services.ipfs_service import IPFSService
 
 # Set up logging
@@ -33,7 +33,9 @@ class VerificationService:
     
     def __init__(self):
         """Initialize the verification service."""
-        self.blockchain_service = BlockchainService()
+        # Temporarily disable blockchain service to avoid connection issues
+        # self.# blockchain_service = BlockchainService()
+        self.blockchain_service = None
         self.ipfs_service = IPFSService()
     
     @staticmethod
@@ -141,7 +143,7 @@ class VerificationService:
                 }
             
             # Initialize blockchain verification service
-            blockchain_service = BlockchainService()
+            # blockchain_service = BlockchainService()
             ipfs_service = IPFSService()
             
             # Perform blockchain verification if hash exists
@@ -382,7 +384,7 @@ class VerificationService:
                 }
             
             # Initialize blockchain verification service
-            blockchain_service = BlockchainService()
+            # blockchain_service = BlockchainService()
             ipfs_service = IPFSService()
             
             # Perform blockchain verification if hash exists

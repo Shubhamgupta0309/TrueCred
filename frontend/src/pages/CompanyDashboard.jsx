@@ -6,33 +6,53 @@ import PendingExperienceRequests from '../components/company/PendingExperienceRe
 import ExperienceHistory from '../components/company/ExperienceHistory';
 import CompanyProfileForm from '../components/company/CompanyProfileForm';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
+import { companyService, notificationService } from '../services/api';
 
-// Mock Data
-const mockCompanyUser = {
-  name: 'Innovate Inc.',
-  email: 'company@gmail.com',
-  role: 'Company',
-};
-
-const initialPendingRequests = [
-  { id: 1, studentName: 'Alex Doe', experienceTitle: 'Software Engineer Intern', collegeName: 'Prestige College', submissionDate: 'Nov 22, 2023' },
-  { id: 2, studentName: 'Jane Smith', experienceTitle: 'Marketing Intern', collegeName: 'City University', submissionDate: 'Nov 21, 2023' },
-];
-
-const initialHistory = [
-    { id: 101, studentName: 'Emily White', experienceTitle: 'Data Analyst Coop', status: 'Verified', actionDate: 'Nov 18, 2023'},
-    { id: 102, studentName: 'David Green', experienceTitle: 'UX/UI Design Intern', status: 'Rejected', actionDate: 'Nov 15, 2023'},
-];
-
-const mockNotifications = [
-    { id: 1, type: 'info', message: 'You have 2 new experience verification requests.', time: '1 hour ago' },
-    { id: 2, type: 'alert', message: 'Please update your company profile information.', time: '2 days ago' },
-];
+// start with empty state; will fetch from API
+const mockCompanyUser = { name: '', email: '', role: 'Company' };
+const initialPendingRequests = [];
+const initialHistory = [];
+const mockNotifications = [];
 
 export default function CompanyDashboard() {
   const [activeTab, setActiveTab] = useState('requests');
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [history, setHistory] = useState(initialHistory);
+  const [notifications, setNotifications] = useState(mockNotifications);
+
+  // Fetch company/experience data on mount
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const pendingResp = await companyService.getPendingExperienceRequests();
+        if (pendingResp.data && pendingResp.data.success) {
+          setPendingRequests(pendingResp.data.data || pendingResp.data.requests || []);
+        }
+      } catch (e) {
+        console.error('Error fetching pending experience requests', e);
+      }
+
+      try {
+        const historyResp = await companyService.getExperienceHistory();
+        if (historyResp.data && historyResp.data.success) {
+          setHistory(historyResp.data.data || historyResp.data.history || []);
+        }
+      } catch (e) {
+        console.error('Error fetching experience history', e);
+      }
+
+      try {
+        const notifResp = await notificationService.getNotifications();
+        if (notifResp.data && notifResp.data.success) {
+          setNotifications(notifResp.data.data.notifications || notifResp.data.notifications || []);
+        }
+      } catch (e) {
+        console.error('Error fetching notifications', e);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   const handleAction = (requestId, newStatus) => {
     const requestToMove = pendingRequests.find(req => req.id === requestId);
@@ -92,7 +112,7 @@ export default function CompanyDashboard() {
                   <ExperienceHistory history={history} />
                 </motion.div>
                 <motion.div variants={itemVariants}>
-                  <NotificationPanel notifications={mockNotifications} />
+                  <NotificationPanel notifications={notifications} />
                 </motion.div>
               </div>
             </>
@@ -106,7 +126,7 @@ export default function CompanyDashboard() {
                   <ExperienceHistory history={history} />
                 </motion.div>
                 <motion.div variants={itemVariants}>
-                  <NotificationPanel notifications={mockNotifications} />
+                  <NotificationPanel notifications={notifications} />
                 </motion.div>
               </div>
             </>
@@ -117,7 +137,7 @@ export default function CompanyDashboard() {
               </div>
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>
-                  <NotificationPanel notifications={mockNotifications} />
+                  <NotificationPanel notifications={notifications} />
                 </motion.div>
               </div>
             </>
