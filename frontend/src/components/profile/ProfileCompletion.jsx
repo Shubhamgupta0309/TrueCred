@@ -27,6 +27,8 @@ export default function ProfileCompletion({ onComplete, initialUser }) {
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
   const [searchTimeout, setSearchTimeout] = useState(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
   
@@ -269,10 +271,55 @@ export default function ProfileCompletion({ onComplete, initialUser }) {
   
   // Remove education from the list
   const removeEducation = (id) => {
+    // Optimistic UI: remove locally then persist to backend
+    const prevEducation = formData.education;
+    const newEducation = prevEducation.filter(edu => edu.id !== id);
     setFormData(prev => ({
       ...prev,
-      education: prev.education.filter(edu => edu.id !== id)
+      education: newEducation
     }));
+
+    // Persist immediately
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const payload = {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          education: newEducation.map(edu => ({
+            institution: edu.institution,
+            institution_id: edu.institutionId,
+            degree: edu.degree,
+            field_of_study: edu.fieldOfStudy,
+            start_date: edu.startDate,
+            end_date: edu.endDate,
+            current: !!edu.current
+          }))
+        };
+
+        const response = await api.put('/api/user/profile', payload);
+        if (response.data && response.data.success) {
+          // update auth user
+          try {
+            updateUser({ ...user, ...response.data.user });
+          } catch (e) {
+            // ignore updateUser errors
+          }
+          setToast('Profile updated successfully');
+          setTimeout(() => setToast(null), 3000);
+        } else {
+          throw new Error(response.data?.message || 'Failed to save profile');
+        }
+      } catch (err) {
+        console.error('Failed to persist education removal:', err);
+        setError('Failed to remove education — changes were reverted.');
+        // revert
+        setFormData(prev => ({ ...prev, education: prevEducation }));
+      } finally {
+        setLoading(false);
+      }
+    })();
   };
   
   // Handle form submission
@@ -345,6 +392,9 @@ export default function ProfileCompletion({ onComplete, initialUser }) {
         if (onComplete) {
           onComplete();
         }
+        // show transient success toast
+        setToast('Profile updated successfully');
+        setTimeout(() => setToast(null), 3500);
       } else {
         setError(response.data.message || 'Failed to update profile');
       }
@@ -432,7 +482,7 @@ export default function ProfileCompletion({ onComplete, initialUser }) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => removeEducation(edu.id)}
+                    onClick={() => setConfirmRemoveId(edu.id)}
                     className="text-red-600 hover:text-red-800"
                   >
                     Remove
@@ -643,18 +693,37 @@ export default function ProfileCompletion({ onComplete, initialUser }) {
           </div>
         </div>
         
-        <div className="flex justify-end">
+        <div className="flex justify-end items-center space-x-4">
+          {toast && (
+            <div className="px-4 py-2 bg-green-100 text-green-800 rounded shadow-sm">{toast}</div>
+          )}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || formData.education.length === 0}
+            title={formData.education.length === 0 ? 'Add at least one education entry before completing your profile' : ''}
             className={`px-6 py-2 rounded-lg text-white ${
-              loading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+              loading || formData.education.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
             } transition-colors`}
           >
             {loading ? 'Saving...' : 'Complete Profile'}
           </button>
         </div>
       </form>
+
+      {/* Confirm removal modal */}
+      {confirmRemoveId && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-50"></div>
+          <div className="bg-white rounded-lg p-6 z-60 max-w-md mx-4 shadow-lg">
+            <h3 className="text-lg font-semibold mb-4">Confirm removal</h3>
+            <p className="mb-6">Are you sure you want to remove this education entry? This action can be undone by re-adding the entry.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirmRemoveId(null)} className="px-4 py-2 rounded border">Cancel</button>
+              <button onClick={() => { const id = confirmRemoveId; setConfirmRemoveId(null); removeEducation(id); }} className="px-4 py-2 rounded bg-red-600 text-white">Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
