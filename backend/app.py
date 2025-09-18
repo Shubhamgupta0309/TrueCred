@@ -14,6 +14,9 @@ from utils.api_response import error_response
 from datetime import datetime
 import logging
 import os
+import subprocess
+import atexit
+import time
 
 # JWT manager
 jwt = JWTManager()
@@ -132,6 +135,89 @@ def create_app(config_name='default'):
             'version': app.config.get('API_VERSION', '1.0.0'),
             'status': 'Running'
         })
+
+    # Optionally auto-start a local IPFS daemon in development for convenience.
+    # WARNING: this is intended for local development only. Do NOT enable in production.
+    try:
+        start_daemon = str(os.getenv('START_IPFS_DAEMON', 'false')).lower() in ('1', 'true', 'yes')
+        # Auto-start when START_IPFS_DAEMON is truthy (developer opt-in). Do not require Flask ENV to be 'development'.
+        if start_daemon:
+            # Attempt to start ipfs daemon if HTTP API is not reachable.
+            from services.ipfs_service import IPFSService
+            ipfs_api = os.getenv('IPFS_API_URL', 'http://127.0.0.1:5001')
+            # Support two env names for the ipfs binary path
+            ipfs_cli = os.getenv('IPFS_CLI_PATH') or os.getenv('IPFS_BINARY_PATH') or 'ipfs'
+
+            # Ensure instance path exists for logs/pid (fallback)
+            try:
+                os.makedirs(app.instance_path, exist_ok=True)
+            except Exception:
+                pass
+
+            # Allow overriding log directory
+            ipfs_log_dir = os.getenv('IPFS_LOG_DIR', app.instance_path)
+            try:
+                os.makedirs(ipfs_log_dir, exist_ok=True)
+            except Exception:
+                pass
+
+            pid_file = os.path.join(ipfs_log_dir, 'ipfs_daemon.pid')
+            log_file_path = os.path.join(ipfs_log_dir, 'ipfs_daemon.log')
+
+            def _start_ipfs_daemon():
+                try:
+                    svc = IPFSService(api_url=ipfs_api)
+                    if svc.connect():
+                        logger.info('IPFS HTTP API already reachable; skipping auto-start of ipfs daemon.')
+                        return None
+                except Exception:
+                    # proceed to try to start daemon
+                    pass
+
+                try:
+                    # Start ipfs daemon in background
+                    logfile = open(log_file_path, 'a')
+                    proc = subprocess.Popen([ipfs_cli, 'daemon'], stdout=logfile, stderr=subprocess.STDOUT, cwd=app.instance_path)
+                    # write pid file
+                    with open(pid_file, 'w') as f:
+                        f.write(str(proc.pid))
+                    logger.info(f'Started ipfs daemon (PID: {proc.pid}), logs: {log_file_path}, binary: {ipfs_cli}')
+
+                    # register cleanup
+                    def _cleanup():
+                        try:
+                            if proc.poll() is None:
+                                logger.info('Terminating ipfs daemon started by backend')
+                                proc.terminate()
+                                # give it a moment
+                                time.sleep(1)
+                                if proc.poll() is None:
+                                    proc.kill()
+                        except Exception:
+                            pass
+                        try:
+                            if os.path.exists(pid_file):
+                                os.remove(pid_file)
+                        except Exception:
+                            pass
+
+                    atexit.register(_cleanup)
+                    return proc
+                except FileNotFoundError:
+                    logger.warning('ipfs binary not found on PATH; cannot auto-start daemon. Set IPFS_CLI_PATH to the ipfs executable if you want auto-start.')
+                except Exception as e:
+                    logger.warning(f'Failed to start ipfs daemon automatically: {e}')
+
+            # Try to start daemon but don't block app startup
+            try:
+                proc = _start_ipfs_daemon()
+                if proc:
+                    app.config['IPFS_DAEMON_PROCESS'] = proc
+            except Exception as e:
+                logger.warning(f'Error attempting to auto-start ipfs daemon: {e}')
+    except Exception:
+        # best-effort convenience; do not fail app startup
+        pass
     
     logger.info(f"TrueCred API initialized in {app.config.get('ENV', 'development')} mode")
     return app

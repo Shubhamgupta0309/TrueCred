@@ -1,7 +1,7 @@
 """
 College profile routes for managing college institution profiles.
 """
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from models.user import User
 from models.organization_profile import OrganizationProfile
@@ -158,31 +158,31 @@ def get_pending_requests():
         A JSON response with the pending requests.
     """
     try:
-        # This is a placeholder that would be implemented with actual database queries
-        # For now, we'll return mock data
-        return jsonify({
-            'success': True,
-            'requests': [
-                {
-                    'id': 1,
-                    'studentName': 'Alex Doe',
-                    'credentialTitle': 'B.Sc. Computer Science Degree',
-                    'submissionDate': 'Nov 20, 2023'
-                },
-                {
-                    'id': 2,
-                    'studentName': 'Jane Smith',
-                    'credentialTitle': 'Data Science Certification',
-                    'submissionDate': 'Nov 18, 2023'
-                }
-            ]
-        }), 200
+        current_user_id = get_jwt_identity()
+        user = User.objects(id=current_user_id).first()
+        if not user or user.role != 'college':
+            return jsonify({'success': False, 'message': 'Only college accounts can access pending requests'}), 403
+
+        # Query real credential requests from MongoDB
+        db = getattr(current_app, 'db', None)
+        if db:
+            # If your college users have an issuer_id mapping, use that. For now, filter by issuer_id == current_user_id
+            cursor = db.credential_requests.find({'issuer_id': str(current_user_id), 'status': 'pending'}).sort('created_at', -1)
+            requests = []
+            for doc in cursor:
+                doc['id'] = str(doc.get('_id'))
+                doc.pop('_id', None)
+                # Normalize created_at to ISO string if present
+                if isinstance(doc.get('created_at'), str):
+                    pass
+                requests.append(doc)
+            return jsonify({'success': True, 'requests': requests}), 200
+
+        # Fallback when db not configured: return empty list
+        return jsonify({'success': True, 'requests': []}), 200
     except Exception as e:
-        logger.error(f'Error getting pending requests: {str(e)}')
-        return jsonify({
-            'success': False,
-            'message': f'An error occurred: {str(e)}'
-        }), 500
+        logger.exception(f'Error getting pending requests: {str(e)}')
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
 
 @college_bp.route('/verification-history', methods=['GET'])
 @jwt_required()

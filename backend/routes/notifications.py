@@ -38,9 +38,20 @@ def get_notifications():
         #     return error_response(message="User not found", status_code=404)
         # notifications = db.notifications.find({"user_id": current_user_id}).sort("created_at", -1).limit(20)
         
-        # Mock notifications for development
+        # If the application has a pymongo db attached, read notifications collection
         notifications = []
-        
+        try:
+            if hasattr(current_app, 'db') and current_app.db:
+                cursor = current_app.db.notifications.find({'user_id': current_user_id}).sort('created_at', -1).limit(50)
+                notifications = list(cursor)
+                # Convert ObjectId and datetime to serializable form
+                for n in notifications:
+                    n['_id'] = str(n['_id'])
+                    if 'created_at' in n and hasattr(n['created_at'], 'isoformat'):
+                        n['created_at'] = n['created_at'].isoformat()
+        except Exception as e:
+            logger.exception('Failed to fetch notifications from DB: %s', e)
+
         return success_response(
             data={"notifications": notifications},
             message="Notifications retrieved successfully"

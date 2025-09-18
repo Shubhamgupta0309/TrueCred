@@ -24,6 +24,14 @@ def login_required(fn):
         # Verify JWT is valid
         try:
             verify_jwt_in_request()
+            # Populate g.user_id for route handlers that expect it
+            try:
+                from flask import g
+                g.user_id = get_jwt_identity()
+            except Exception:
+                # If we can't set g.user_id, proceed without raising so the decorated
+                # function can still attempt to use JWT functions directly if needed.
+                pass
             return fn(*args, **kwargs)
         except Exception as e:
             logger.warning(f"Authentication failed: {e}")

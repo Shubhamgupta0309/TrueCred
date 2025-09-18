@@ -10,6 +10,7 @@ from datetime import datetime
 import logging
 from bson import ObjectId
 from mongoengine.errors import ValidationError, DoesNotExist, NotUniqueError
+from mongoengine.queryset import Q
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -34,27 +35,50 @@ class CredentialService:
             List of credentials for the user
         """
         try:
-            # Build query
-            query = {'user': user_id}
-            
-            # Add filters
+            # Build query using mongoengine Q objects to avoid raw $ operators
+            # Normalize user_id to string
+            if isinstance(user_id, dict):
+                user_id = str(user_id.get('user_id') or user_id.get('id') or user_id.get('_id') or '')
+            else:
+                user_id = str(user_id) if user_id is not None else None
+
+            # Resolve user_id into a User document when possible so ReferenceField matching works
+            user_obj = None
+            if user_id:
+                try:
+                    # First try by ObjectId / id
+                    user_obj = User.objects(id=user_id).first()
+                except Exception:
+                    user_obj = None
+
+                # If not found, try by username or email
+                if not user_obj:
+                    try:
+                        user_obj = User.objects(username=user_id).first() or User.objects(email=user_id).first()
+                    except Exception:
+                        user_obj = None
+
+            # Start with user filter. If we resolved a User doc, filter by that object; otherwise
+            # fall back to using the string id (mongoengine will attempt to cast where possible).
+            query_filter = Q(user=user_obj if user_obj else user_id)
+
+            # Expiry filter: either no expiry_date or expiry_date in the future
             if not include_expired:
                 current_time = datetime.utcnow()
-                query['$or'] = [
-                    {'expiry_date': None},
-                    {'expiry_date': {'$gt': current_time}}
-                ]
-            
+                query_filter &= (Q(expiry_date=None) | Q(expiry_date__gt=current_time))
+
+            # Verification status
             if status == 'verified':
-                query['verified'] = True
+                query_filter &= Q(verified=True)
             elif status == 'unverified':
-                query['verified'] = False
-                
+                query_filter &= Q(verified=False)
+
+            # Credential type
             if credential_type:
-                query['type'] = credential_type
-            
-            # Fetch credentials
-            credentials = Credential.objects(**query).order_by('-created_at')
+                query_filter &= Q(type=credential_type)
+
+            # Fetch credentials using the composed Q filter
+            credentials = Credential.objects(query_filter).order_by('-created_at')
             
             logger.info(f"Retrieved {credentials.count()} credentials for user {user_id}")
             return credentials, None
