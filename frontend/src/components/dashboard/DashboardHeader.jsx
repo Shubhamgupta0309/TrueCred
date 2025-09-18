@@ -36,7 +36,9 @@ export default function DashboardHeader({ user }) {
             <div className="mt-1">
               <div className="flex items-center gap-2">
                 <span className="bg-purple-100 text-purple-700 text-xs font-semibold px-2 py-1 rounded-full">{user.role}</span>
-                {!user.profile_completed && (
+                {user.profile_completed ? (
+                  <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded-full">Profile complete</span>
+                ) : (
                   <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2 py-1 rounded-full">Complete profile</span>
                 )}
               </div>
