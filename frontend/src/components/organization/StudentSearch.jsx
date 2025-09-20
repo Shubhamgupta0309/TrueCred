@@ -57,20 +57,8 @@ export default function StudentSearch({ onStudentSelect }) {
     } catch (error) {
       console.error('Error searching for students:', error);
       setError('Failed to search for students. Please try again.');
-      
-      // Fallback to mock data in development
-      if (import.meta.env.DEV) {
-        console.warn('Development mode: Using mock student data');
-        setSearchResults([
-          { id: '1', name: 'John Doe', email: 'john.doe@example.com', truecred_id: 'TC123456', is_affiliated: true },
-          { id: '2', name: 'Jane Smith', email: 'jane.smith@example.com', truecred_id: 'TC234567', is_affiliated: false },
-          { id: '3', name: 'Alex Johnson', email: 'alex.j@example.com', truecred_id: 'TC345678', is_affiliated: false }
-        ].filter(student => 
-          student.name.toLowerCase().includes(query.toLowerCase()) || 
-          student.email.toLowerCase().includes(query.toLowerCase()) ||
-          student.truecred_id.toLowerCase().includes(query.toLowerCase())
-        ));
-      }
+      // Leave results empty on error (no mock fallbacks)
+      setSearchResults([]);
     } finally {
       setLoading(false);
     }

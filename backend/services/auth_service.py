@@ -56,13 +56,11 @@ class AuthService:
             # Hash password
             hashed_password = hash_password(password)
             
-            # Generate unique TrueCred ID
-            truecred_id = None
-            for _ in range(10):  # Try up to 10 times to generate a unique ID
-                generated_id = generate_truecred_id()
-                if not User.objects(truecred_id=generated_id).first():
-                    truecred_id = generated_id
-                    break
+            # Generate unique TrueCred ID using improved logic
+            truecred_id = AuthService._generate_unique_truecred_id()
+            if not truecred_id:
+                logger.error("Failed to generate unique TrueCred ID after multiple attempts")
+                return None, "Failed to generate unique user ID. Please try again."
             
             # Create user
             user = User(
@@ -83,7 +81,7 @@ class AuthService:
             if not success:
                 logger.warning(f"Failed to send verification email: {message}")
             
-            logger.info(f"User registered successfully: {username}")
+            logger.info(f"User registered successfully: {username} with TrueCred ID: {truecred_id}")
             return user, None
             
         except NotUniqueError as e:
@@ -97,6 +95,87 @@ class AuthService:
         except Exception as e:
             logger.error(f"Error registering user: {e}")
             return None, "An error occurred during registration"
+    
+    @staticmethod
+    def _generate_unique_truecred_id():
+        """
+        Generate a unique TrueCred ID with improved logic and fallback mechanisms.
+        
+        Returns:
+            A unique TrueCred ID string or None if generation fails
+        """
+        try:
+            # First try the improved random generation with better uniqueness checking
+            truecred_id = generate_truecred_id()
+            if truecred_id and not User.objects(truecred_id=truecred_id).first():
+                return truecred_id
+            
+            # If random generation fails, try sequential generation
+            from utils.id_generator import generate_sequential_truecred_id
+            sequential_id = generate_sequential_truecred_id()
+            if sequential_id and not User.objects(truecred_id=sequential_id).first():
+                return sequential_id
+            
+            # Final fallback: timestamp-based with additional uniqueness
+            import time
+            import random
+            timestamp = str(int(time.time() * 1000000))[-8:]  # Microsecond precision
+            random_suffix = str(random.randint(100, 999))
+            fallback_id = f"TC{timestamp[-6:]}{random_suffix[-2:]}"
+            
+            # Ensure fallback is unique
+            counter = 0
+            original_fallback = fallback_id
+            while User.objects(truecred_id=fallback_id).first() and counter < 1000:
+                counter += 1
+                fallback_id = f"TC{str(int(timestamp) + counter)[-6:]}{str(random.randint(100, 999))[-2:]}"
+            
+            if not User.objects(truecred_id=fallback_id).first():
+                return fallback_id
+            
+            # If all methods fail, return None (should be extremely rare)
+            logger.error("All TrueCred ID generation methods failed")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error generating TrueCred ID: {e}")
+            return None
+    
+    @staticmethod
+    def assign_missing_truecred_ids():
+        """
+        Assign TrueCred IDs to users who don't have them.
+        Useful for data migration and fixing existing users.
+        
+        Returns:
+            (success_count, error_count): Number of successful assignments and errors
+        """
+        try:
+            users_without_ids = User.objects(truecred_id__exists=False).all()
+            success_count = 0
+            error_count = 0
+            
+            for user in users_without_ids:
+                try:
+                    truecred_id = AuthService._generate_unique_truecred_id()
+                    if truecred_id:
+                        user.truecred_id = truecred_id
+                        user.save()
+                        success_count += 1
+                        logger.info(f"Assigned TrueCred ID {truecred_id} to user {user.username}")
+                    else:
+                        error_count += 1
+                        logger.error(f"Failed to generate TrueCred ID for user {user.username}")
+                except Exception as e:
+                    error_count += 1
+                    logger.error(f"Error assigning TrueCred ID to user {user.username}: {e}")
+            
+            logger.info(f"TrueCred ID assignment completed: {success_count} successful, {error_count} errors")
+            return success_count, error_count
+            
+        except Exception as e:
+            logger.error(f"Error in assign_missing_truecred_ids: {e}")
+            return 0, 1
     
     @staticmethod
     def authenticate_user(username_or_email, password):

@@ -8,7 +8,8 @@ import EmailVerificationPage from './pages/EmailVerificationPage';
 import VerificationPendingPage from './pages/VerificationPendingPage';
 import TestVerificationLinks from './pages/TestVerificationLinks';
 import StudentProfile from './pages/StudentProfile';
-import ProtectedRoute from './components/auth/ProtectedRoute';
+import Profile from './pages/Profile';
+import NotificationTemplates from './pages/NotificationTemplates';
 
 /**
  * Application router configuration with future flags enabled
@@ -32,7 +33,14 @@ const router = createBrowserRouter([
     path: "/company-dashboard", 
     element: <ProtectedRoute element={<CompanyDashboard />} allowedRoles={['company']} /> 
   },
-  { path: "/students/:truecredId", element: <ProtectedRoute element={<StudentProfile />} allowedRoles={['college','company','student']} /> },
+  { 
+    path: "/profile", 
+    element: <ProtectedRoute element={<Profile />} allowedRoles={['student', 'user']} /> 
+  },
+  { 
+    path: "/notification-templates", 
+    element: <ProtectedRoute element={<NotificationTemplates />} allowedRoles={['student', 'college', 'company']} /> 
+  },
   { path: "*", element: <Navigate to="/" replace /> }
 ], {
   future: {

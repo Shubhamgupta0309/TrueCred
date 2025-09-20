@@ -211,6 +211,7 @@ class User(Document):
             'last_name': self.last_name,
             'profile_image': self.profile_image,
             'wallet_address': self.wallet_address,
+            'truecred_id': self.truecred_id,
             'is_active': self.is_active,
             'email_verified': self.email_verified,
             'created_at': self.created_at.isoformat() if self.created_at else None,

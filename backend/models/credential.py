@@ -61,6 +61,11 @@ class Credential(Document):
     verified_at = DateTimeField()
     verification_data = DictField()
     blockchain_data = DictField()  # Store blockchain transaction data
+    
+    # Blockchain integration fields
+    blockchain_tx_hash = StringField()  # Transaction hash from blockchain
+    blockchain_credential_id = StringField()  # Credential ID from smart contract
+    
     verification_status = StringField(default='pending', choices=[
         'pending', 'verified', 'rejected', 'revoked', 'expired'
     ])
@@ -92,7 +97,9 @@ class Credential(Document):
             {'fields': ['verified']},
             {'fields': ['blockchain_hash'], 'sparse': True, 'unique': True, 'name': 'blockchain_hash_unique'},
             {'fields': ['ipfs_hash'], 'sparse': True, 'unique': True, 'name': 'ipfs_hash_unique'},
-            {'fields': ['ipfs_metadata_hash'], 'sparse': True}
+            {'fields': ['ipfs_metadata_hash'], 'sparse': True},
+            {'fields': ['blockchain_tx_hash'], 'sparse': True},
+            {'fields': ['blockchain_credential_id'], 'sparse': True}
         ],
         'ordering': ['-created_at']
     }

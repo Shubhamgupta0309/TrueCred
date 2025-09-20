@@ -6,7 +6,7 @@ import MetaMaskConnect from '../components/auth/MetaMaskConnect';
 import ManualWalletInput from '../components/auth/ManualWalletInput';
 import ToggleLink from '../components/auth/ToggleLink';
 import EmailVerificationReminder from '../components/auth/EmailVerificationReminder';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -27,6 +27,7 @@ export default function AuthPage() {
   const [verificationEmail, setVerificationEmail] = useState('');
   const [showCustomRoleInput, setShowCustomRoleInput] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, register, error: authError, loading, isAuthenticated, user } = useAuth();
 
   const roleOptions = [
@@ -39,9 +40,18 @@ export default function AuthPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      console.log('User already authenticated, redirecting to dashboard');
+      console.log('User already authenticated, checking redirect destination');
       
-      // Redirect based on user role
+      // Check if user was redirected from a protected route
+      const from = location.state?.from?.pathname;
+      if (from && from !== '/' && from !== '/auth') {
+        console.log('Redirecting back to intended destination:', from);
+        navigate(from, { replace: true });
+        return;
+      }
+      
+      // Default redirect based on user role
+      console.log('Redirecting to dashboard based on role');
       if (user.role === 'student') {
         navigate('/student-dashboard');
       } else if (user.role === 'college') {
@@ -52,7 +62,7 @@ export default function AuthPage() {
         navigate('/student-dashboard'); // Default
       }
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [isAuthenticated, user, navigate, location]);
 
   // Reset form when switching between login/register
   useEffect(() => {

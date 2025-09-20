@@ -1,6 +1,7 @@
 import React from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.jsx';
+import { ToastProvider } from './context/ToastContext.jsx';
 import router from './router';
 
 function App() {
@@ -18,11 +19,13 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-purple-50">      
-      <div className="flex-grow flex items-center justify-center">
-        <RouterProvider router={router} />
+    <ToastProvider>
+      <div className="min-h-screen flex flex-col bg-purple-50">
+        <div className="flex-grow flex items-center justify-center">
+          <RouterProvider router={router} />
+        </div>
       </div>
-    </div>
+    </ToastProvider>
   );
 }
 

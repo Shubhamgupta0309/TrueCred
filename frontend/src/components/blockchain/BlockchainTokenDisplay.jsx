@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, ExternalLink, Shield, CheckCircle, XCircle, Info } from 'lucide-react';
+import { Copy, ExternalLink, Shield, CheckCircle, XCircle, Info, RefreshCw } from 'lucide-react';
+import { credentialService } from '../../services/api';
 
-export default function BlockchainTokenDisplay({ credential }) {
+export default function BlockchainTokenDisplay({ credential, onVerificationUpdate }) {
   const [showDetails, setShowDetails] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState(null);
   
   // Determine status color
   const getStatusColor = () => {
@@ -39,6 +42,42 @@ export default function BlockchainTokenDisplay({ credential }) {
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Handle blockchain verification
+  const handleVerifyOnBlockchain = async () => {
+    setVerifying(true);
+    setVerificationResult(null);
+    
+    try {
+      const response = await credentialService.verifyCredentialBlockchain(credential.id);
+      
+      if (response.data && response.data.success) {
+        setVerificationResult({
+          success: true,
+          message: 'Credential verified on blockchain!',
+          data: response.data.data
+        });
+        
+        // Update the credential status if callback provided
+        if (onVerificationUpdate) {
+          onVerificationUpdate(credential.id, 'verified', response.data.data);
+        }
+      } else {
+        setVerificationResult({
+          success: false,
+          message: response.data?.message || 'Verification failed'
+        });
+      }
+    } catch (error) {
+      console.error('Blockchain verification error:', error);
+      setVerificationResult({
+        success: false,
+        message: error.response?.data?.message || 'Failed to verify credential on blockchain'
+      });
+    } finally {
+      setVerifying(false);
+    }
   };
   
   // Format date
@@ -113,11 +152,25 @@ export default function BlockchainTokenDisplay({ credential }) {
                 <ExternalLink className="h-4 w-4" />
               </a>
             )}
+            <button
+              onClick={handleVerifyOnBlockchain}
+              disabled={verifying}
+              className="p-1 text-gray-500 hover:text-blue-600 ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Verify on blockchain"
+            >
+              <RefreshCw className={`h-4 w-4 ${verifying ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           
           {copied && (
             <div className="mt-1 text-xs text-green-600">
               Copied to clipboard!
+            </div>
+          )}
+          
+          {verificationResult && (
+            <div className={`mt-1 text-xs ${verificationResult.success ? 'text-green-600' : 'text-red-600'}`}>
+              {verificationResult.message}
             </div>
           )}
         </div>

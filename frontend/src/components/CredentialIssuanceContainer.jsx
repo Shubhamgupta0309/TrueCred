@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 // import { Button } from "./ui/button";
 // import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
@@ -8,19 +8,26 @@ import { motion } from 'framer-motion';
 // import { useToast } from "./ui/use-toast";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
+import { useAuth } from '../context/AuthContext';
+
 const CredentialIssuanceContainer = () => {
-  const { toast } = useToast();
+  const { user } = useAuth();
+  // const { toast } = useToast();
   const [form, setForm] = useState({
-    studentId: '',
+    studentEmail: '',
     credentialType: '',
     details: '',
     expiryDate: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  // Fetch students for this college on mount
+  // Remove student fetching, switch to manual email entry
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'studentEmail') setEmailError('');
   };
 
   const handleSelectChange = (value, name) => {
@@ -30,30 +37,51 @@ const CredentialIssuanceContainer = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setEmailError('');
 
     try {
-      // Example API call, replace with your actual API
-      // await api.post('/credentials/issue', form);
-      
-      toast({
-        title: "Credential Issued",
-        description: "The credential has been successfully issued to the student.",
-        variant: "success",
+      // 1. Look up student by email
+      const lookupResp = await fetch(`/api/user/by-email?email=${encodeURIComponent(form.studentEmail)}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
       });
-      
-      // Reset form
-      setForm({
-        studentId: '',
-        credentialType: '',
-        details: '',
-        expiryDate: ''
+      const lookupData = await lookupResp.json();
+      if (!lookupData.success || !lookupData.user || !lookupData.user.id) {
+        setEmailError('No student found with this email.');
+        setIsLoading(false);
+        return;
+      }
+      const studentId = lookupData.user.id;
+
+      // 2. Issue credential to student
+      const payload = {
+        title: form.credentialType,
+        type: form.credentialType,
+        description: form.details,
+        expiry_date: form.expiryDate,
+        issuer: user.organization || user.email
+      };
+      const issueResp = await fetch(`/api/organization/upload-credential/${studentId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify(payload)
       });
+      const issueData = await issueResp.json();
+      if (issueData.success) {
+        window.alert("Credential Issued: The credential has been successfully issued to the student.");
+        setForm({
+          studentEmail: '',
+          credentialType: '',
+          details: '',
+          expiryDate: ''
+        });
+      } else {
+        window.alert("Error: " + (issueData.message || "Failed to issue credential."));
+      }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to issue credential. Please try again.",
-        variant: "destructive",
-      });
+      window.alert("Error: Failed to issue credential. Please try again.");
       console.error("Issue credential error:", error);
     } finally {
       setIsLoading(false);
@@ -66,93 +94,81 @@ const CredentialIssuanceContainer = () => {
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-4xl mx-auto p-4"
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Issue New Credential</CardTitle>
-          <CardDescription>
-            Fill in the details to issue a new verifiable credential to a student
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="studentId">Student ID</Label>
-                <Input
-                  id="studentId"
-                  name="studentId"
-                  placeholder="Enter student ID"
-                  value={form.studentId}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="credentialType">Credential Type</Label>
-                <Select
-                  value={form.credentialType}
-                  onValueChange={(value) => handleSelectChange(value, 'credentialType')}
-                  required
-                >
-                  <SelectTrigger id="credentialType">
-                    <SelectValue placeholder="Select credential type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="degree">Degree</SelectItem>
-                    <SelectItem value="certificate">Certificate</SelectItem>
-                    <SelectItem value="transcript">Transcript</SelectItem>
-                    <SelectItem value="diploma">Diploma</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="mb-4">
+          <h2 className="text-2xl font-bold">Issue New Credential</h2>
+          <p className="text-gray-600">Fill in the details to issue a new verifiable credential to a student</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="details">Credential Details</Label>
-              <Textarea
-                id="details"
-                name="details"
-                placeholder="Enter detailed information about this credential"
-                value={form.details}
+              <label htmlFor="studentEmail" className="block font-medium">Student Email</label>
+              <input
+                id="studentEmail"
+                name="studentEmail"
+                type="email"
+                placeholder="Enter student email"
+                value={form.studentEmail}
                 onChange={handleChange}
-                rows={5}
                 required
+                className="w-full border border-gray-300 rounded px-3 py-2"
               />
+              {emailError && <div className="text-red-500 text-sm">{emailError}</div>}
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="expiryDate">Expiry Date (optional)</Label>
-              <Input
-                id="expiryDate"
-                name="expiryDate"
-                type="date"
-                value={form.expiryDate}
+              <label htmlFor="credentialType" className="block font-medium">Credential Type</label>
+              <select
+                id="credentialType"
+                name="credentialType"
+                value={form.credentialType}
                 onChange={handleChange}
-              />
+                required
+                className="w-full border border-gray-300 rounded px-3 py-2"
+              >
+                <option value="">Select type</option>
+                <option value="degree">Degree</option>
+                <option value="certificate">Certificate</option>
+                <option value="diploma">Diploma</option>
+                <option value="badge">Badge</option>
+                <option value="award">Award</option>
+                <option value="license">License</option>
+                <option value="other">Other</option>
+              </select>
             </div>
-          </form>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => setForm({
-            studentId: '',
-            credentialType: '',
-            details: '',
-            expiryDate: ''
-          })}>
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            onClick={handleSubmit}
-            disabled={isLoading}
-          >
-            {isLoading ? "Issuing..." : "Issue Credential"}
-          </Button>
-        </CardFooter>
-      </Card>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="details" className="block font-medium">Details</label>
+            <textarea
+              id="details"
+              name="details"
+              value={form.details}
+              onChange={handleChange}
+              placeholder="Enter credential details"
+              rows={3}
+              required
+              className="w-full border border-gray-300 rounded px-3 py-2"
+            ></textarea>
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="expiryDate" className="block font-medium">Expiry Date</label>
+            <input
+              id="expiryDate"
+              name="expiryDate"
+              type="date"
+              value={form.expiryDate}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded px-3 py-2"
+            />
+          </div>
+          <div className="mt-4">
+            <button type="submit" disabled={isLoading} className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+              {isLoading ? "Issuing..." : "Issue Credential"}
+            </button>
+          </div>
+        </form>
+      </div>
     </motion.div>
   );
-};
+}
 
 export default CredentialIssuanceContainer;

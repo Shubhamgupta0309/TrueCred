@@ -5,7 +5,7 @@ import axios from 'axios';
 import { api, organizationService } from '../../services/api';
 import { isAuthenticated } from '../../utils/tokenUtils';
 
-export default function ActionButtons({ onAuthError }) {
+export default function ActionButtons({ onAuthError, onSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [uploadingExp, setUploadingExp] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // 'success', 'error', or null
@@ -56,7 +56,8 @@ export default function ActionButtons({ onAuthError }) {
   const [credentialInfo, setCredentialInfo] = useState({
     institution: '',
     institutionType: 'college', // 'college' or 'company'
-    credentialName: '',
+    title: '', // Custom title like "UI Test, Exam Form"
+    credentialName: '', // Degree name like "Bachelor of Engineering (B.E.)"
     issuedDate: '',
     institution_id: '' // Add institution_id to store the database ID
   });
@@ -135,19 +136,8 @@ export default function ActionButtons({ onAuthError }) {
       }
     } catch (error) {
       console.error('Error fetching companies:', error);
-      // If there's no endpoint yet, use some mock data
-      setCompanies([
-        { id: 1, name: 'Google Inc.' },
-        { id: 2, name: 'Microsoft Corporation' },
-        { id: 3, name: 'Apple Inc.' },
-        { id: 4, name: 'Amazon' },
-        { id: 5, name: 'Facebook (Meta)' },
-        { id: 6, name: 'IBM' },
-        { id: 7, name: 'Intel' },
-        { id: 8, name: 'Oracle' },
-        { id: 9, name: 'Accenture' },
-        { id: 10, name: 'TCS' }
-      ]);
+      // Leave companies empty on error; do not fallback to mock data
+      setCompanies([]);
     } finally {
       setLoadingCompanies(false);
     }
@@ -178,19 +168,8 @@ export default function ActionButtons({ onAuthError }) {
       }
     } catch (error) {
       console.error('Error fetching colleges:', error);
-      // If there's no endpoint yet, use some mock data
-      setColleges([
-        { id: 1, name: 'Harvard University', fullName: 'Harvard University' },
-        { id: 2, name: 'Stanford University', fullName: 'Stanford University' },
-        { id: 3, name: 'Massachusetts Institute of Technology', fullName: 'Massachusetts Institute of Technology' },
-        { id: 4, name: 'University of Oxford', fullName: 'University of Oxford' },
-        { id: 5, name: 'University of Cambridge', fullName: 'University of Cambridge' },
-        { id: 6, name: 'California Institute of Technology' },
-        { id: 7, name: 'Princeton University' },
-        { id: 8, name: 'Yale University' },
-        { id: 9, name: 'University of Chicago' },
-        { id: 10, name: 'Columbia University' }
-      ]);
+      // Leave colleges empty on error; do not fallback to mock data
+      setColleges([]);
     } finally {
       setLoadingColleges(false);
     }
@@ -310,7 +289,7 @@ export default function ActionButtons({ onAuthError }) {
     // Check authentication first
     if (!checkAuthBeforeAction()) return;
     
-    if (!selectedFile || !credentialInfo.institution) return;
+    if (!selectedFile || !credentialInfo.institution || !credentialInfo.title) return;
 
     setUploading(true);
     setUploadStatus(null);
@@ -326,14 +305,15 @@ export default function ActionButtons({ onAuthError }) {
       description: 'Credential document upload',
       institution: credentialInfo.institution,
       institutionType: credentialInfo.institutionType,
-      credentialName: credentialInfo.credentialName,
+      title: credentialInfo.title, // Custom title
+      credentialName: credentialInfo.credentialName, // Degree name
       issuedDate: credentialInfo.issuedDate,
       institution_id: credentialInfo.institution_id || null // Include institution ID
     }));
 
     try {
       // Use the enhanced api instance with token refresh to upload to IPFS
-      const response = await api.post('/ipfs/upload', formData, {
+      const response = await api.post('/api/ipfs/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -341,19 +321,31 @@ export default function ActionButtons({ onAuthError }) {
 
       console.log('Upload successful:', response.data);
       // Build a credential request payload referencing the uploaded IPFS uri
-      const ipfsUri = response.data.ipfs_uri || response.data.data?.ipfs_uri || response.data.data?.document_url || null;
+      // Backend may return different shapes; normalize common keys:
+      // - result from api_response: { data: { ... } }
+      // - services.ipfs_service.store_document returns { document_hash, document_gateway_url, metadata_hash }
+      const respData = response.data.data || response.data || {};
+      const ipfsUri = respData.document_gateway_url || respData.document_url || respData.ipfs_uri || respData.document_hash || respData.Hash || respData.hash || null;
+      // If we received just a raw hash (document_hash), convert to gateway URL when possible
+      let attachmentUri = null;
+      if (ipfsUri) {
+        // If it's a bare hash (no scheme and not a url), convert to gateway URL using configured gateway (frontend can't know it reliably),
+        // but the backend often includes a full gateway URL in document_gateway_url. We prefer gateway URL when present.
+        attachmentUri = ipfsUri;
+      }
       const requestPayload = {
-        title: credentialInfo.credentialName || `Credential from ${credentialInfo.institution}`,
+        title: credentialInfo.title || `Credential from ${credentialInfo.institution}`,
         issuer: credentialInfo.institution,
         type: 'credential',
         issue_date: credentialInfo.issuedDate || null,
         metadata: {
           institution_id: credentialInfo.institution_id || null,
           institutionType: credentialInfo.institutionType,
+          credentialName: credentialInfo.credentialName, // Keep degree name in metadata
           uploadedAt: new Date().toISOString(),
           source: 'student_request',
         },
-        attachments: ipfsUri ? [{ uri: ipfsUri, filename: selectedFile.name, verified: false }] : []
+        attachments: attachmentUri ? [{ uri: attachmentUri, filename: selectedFile.name, verified: false }] : []
       };
 
       // Call the credential request API (creates a pending request)
@@ -362,6 +354,10 @@ export default function ActionButtons({ onAuthError }) {
 
       setUploadStatus('success');
       setStatusMessage(reqResp.data.message || `Credential request submitted to ${credentialInfo.institution}.`);
+      // Notify parent to refresh dashboard data
+      if (onSuccess && typeof onSuccess === 'function') {
+        try { onSuccess(); } catch (e) { console.warn('onSuccess callback failed', e); }
+      }
     } catch (error) {
       console.error('Error uploading file:', error);
       
@@ -386,6 +382,7 @@ export default function ActionButtons({ onAuthError }) {
       setCredentialInfo({
         institution: '',
         institutionType: 'college',
+        title: '',
         credentialName: '',
         issuedDate: '',
         institution_id: ''
@@ -421,7 +418,7 @@ export default function ActionButtons({ onAuthError }) {
 
     try {
       // Use the enhanced api instance with token refresh to upload to IPFS
-      const response = await api.post('/ipfs/upload', formData, {
+      const response = await api.post('/api/ipfs/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -701,6 +698,21 @@ export default function ActionButtons({ onAuthError }) {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Title <span className="text-xs text-purple-600 ml-1">(required, e.g. UI Test, Exam Form)</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="title"
+                      value={credentialInfo.title || ''}
+                      onChange={handleCredentialInfoChange}
+                      placeholder="Enter credential title, e.g. UI Test, Exam Form, Degree Name"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Degree/Credential Name
                     </label>
                     <div ref={degreeRef} className="relative">
@@ -765,7 +777,7 @@ export default function ActionButtons({ onAuthError }) {
               </button>
               <button
                 onClick={uploadCredential}
-                disabled={!credentialInfo.institution}
+                disabled={!credentialInfo.institution || !credentialInfo.title}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload Credential

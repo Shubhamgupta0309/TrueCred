@@ -28,9 +28,7 @@ const ProtectedRoute = ({ element, allowedRoles = [] }) => {
       
       setIsChecking(false);
     }
-  }, [isAuthenticated, user, loading, allowedRoles]);
-
-  if (isChecking || loading) {
+  }, [isAuthenticated, user, loading, allowedRoles]);  if (isChecking || loading) {
     // Show loading state while checking authorization
     return (
       <div className="min-h-screen flex items-center justify-center bg-purple-50">
@@ -44,7 +42,7 @@ const ProtectedRoute = ({ element, allowedRoles = [] }) => {
 
   // If not authorized, redirect to login
   if (!isAuthorized) {
-    return <Navigate to="/" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // If authorized, render the protected component

@@ -51,6 +51,29 @@ class Config:
     
     # Frontend URL for email links
     FRONTEND_URL = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    
+    # Rate Limiting Configuration
+    RATE_LIMITS = {
+        'default': {'requests': 100, 'window': 60},     # 100 requests per minute
+        'auth': {'requests': 5, 'window': 60},          # 5 auth requests per minute
+        'upload': {'requests': 10, 'window': 3600},     # 10 uploads per hour
+        'verification': {'requests': 20, 'window': 60}, # 20 verification requests per minute
+        'search': {'requests': 30, 'window': 60}        # 30 search requests per minute
+    }
+    
+    # File Upload Configuration
+    MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB max file size
+    ALLOWED_FILE_TYPES = ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'txt']
+    
+    # Security Configuration
+    REQUIRE_HTTPS = os.environ.get('REQUIRE_HTTPS', 'False').lower() == 'true'
+    ENABLE_CORS = True
+    CORS_ORIGINS = [
+        'http://localhost:5173',
+        'http://127.0.0.1:5173',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+    ]
 
 class DevelopmentConfig(Config):
     """Development configuration."""

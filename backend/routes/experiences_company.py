@@ -116,12 +116,46 @@ def approve_experience(experience_id):
         exp = Experience.objects.get(id=experience_id)
     except DoesNotExist:
         return jsonify({'error': 'Experience not found'}), 404
+    
     # Update fields to mark verified
     exp.is_verified = True
     exp.verification_status = 'verified'
     exp.rejection_reason = None
     exp.pending_verification = False
     exp.verified_at = datetime.utcnow()
+    
+    # Store verified experience hash on blockchain
+    blockchain_result = None
+    try:
+        from services.blockchain_service import BlockchainService
+        blockchain = BlockchainService()
+        if blockchain.is_connected():
+            # Create a hash of the verified experience data
+            import hashlib
+            experience_data = f"{str(exp.id)}:{exp.user.id}:{exp.title}:{exp.organization}:{datetime.utcnow().isoformat()}"
+            experience_hash = hashlib.sha256(experience_data.encode()).hexdigest()
+            
+            # Store on blockchain
+            blockchain_result = blockchain.store_credential_hash(
+                title=f"Experience: {exp.title} at {exp.organization}",
+                issuer=exp.organization,
+                student_id=str(exp.user.id),
+                ipfs_hash=experience_hash  # Using experience hash as IPFS hash for now
+            )
+            
+            if blockchain_result and blockchain_result.get('status') == 'success':
+                # Update experience with blockchain info
+                exp.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                exp.blockchain_credential_id = blockchain_result.get('credential_id')
+                print(f"Experience {exp.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
+            else:
+                print(f"Failed to store experience on blockchain: {blockchain_result}")
+        else:
+            print("Blockchain service not connected, skipping blockchain storage")
+    except Exception as e:
+        print(f"Error storing experience on blockchain: {e}")
+        # Don't fail the approval if blockchain storage fails
+    
     exp.save()
     return jsonify({'success': True}), 200
 

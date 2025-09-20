@@ -1,3 +1,74 @@
+from flask import Blueprint, jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from services.auth_service import AuthService
+from datetime import datetime
+from models.user import Education
+import logging
+from mongoengine.errors import ValidationError
+
+logger = logging.getLogger(__name__)
+
+user_bp = Blueprint('user', __name__, url_prefix='/api/user')
+
+# Endpoint to fetch all students (for college dashboard dropdown)
+@user_bp.route('/all-students', methods=['GET'])
+@jwt_required()
+def get_all_students():
+    """
+    Fetch all users with role 'student'.
+    Returns: list of students with email, name, and education info
+    """
+    try:
+        from models.user import User
+        students = User.objects(role='student')
+        result = []
+        for user in students:
+            result.append({
+                'id': str(user.id),
+                'email': user.email,
+                'name': f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else user.username,
+                'education': [e.to_mongo().to_dict() for e in user.education]
+            })
+        return jsonify({'success': True, 'students': result}), 200
+    except Exception as e:
+        logger.error(f"Error fetching all students: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+logger = logging.getLogger(__name__)
+
+user_bp = Blueprint('user', __name__, url_prefix='/api/user')
+
+# ...existing code...
+
+@user_bp.route('/students/by-college', methods=['GET'])
+@jwt_required()
+def get_students_by_college():
+    """
+    Fetch students who have added the given college name in their education.
+    Query param: college_name (required)
+    Returns: list of students with email, name, and education info
+    """
+    college_name = request.args.get('college_name', '').strip()
+    if not college_name:
+        return jsonify({'success': False, 'message': 'college_name is required'}), 400
+
+    try:
+        from models.user import User
+        # Find users with role 'student' and education.institution matching college_name
+        students = User.objects(role='student', education__institution=college_name)
+        result = []
+        for user in students:
+            edu_match = [edu for edu in user.education if edu.institution == college_name]
+            result.append({
+                'id': str(user.id),
+                'email': user.email,
+                'name': f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else user.username,
+                'education': [e.to_mongo().to_dict() for e in edu_match]
+            })
+        return jsonify({'success': True, 'students': result}), 200
+    except Exception as e:
+        logger.error(f"Error fetching students by college: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500
 """
 User profile routes providing /api/user/profile endpoints that return raw user JSON.
 """
@@ -139,7 +210,7 @@ def get_my_requests():
     try:
         current_user_id = get_jwt_identity()
         db = getattr(__import__('flask').current_app, 'db', None)
-        if db:
+        if db is not None:
             cursor = db.credential_requests.find({'user_id': str(current_user_id)}).sort('created_at', -1)
             results = []
             for doc in cursor:
@@ -150,4 +221,29 @@ def get_my_requests():
         return jsonify({'success': True, 'requests': []}), 200
     except Exception as e:
         logger.exception(e)
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# Endpoint to fetch all colleges (for student profile dropdown)
+@user_bp.route('/all-colleges', methods=['GET'])
+@jwt_required()
+def get_all_colleges():
+    """
+    Fetch all users with role 'college'.
+    Returns: list of colleges with basic information
+    """
+    try:
+        from models.user import User
+        colleges = User.objects(role='college', is_active=True)
+        result = []
+        for college in colleges:
+            result.append({
+                'id': str(college.id),
+                'name': college.organization or f"{college.first_name} {college.last_name}".strip() or college.username,
+                'email': college.email,
+                'truecred_id': college.truecred_id
+            })
+        return jsonify({'success': True, 'colleges': result}), 200
+    except Exception as e:
+        logger.error(f"Error fetching all colleges: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500

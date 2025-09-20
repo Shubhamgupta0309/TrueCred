@@ -73,6 +73,10 @@ class Experience(Document):
     document_hashes = DictField()           # Dictionary of associated document IPFS hashes (key: document name, value: IPFS hash)
     blockchain_hash = StringField()         # Hash stored on the blockchain for verification
     
+    # Blockchain transaction info
+    blockchain_tx_hash = StringField()      # Transaction hash from blockchain
+    blockchain_credential_id = StringField() # Credential ID from blockchain
+    
     # Linked credentials
     credentials = ListField(ReferenceField('Credential'))
     

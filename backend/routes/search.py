@@ -269,3 +269,202 @@ def search_all():
         },
         message=f"Found {total_count} items matching your search"
     )
+
+
+@search_bp.route('/institutions', methods=['GET'])
+@jwt_required()
+def search_institutions():
+    """
+    Search institutions with advanced filters and pagination.
+    ---
+    Requires authentication.
+    
+    Query Parameters:
+      q: Search query for institution name, description
+      type: Filter by institution type (university, college, company, etc.)
+      location: Filter by location (general search)
+      country: Filter by country
+      state: Filter by state/province
+      city: Filter by city
+      verified: Filter by verification status (true/false)
+      accreditation_status: Filter by accreditation status
+      founded_after: Founded after date (YYYY-MM-DD)
+      founded_before: Founded before date (YYYY-MM-DD)
+      sort_by: Field to sort by (name, created_at, etc., prepend with - for descending)
+      page: Page number (default: 1)
+      per_page: Results per page (default: 10)
+    
+    Returns:
+      List of institutions with pagination metadata
+    """
+    current_user_id = get_jwt_identity()
+    
+    # Get query parameters
+    query = request.args.get('q')
+    institution_type = request.args.get('type')
+    location = request.args.get('location')
+    country = request.args.get('country')
+    state = request.args.get('state')
+    city = request.args.get('city')
+    verified_only = request.args.get('verified', 'false').lower() == 'true'
+    accreditation_status = request.args.get('accreditation_status')
+    founded_after = request.args.get('founded_after')
+    founded_before = request.args.get('founded_before')
+    sort_by = request.args.get('sort_by', '-created_at')
+    
+    # Pagination parameters
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = min(int(request.args.get('per_page', 10)), 50)
+        
+        if page < 1 or per_page < 1:
+            return validation_error_response(
+                errors={"pagination": "Page and per_page must be positive integers"},
+                message="Invalid pagination parameters"
+            )
+    except ValueError:
+        return validation_error_response(
+            errors={"pagination": "Page and per_page must be valid integers"},
+            message="Invalid pagination parameters"
+        )
+    
+    # Perform search
+    institutions, total_count, total_pages, error = SearchService.search_institutions(
+        user_id=current_user_id,
+        query=query,
+        institution_type=institution_type,
+        location=location,
+        country=country,
+        state=state,
+        city=city,
+        verified_only=verified_only,
+        accreditation_status=accreditation_status,
+        founded_after=founded_after,
+        founded_before=founded_before,
+        sort_by=sort_by,
+        page=page,
+        per_page=per_page
+    )
+    
+    if error:
+        return error_response(message=error, status_code=400)
+    
+    # Return search results
+    return success_response(
+        data={
+            'institutions': institutions,
+            'pagination': {
+                'total_count': total_count,
+                'total_pages': total_pages,
+                'current_page': page,
+                'per_page': per_page,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        },
+        message=f"Found {total_count} institutions matching your search"
+    )
+
+
+@search_bp.route('/students', methods=['GET'])
+@jwt_required()
+def search_students():
+    """
+    Search students directory with advanced filters.
+    ---
+    Requires authentication and institution role.
+    
+    Query Parameters:
+      q: Search query for student name, email, program
+      institution: Filter by institution
+      program: Filter by program/degree
+      graduation_year: Filter by specific graduation year
+      graduation_year_after: Filter by graduation year after
+      graduation_year_before: Filter by graduation year before
+      location: Filter by location (general search)
+      country: Filter by country
+      state: Filter by state/province
+      city: Filter by city
+      verified: Filter by verification status (true/false)
+      has_credentials: Include only students with credentials (true/false)
+      has_experiences: Include only students with experiences (true/false)
+      sort_by: Field to sort by (name, created_at, etc., prepend with - for descending)
+      page: Page number (default: 1)
+      per_page: Results per page (default: 10)
+    
+    Returns:
+      List of students with pagination metadata
+    """
+    current_user_id = get_jwt_identity()
+    
+    # Get query parameters
+    query = request.args.get('q')
+    institution = request.args.get('institution')
+    program = request.args.get('program')
+    graduation_year = request.args.get('graduation_year')
+    graduation_year_after = request.args.get('graduation_year_after')
+    graduation_year_before = request.args.get('graduation_year_before')
+    location = request.args.get('location')
+    country = request.args.get('country')
+    state = request.args.get('state')
+    city = request.args.get('city')
+    verified_only = request.args.get('verified', 'false').lower() == 'true'
+    has_credentials = request.args.get('has_credentials', 'false').lower() == 'true'
+    has_experiences = request.args.get('has_experiences', 'false').lower() == 'true'
+    sort_by = request.args.get('sort_by', 'first_name')
+    
+    # Pagination parameters
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = min(int(request.args.get('per_page', 10)), 50)
+        
+        if page < 1 or per_page < 1:
+            return validation_error_response(
+                errors={"pagination": "Page and per_page must be positive integers"},
+                message="Invalid pagination parameters"
+            )
+    except ValueError:
+        return validation_error_response(
+            errors={"pagination": "Page and per_page must be valid integers"},
+            message="Invalid pagination parameters"
+        )
+    
+    # Perform search
+    students, total_count, total_pages, error = SearchService.search_students(
+        user_id=current_user_id,
+        query=query,
+        institution=institution,
+        program=program,
+        graduation_year=graduation_year,
+        graduation_year_after=graduation_year_after,
+        graduation_year_before=graduation_year_before,
+        location=location,
+        country=country,
+        state=state,
+        city=city,
+        verified_only=verified_only,
+        has_credentials=has_credentials,
+        has_experiences=has_experiences,
+        sort_by=sort_by,
+        page=page,
+        per_page=per_page
+    )
+    
+    if error:
+        return error_response(message=error, status_code=400)
+    
+    # Return search results
+    return success_response(
+        data={
+            'students': students,
+            'pagination': {
+                'total_count': total_count,
+                'total_pages': total_pages,
+                'current_page': page,
+                'per_page': per_page,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        },
+        message=f"Found {total_count} students matching your search"
+    )
