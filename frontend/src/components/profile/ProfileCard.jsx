@@ -1,7 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ProfileCard({ student, currentUser, onEditRequest }) {
+  const { isAuthenticated, loading } = useAuth();
+  const navigate = useNavigate();
+
   if (!student) {
     return (
       <div className="bg-white p-4 rounded-lg shadow">
@@ -11,6 +15,12 @@ export default function ProfileCard({ student, currentUser, onEditRequest }) {
   }
 
   const isSelf = currentUser && (String(currentUser.id) === String(student.id) || String(currentUser.truecred_id) === String(student.truecred_id));
+
+  const handleEditProfile = () => {
+    if (isAuthenticated && !loading) {
+      navigate('/profile');
+    }
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow">
@@ -23,7 +33,13 @@ export default function ProfileCard({ student, currentUser, onEditRequest }) {
         </div>
         <div>
           {isSelf ? (
-            <Link to="/profile" className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm">Edit profile</Link>
+            <button 
+              onClick={handleEditProfile}
+              disabled={loading || !isAuthenticated}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-700"
+            >
+              {loading ? 'Loading...' : 'Edit profile'}
+            </button>
           ) : (
             <button onClick={() => onEditRequest && onEditRequest(student)} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">Request edit</button>
           )}

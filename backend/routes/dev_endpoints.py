@@ -58,3 +58,72 @@ def dev_get_verification_token():
         'token': token,
         'expires': user.verification_token_expires.isoformat()
     }), 200
+
+@dev_bp.route('/assign-missing-truecred-ids', methods=['POST'])
+def dev_assign_missing_truecred_ids():
+    """
+    Development endpoint to assign TrueCred IDs to users who don't have them.
+    This is useful for data migration and fixing existing users.
+    """
+    if not current_app.config.get('DEBUG', False):
+        return jsonify({
+            'success': False,
+            'message': 'This endpoint is only available in development mode'
+        }), 403
+    
+    try:
+        success_count, error_count = AuthService.assign_missing_truecred_ids()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Assigned TrueCred IDs to {success_count} users. {error_count} errors occurred.',
+            'success_count': success_count,
+            'error_count': error_count
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error assigning TrueCred IDs: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500
+
+@dev_bp.route('/test-truecred-id-generation', methods=['GET'])
+def dev_test_truecred_id_generation():
+    """
+    Development endpoint to test TrueCred ID generation.
+    """
+    if not current_app.config.get('DEBUG', False):
+        return jsonify({
+            'success': False,
+            'message': 'This endpoint is only available in development mode'
+        }), 403
+    
+    try:
+        from backend.utils.id_generator import generate_truecred_id, generate_sequential_truecred_id
+        
+        # Generate a few test IDs
+        random_ids = [generate_truecred_id() for _ in range(5)]
+        sequential_ids = [generate_sequential_truecred_id() for _ in range(3)]
+        
+        # Test uniqueness generation
+        unique_id = AuthService._generate_unique_truecred_id()
+        
+        return jsonify({
+            'success': True,
+            'random_ids': random_ids,
+            'sequential_ids': sequential_ids,
+            'unique_id': unique_id,
+            'format_validation': {
+                'expected_format': 'TC + 6 digits',
+                'example': 'TC123456',
+                'length': 8
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error testing TrueCred ID generation: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'An error occurred: {str(e)}'
+        }), 500

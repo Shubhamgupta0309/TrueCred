@@ -65,11 +65,13 @@ def init_db(app):
         from models.user import User
         from models.credential import Credential
         from models.experience import Experience
+        from models.notification import Notification
         
         logger.info("Creating indexes for all models...")
         User.ensure_indexes()
         Credential.ensure_indexes()
         Experience.ensure_indexes()
+        Notification.ensure_indexes()
         logger.info("Indexes created successfully")
     
     except Exception as e:

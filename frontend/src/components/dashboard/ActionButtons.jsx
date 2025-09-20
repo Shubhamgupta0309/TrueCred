@@ -56,7 +56,8 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
   const [credentialInfo, setCredentialInfo] = useState({
     institution: '',
     institutionType: 'college', // 'college' or 'company'
-    credentialName: '',
+    title: '', // Custom title like "UI Test, Exam Form"
+    credentialName: '', // Degree name like "Bachelor of Engineering (B.E.)"
     issuedDate: '',
     institution_id: '' // Add institution_id to store the database ID
   });
@@ -288,7 +289,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     // Check authentication first
     if (!checkAuthBeforeAction()) return;
     
-    if (!selectedFile || !credentialInfo.institution) return;
+    if (!selectedFile || !credentialInfo.institution || !credentialInfo.title) return;
 
     setUploading(true);
     setUploadStatus(null);
@@ -304,7 +305,8 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       description: 'Credential document upload',
       institution: credentialInfo.institution,
       institutionType: credentialInfo.institutionType,
-      credentialName: credentialInfo.credentialName,
+      title: credentialInfo.title, // Custom title
+      credentialName: credentialInfo.credentialName, // Degree name
       issuedDate: credentialInfo.issuedDate,
       institution_id: credentialInfo.institution_id || null // Include institution ID
     }));
@@ -332,13 +334,14 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
         attachmentUri = ipfsUri;
       }
       const requestPayload = {
-        title: credentialInfo.credentialName || `Credential from ${credentialInfo.institution}`,
+        title: credentialInfo.title || `Credential from ${credentialInfo.institution}`,
         issuer: credentialInfo.institution,
         type: 'credential',
         issue_date: credentialInfo.issuedDate || null,
         metadata: {
           institution_id: credentialInfo.institution_id || null,
           institutionType: credentialInfo.institutionType,
+          credentialName: credentialInfo.credentialName, // Keep degree name in metadata
           uploadedAt: new Date().toISOString(),
           source: 'student_request',
         },
@@ -379,6 +382,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       setCredentialInfo({
         institution: '',
         institutionType: 'college',
+        title: '',
         credentialName: '',
         issuedDate: '',
         institution_id: ''
@@ -773,7 +777,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
               </button>
               <button
                 onClick={uploadCredential}
-                disabled={!credentialInfo.institution}
+                disabled={!credentialInfo.institution || !credentialInfo.title}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload Credential

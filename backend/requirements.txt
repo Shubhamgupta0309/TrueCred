@@ -19,3 +19,8 @@ eth-account==0.8.0
 py-solc-x==1.1.1
 hexbytes==0.3.1
 eth-utils==2.2.0
+flask-socketio==5.3.6
+python-socketio==5.8.0
+eventlet==0.33.3
+firebase-admin==6.2.0
+requests==2.31.0

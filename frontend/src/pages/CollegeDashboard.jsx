@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useToast } from '../context/ToastContext.jsx';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import SearchFilterPanel from '../components/college/SearchFilterPanel';
 import PendingRequests from '../components/college/PendingRequests';
@@ -15,6 +16,7 @@ import { api, notificationService } from '../services/api';
 
 export default function CollegeDashboard() {
   const { user } = useAuth();
+  const { success, error: toastError } = useToast();
   const [pendingRequests, setPendingRequests] = useState([]);
   const [history, setHistory] = useState([]);
   const [notifications, setNotifications] = useState([]);
@@ -35,74 +37,47 @@ export default function CollegeDashboard() {
   
   // Fetch dashboard data from API
   useEffect(() => {
-    console.log('CollegeDashboard useEffect triggered');
-    console.log('Current user:', user);
-    console.log('User role:', user?.role);
-    
     const fetchDashboardData = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        // Use try/catch for each API call to handle individual failures
-        try {
-            // Fetch pending requests from API
-            const pendingResponse = await api.get('/api/college/pending-requests');
-            console.log('Pending requests API response:', pendingResponse);
-            console.log('Pending requests data:', pendingResponse.data);
-            setPendingRequests(pendingResponse.data.requests || []);
-        } catch (requestsErr) {
-          console.error('Error fetching pending requests:', requestsErr);
-          
-          // Use mock data in development mode
-          if (import.meta.env.DEV) {
-            console.warn('Development mode: Using mock pending requests');
-            setPendingRequests([
-              { id: 1, studentName: 'Alex Doe', credentialTitle: 'B.Sc. Computer Science Degree', submissionDate: 'Nov 20, 2023' },
-              { id: 2, studentName: 'Jane Smith', credentialTitle: 'Data Science Certification', submissionDate: 'Nov 18, 2023' },
-              { id: 3, studentName: 'Mike Johnson', credentialTitle: 'Mechanical Engineering Diploma', submissionDate: 'Nov 15, 2023' },
-            ]);
-          } else {
-            throw requestsErr;
-          }
+        // Fetch pending requests from API
+        const pendingResponse = await api.get('/api/college/pending-requests');
+
+        // Check if we got valid data
+        const requestsData = pendingResponse.data.requests || [];
+
+        if (requestsData.length === 0) {
+          setPendingRequests([]);
+        } else {
+          // Transform the data to match expected format for backward compatibility
+          const transformedRequests = requestsData.map(req => ({
+            id: req.id,
+            user_id: req.user_id,
+            title: req.title,
+            studentName: req.student_name || 'Unknown Student',
+            studentEmail: req.student_email || '',
+            institutionName: req.institution_name || req.issuer || 'Not specified',
+            credentialTitle: req.title || 'Untitled Credential',
+            submissionDate: req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Unknown',
+            status: req.status,
+            type: req.type,
+            issuer: req.issuer,
+            attachments: req.attachments || [],  // Include attachments for document viewing
+            education_info: req.education_info || []
+          }));
+
+          setPendingRequests(transformedRequests);
         }
-        
-        try {
-            // Remove college verification history API call
-            setHistory([]);
-        } catch (historyErr) {
-          console.error('Error fetching verification history:', historyErr);
-          
-          // Use mock data in development mode
-          if (import.meta.env.DEV) {
-            console.warn('Development mode: Using mock verification history');
-            setHistory([
-              { id: 101, studentName: 'Emily White', credentialTitle: 'Graphic Design Certificate', status: 'Verified', actionDate: 'Nov 14, 2023' },
-              { id: 102, studentName: 'David Green', credentialTitle: 'Business Administration Degree', status: 'Rejected', actionDate: 'Nov 12, 2023' },
-            ]);
-          } else {
-            throw historyErr;
-          }
-        }
-        
-        try {
-          // Fetch notifications
-          const notificationsResponse = await notificationService.getNotifications();
-          setNotifications(notificationsResponse.data.data.notifications || []);
-        } catch (notificationsErr) {
-          console.error('Error fetching notifications:', notificationsErr);
-          
-          // Use mock data in development mode
-          if (import.meta.env.DEV) {
-            console.warn('Development mode: Using mock notifications');
-            setNotifications([
-              { id: 1, type: 'info', message: '3 new verification requests are pending.', time: 'Just now' },
-              { id: 2, type: 'alert', message: 'System maintenance scheduled for this weekend.', time: '1 day ago' },
-            ]);
-          } else {
-            throw notificationsErr;
-          }
-        }
+
+        // Remove college verification history API call
+        setHistory([]);
+
+        // Fetch notifications
+        const notificationsResponse = await notificationService.getNotifications();
+        setNotifications(notificationsResponse.data.data.notifications || []);
+
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError('Failed to load dashboard data. Please try again later.');
@@ -111,14 +86,51 @@ export default function CollegeDashboard() {
       }
     };
 
-    // expose refresh function to handlers below by assigning to ref-like variable
-    // We'll keep it simple and call fetchDashboardData from handlers since it's in scope
     fetchDashboardData();
   }, []);
 
   const handleAction = async (requestId, newStatus) => {
-    // No-op: endpoints do not exist
-    alert('This action is not available.');
+    // Update the local state immediately for better UX
+    setPendingRequests(prevRequests =>
+      prevRequests.filter(req => req.id !== requestId)
+    );
+
+    // Add to history if it's an approval
+    if (newStatus === 'Issued') {
+      // Find the request that was just approved to add to history
+      const approvedRequest = pendingRequests.find(req => req.id === requestId);
+      if (approvedRequest) {
+        const historyItem = {
+          id: requestId,
+          studentName: approvedRequest.studentName || approvedRequest.student_name || 'Unknown Student',
+          credentialTitle: approvedRequest.title || approvedRequest.credentialTitle || 'Unknown Credential',
+          status: newStatus,
+          actionDate: new Date().toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          }),
+          institutionName: approvedRequest.institutionName || approvedRequest.institution_name || approvedRequest.issuer || 'Unknown Institution'
+        };
+
+        setHistory(prevHistory => [historyItem, ...prevHistory]);
+      }
+    }
+
+    // Show success message
+    const message = newStatus === 'Issued' ? 'Request approved successfully!' : 'Request rejected successfully!';
+    success(message);
+
+    // Optional: Refresh data from server to ensure consistency
+    try {
+      const response = await api.get('/college/pending-requests');
+      if (response.data && response.data.requests) {
+        setPendingRequests(response.data.requests);
+      }
+    } catch (err) {
+      console.error('Failed to refresh pending requests:', err);
+      // Don't show error to user since local update already happened
+    }
   };
 
   const containerVariants = {

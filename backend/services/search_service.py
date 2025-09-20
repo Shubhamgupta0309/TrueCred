@@ -275,3 +275,316 @@ class SearchService:
         except Exception as e:
             logger.error(f"Error in combined search: {str(e)}")
             return {'credentials': [], 'experiences': []}, 0, 0, f"Error in search: {str(e)}"
+    
+    @staticmethod
+    def search_institutions(
+        user_id,
+        query=None,
+        institution_type=None,
+        location=None,
+        country=None,
+        state=None,
+        city=None,
+        verified_only=False,
+        accreditation_status=None,
+        founded_after=None,
+        founded_before=None,
+        sort_by='-created_at',
+        page=1,
+        per_page=10
+    ):
+        """
+        Search institutions with advanced filters.
+        
+        Args:
+            user_id (str): User ID (for access control)
+            query (str, optional): Search query for name, description
+            institution_type (str, optional): Filter by institution type
+            location (str, optional): Filter by location (general)
+            country (str, optional): Filter by country
+            state (str, optional): Filter by state/province
+            city (str, optional): Filter by city
+            verified_only (bool, optional): Include only verified institutions
+            accreditation_status (str, optional): Filter by accreditation status
+            founded_after (str, optional): Founded after date (YYYY-MM-DD)
+            founded_before (str, optional): Founded before date (YYYY-MM-DD)
+            sort_by (str, optional): Field to sort by
+            page (int, optional): Page number
+            per_page (int, optional): Items per page
+            
+        Returns:
+            tuple: (institutions list, total_count, total_pages, error)
+        """
+        try:
+            from models.organization_profile import OrganizationProfile
+            
+            # Build query
+            search_query = Q()
+            
+            if query:
+                # Search in name and description
+                search_query &= (Q(name__icontains=query) | Q(description__icontains=query))
+            
+            if institution_type:
+                search_query &= Q(institution_type=institution_type)
+            
+            # Location-based filters
+            if location:
+                # Search in address, city, state, country fields
+                location_query = (
+                    Q(address__icontains=location) |
+                    Q(city__icontains=location) |
+                    Q(state__icontains=location) |
+                    Q(country__icontains=location)
+                )
+                search_query &= location_query
+            
+            if country:
+                search_query &= Q(country__icontains=country)
+            
+            if state:
+                search_query &= Q(state__icontains=state)
+            
+            if city:
+                search_query &= Q(city__icontains=city)
+            
+            if verified_only:
+                search_query &= Q(is_verified=True)
+            
+            if accreditation_status:
+                search_query &= Q(accreditation_status=accreditation_status)
+            
+            # Date range filters for founding date
+            if founded_after:
+                try:
+                    from datetime import datetime
+                    after_date = datetime.strptime(founded_after, '%Y-%m-%d').date()
+                    search_query &= Q(founded_date__gte=after_date)
+                except ValueError:
+                    return [], 0, 0, "Invalid founded_after date format. Use YYYY-MM-DD"
+            
+            if founded_before:
+                try:
+                    from datetime import datetime
+                    before_date = datetime.strptime(founded_before, '%Y-%m-%d').date()
+                    search_query &= Q(founded_date__lte=before_date)
+                except ValueError:
+                    return [], 0, 0, "Invalid founded_before date format. Use YYYY-MM-DD"
+            
+            # Get total count
+            total_count = OrganizationProfile.objects(search_query).count()
+            total_pages = (total_count + per_page - 1) // per_page
+            
+            # Apply pagination and sorting
+            institutions = OrganizationProfile.objects(search_query).order_by(sort_by).skip((page - 1) * per_page).limit(per_page)
+            
+            # Convert to JSON
+            results = []
+            for inst in institutions:
+                results.append(inst.to_json())
+            
+            logger.info(f"Found {total_count} institutions for user {user_id} with advanced filters")
+            return results, total_count, total_pages, None
+            
+        except Exception as e:
+            logger.error(f"Error searching institutions: {str(e)}")
+            return [], 0, 0, f"Error searching institutions: {str(e)}"
+    
+    @staticmethod
+    def search_students(
+        user_id,
+        query=None,
+        institution=None,
+        program=None,
+        graduation_year=None,
+        graduation_year_after=None,
+        graduation_year_before=None,
+        location=None,
+        country=None,
+        state=None,
+        city=None,
+        verified_only=False,
+        has_credentials=False,
+        has_experiences=False,
+        sort_by='first_name',
+        page=1,
+        per_page=10
+    ):
+        """
+        Search students directory with advanced filters.
+        
+        Args:
+            user_id (str): User ID (must be institution admin)
+            query (str, optional): Search query for name, email, program
+            institution (str, optional): Filter by institution
+            program (str, optional): Filter by program/degree
+            graduation_year (str, optional): Filter by specific graduation year
+            graduation_year_after (str, optional): Filter by graduation year after
+            graduation_year_before (str, optional): Filter by graduation year before
+            location (str, optional): Filter by location (general)
+            country (str, optional): Filter by country
+            state (str, optional): Filter by state/province
+            city (str, optional): Filter by city
+            verified_only (bool, optional): Include only verified students
+            has_credentials (bool, optional): Include only students with credentials
+            has_experiences (bool, optional): Include only students with experiences
+            sort_by (str, optional): Field to sort by
+            page (int, optional): Page number
+            per_page (int, optional): Items per page
+            
+        Returns:
+            tuple: (students list, total_count, total_pages, error)
+        """
+        try:
+            # Verify user is institution admin
+            user = User.objects.get(id=user_id)
+            if user.role not in ['college', 'company', 'admin']:
+                return [], 0, 0, "Access denied: Institution access required"
+            
+            # Build query
+            search_query = Q()
+            
+            if query:
+                # Search in name, email, username
+                search_query &= (
+                    Q(first_name__icontains=query) | 
+                    Q(last_name__icontains=query) | 
+                    Q(email__icontains=query) |
+                    Q(username__icontains=query)
+                )
+            
+            # Filter by institution if specified or user's institution
+            if institution:
+                # Find users with education from specified institution
+                education_query = Q(education__institution__icontains=institution)
+                search_query &= education_query
+            else:
+                # Default to users associated with current user's institution
+                from models.organization_profile import OrganizationProfile
+                org_profile = OrganizationProfile.objects(user_id=user_id).first()
+                if org_profile:
+                    education_query = Q(education__institution__icontains=org_profile.name)
+                    search_query &= education_query
+            
+            if program:
+                search_query &= Q(education__degree__icontains=program)
+            
+            # Graduation year filters
+            if graduation_year:
+                try:
+                    year = int(graduation_year)
+                    # Find users with education ending in specified year
+                    search_query &= Q(education__end_date__gte=datetime(year, 1, 1)) & Q(education__end_date__lt=datetime(year + 1, 1, 1))
+                except ValueError:
+                    pass
+            
+            if graduation_year_after:
+                try:
+                    year = int(graduation_year_after)
+                    search_query &= Q(education__end_date__gte=datetime(year, 1, 1))
+                except ValueError:
+                    pass
+            
+            if graduation_year_before:
+                try:
+                    year = int(graduation_year_before)
+                    search_query &= Q(education__end_date__lt=datetime(year + 1, 1, 1))
+                except ValueError:
+                    pass
+            
+            # Location-based filters
+            if location:
+                # Search in address fields
+                location_query = (
+                    Q(address__icontains=location) |
+                    Q(city__icontains=location) |
+                    Q(state__icontains=location) |
+                    Q(country__icontains=location)
+                )
+                search_query &= location_query
+            
+            if country:
+                search_query &= Q(country__icontains=country)
+            
+            if state:
+                search_query &= Q(state__icontains=state)
+            
+            if city:
+                search_query &= Q(city__icontains=city)
+            
+            # Verification and content filters
+            verified_user_ids = set()
+            
+            if verified_only or has_credentials or has_experiences:
+                from models.credential import Credential
+                from models.experience import Experience
+                
+                if has_credentials:
+                    # Users with any credentials
+                    cred_users = Credential.objects(user__in=User.objects(search_query)).distinct('user')
+                    if cred_users:
+                        verified_user_ids.update(str(u.id) for u in cred_users)
+                    else:
+                        return [], 0, 0, None
+                
+                if has_experiences:
+                    # Users with any experiences
+                    exp_users = Experience.objects(user__in=User.objects(search_query)).distinct('user')
+                    if exp_users:
+                        verified_user_ids.update(str(u.id) for u in exp_users)
+                    else:
+                        return [], 0, 0, None
+                
+                if verified_only:
+                    # Users with verified credentials or experiences
+                    verified_creds = Credential.objects(user__in=User.objects(search_query), status='verified').distinct('user')
+                    verified_exps = Experience.objects(user__in=User.objects(search_query), is_verified=True).distinct('user')
+                    
+                    verified_ids = set(str(u.id) for u in verified_creds) | set(str(u.id) for u in verified_exps)
+                    if verified_ids:
+                        verified_user_ids.update(verified_ids)
+                    else:
+                        return [], 0, 0, None
+                
+                if verified_user_ids:
+                    search_query &= Q(id__in=list(verified_user_ids))
+            
+            # Get total count
+            total_count = User.objects(search_query).count()
+            total_pages = (total_count + per_page - 1) // per_page
+            
+            # Apply pagination and sorting
+            students = User.objects(search_query).order_by(sort_by).skip((page - 1) * per_page).limit(per_page)
+            
+            # Convert to JSON with additional info
+            results = []
+            for student in students:
+                student_data = student.to_json()
+                
+                # Add education info
+                if hasattr(student, 'education') and student.education:
+                    current_edu = None
+                    for edu in student.education:
+                        if edu.current or not current_edu:
+                            current_edu = edu
+                    if current_edu:
+                        student_data['current_program'] = f"{current_edu.degree} in {current_edu.field_of_study}"
+                        student_data['current_institution'] = current_edu.institution
+                        if current_edu.end_date:
+                            student_data['graduation_year'] = current_edu.end_date.year
+                
+                # Add verification status
+                verified_creds = Credential.objects(user=student, status='verified').count()
+                verified_exps = Experience.objects(user=student, is_verified=True).count()
+                student_data['verified_items'] = verified_creds + verified_exps
+                student_data['total_credentials'] = Credential.objects(user=student).count()
+                student_data['total_experiences'] = Experience.objects(user=student).count()
+                
+                results.append(student_data)
+            
+            logger.info(f"Found {total_count} students for institution user {user_id} with advanced filters")
+            return results, total_count, total_pages, None
+            
+        except Exception as e:
+            logger.error(f"Error searching students: {str(e)}")
+            return [], 0, 0, f"Error searching students: {str(e)}"

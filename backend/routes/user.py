@@ -222,3 +222,28 @@ def get_my_requests():
     except Exception as e:
         logger.exception(e)
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# Endpoint to fetch all colleges (for student profile dropdown)
+@user_bp.route('/all-colleges', methods=['GET'])
+@jwt_required()
+def get_all_colleges():
+    """
+    Fetch all users with role 'college'.
+    Returns: list of colleges with basic information
+    """
+    try:
+        from models.user import User
+        colleges = User.objects(role='college', is_active=True)
+        result = []
+        for college in colleges:
+            result.append({
+                'id': str(college.id),
+                'name': college.organization or f"{college.first_name} {college.last_name}".strip() or college.username,
+                'email': college.email,
+                'truecred_id': college.truecred_id
+            })
+        return jsonify({'success': True, 'colleges': result}), 200
+    except Exception as e:
+        logger.error(f"Error fetching all colleges: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': str(e)}), 500

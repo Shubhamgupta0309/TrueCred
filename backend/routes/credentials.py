@@ -4,8 +4,9 @@ Credential management routes for the TrueCred API.
 from datetime import datetime
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from middleware.auth_middleware import admin_required, issuer_required
+from middleware.auth_middleware import admin_required, issuer_required, role_required
 from services.credential_service import CredentialService
+from models.credential import Credential
 from utils.api_response import success_response, error_response, not_found_response, validation_error_response
 import logging
 
@@ -515,7 +516,7 @@ def verify_credential(credential_id):
 
 @credentials_bp.route('/<request_id>/approve', methods=['POST'])
 @jwt_required()
-@issuer_required
+@role_required(['college', 'issuer', 'admin'])
 def approve_request(request_id):
     """
     Approve a credential request: create a Credential from the CredentialRequest,
@@ -531,11 +532,24 @@ def approve_request(request_id):
             return not_found_response(resource_type='CredentialRequest', resource_id=request_id)
 
         # Create credential data based on the request
+        # Map request type to valid credential type
+        request_type = cr.type or 'credential'
+        credential_type_mapping = {
+            'credential': 'certificate',
+            'diploma': 'diploma',
+            'degree': 'degree', 
+            'certificate': 'certificate',
+            'badge': 'badge',
+            'award': 'award',
+            'license': 'license'
+        }
+        mapped_type = credential_type_mapping.get(request_type, 'certificate')
+        
         credential_data = {
             'title': cr.title,
             'issuer': cr.issuer or '',
             'description': cr.metadata.get('description') if cr.metadata else '',
-            'type': cr.type or 'credential',
+            'type': mapped_type,
             'issue_date': datetime.utcnow().isoformat(),
             'expiry_date': None,
             'document_url': None,
@@ -578,11 +592,10 @@ def approve_request(request_id):
 
                 ipfs = IPFSService()
                 if ipfs.connect():
-                    # Ensure credential has a document_hashes dict
-                    if not hasattr(credential, 'document_hashes') or not credential.document_hashes:
-                        credential.document_hashes = {}
-
+                    # Collect document hashes instead of modifying credential directly
+                    document_hashes = {}
                     first_hash = None
+
                     for idx, att in enumerate(attachments):
                         uri = att.get('uri') if isinstance(att, dict) else None
                         filename = att.get('filename') if isinstance(att, dict) else f'attachment_{idx}'
@@ -593,7 +606,7 @@ def approve_request(request_id):
                             except Exception as e:
                                 logger.warning('Pinning %s failed: %s', cid, e)
 
-                            credential.document_hashes[filename] = cid
+                            document_hashes[filename] = cid
                             if not first_hash:
                                 first_hash = cid
                         else:
@@ -610,22 +623,34 @@ def approve_request(request_id):
                                             ipfs.pin_hash(new_cid)
                                         except Exception:
                                             pass
-                                        credential.document_hashes[filename] = new_cid
+                                        document_hashes[filename] = new_cid
                                         if not first_hash:
                                             first_hash = new_cid
                             except Exception as e:
                                 logger.warning('Failed to fetch/reupload attachment uri %s: %s', uri, e)
 
+                    # Update credential with document hashes in a safe way
+                    if document_hashes:
+                        # Use update method instead of direct assignment to avoid MongoEngine issues
+                        Credential.objects(id=credential.id).update_one(
+                            set__document_hashes=document_hashes
+                        )
+
+                        # Reload credential to get updated data
+                        credential.reload()
+
                     # If we found hashes, set credential.document_url to the gateway of the first
                     if first_hash:
                         try:
                             gateway = ipfs.get_gateway_url(first_hash)
-                            credential.document_url = gateway
+                            # Update document_url safely
+                            Credential.objects(id=credential.id).update_one(
+                                set__document_url=gateway
+                            )
+                            credential.reload()
                         except Exception:
                             pass
 
-                    # Save credential with added document hashes
-                    credential.save()
                 else:
                     logger.info('IPFS not available; skipping attachment pinning')
         except Exception as e:
@@ -664,19 +689,18 @@ def approve_request(request_id):
             # Don't fail the approval if blockchain storage fails
 
         # Create notifications: notify student and optionally log for issuer
-        note_student = {
-            'user_id': cr.user_id,
-            'type': 'credential_issued',
-            'title': 'Credential issued',
-            'message': f"Your credential request '{cr.title}' was approved and issued.",
-            'data': {'request_id': str(cr.id), 'credential_id': str(credential.id)},
-            'created_at': datetime.utcnow()
-        }
-        try:
-            if hasattr(current_app, 'db') and current_app.db:
-                current_app.db.notifications.insert_one(note_student)
-        except Exception:
-            logger.info('Failed to persist student notification, logging instead: %s', note_student)
+        from models.notification import Notification
+        
+        notification = Notification.create_notification(
+            user_id=cr.user_id,
+            notification_type='credential_issued',
+            title='Credential issued',
+            message=f"Your credential request '{cr.title}' was approved and issued.",
+            data={'request_id': str(cr.id), 'credential_id': str(credential.id)}
+        )
+        
+        if not notification:
+            logger.warning('Failed to create notification for user %s', cr.user_id)
 
         # Return created credential
         return success_response(data=credential.to_json(), message='Request approved and credential issued')
@@ -931,6 +955,34 @@ def upload_credential_for_student(student_id):
             except Exception:
                 logger.info('Failed to persist student notification, logging instead: %s', note_student)
 
+        # Store issued credential hash on blockchain
+        blockchain_result = None
+        try:
+            from services.blockchain_service import BlockchainService
+            blockchain = BlockchainService()
+            if blockchain.is_connected():
+                # Store the issued credential on blockchain
+                blockchain_result = blockchain.store_credential_hash(
+                    title=credential.title,
+                    issuer=credential.issuer or "Unknown Issuer",
+                    student_id=student_id,
+                    ipfs_hash=credential.document_url or credential.document_hash or ""
+                )
+                
+                if blockchain_result and blockchain_result.get('status') == 'success':
+                    # Update credential with blockchain info
+                    credential.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                    credential.blockchain_credential_id = blockchain_result.get('credential_id')
+                    credential.save()
+                    logger.info(f"Credential {credential.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
+                else:
+                    logger.warning(f"Failed to store credential on blockchain: {blockchain_result}")
+            else:
+                logger.info("Blockchain service not connected, skipping blockchain storage")
+        except Exception as e:
+            logger.error(f"Error storing credential on blockchain: {e}")
+            # Don't fail the upload if blockchain storage fails
+
         return success_response(data=credential.to_json(), message='Credential uploaded/issued successfully')
     except Exception as e:
         logger.exception('Error uploading credential for student: %s', e)
@@ -939,7 +991,7 @@ def upload_credential_for_student(student_id):
 
 @credentials_bp.route('/<request_id>/reject', methods=['POST'])
 @jwt_required()
-@issuer_required
+@role_required(['college', 'issuer', 'admin'])
 def reject_request(request_id):
     """
     Reject a credential request. Marks the request as rejected and notifies the student.

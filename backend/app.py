@@ -11,6 +11,7 @@ from utils.database import init_db
 from utils.simple_logging import configure_logging
 from utils.error_handlers import register_error_handlers
 from utils.api_response import error_response
+from services.websocket_service import websocket_service
 from datetime import datetime
 import logging
 import os
@@ -57,6 +58,10 @@ def create_app(config_name='default'):
     from middleware.logging import setup_logging_middleware
     setup_logging_middleware(app)
     
+    # Set up security middleware
+    from middleware.security import SecurityMiddleware
+    SecurityMiddleware(app)
+    
     # Initialize database
     logger.info("Initializing database connection...")
     init_db(app)
@@ -67,6 +72,9 @@ def create_app(config_name='default'):
     
     # Initialize JWT
     jwt.init_app(app)
+    
+    # Initialize WebSocket service
+    websocket_service.init_app(app)
     
     # JWT configuration
     @jwt.token_in_blocklist_loader
@@ -224,7 +232,9 @@ def create_app(config_name='default'):
 
 if __name__ == '__main__':
     app = create_app()
-    app.run(
+    # Use socketio.run instead of app.run for WebSocket support
+    websocket_service.socketio.run(
+        app,
         host=os.getenv('FLASK_HOST', '0.0.0.0'),
         port=int(os.getenv('FLASK_PORT', 5000)),
         debug=app.config.get('DEBUG', False)

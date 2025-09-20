@@ -2,6 +2,8 @@ import { createContext, useState, useEffect, useContext, useCallback, useRef, us
 import { api } from '../services/api';
 import { decodeToken, isTokenExpired, getTimeUntilExpiration, throttle } from '../utils/tokenUtils';
 import { Navigate, useNavigate } from 'react-router-dom';
+import websocketService from '../services/websocket';
+import pushNotificationService from '../services/pushNotifications';
 
 // Create the auth context
 const AuthContext = createContext();
@@ -234,6 +236,26 @@ export const AuthProvider = ({ children }) => {
       // Set up token refresh
       setupTokenRefresh(tokens.access_token);
       
+      // Connect to WebSocket for real-time notifications
+      try {
+        websocketService.connect(tokens.access_token);
+        console.log('WebSocket connection initiated');
+      } catch (wsError) {
+        console.error('Failed to connect to WebSocket:', wsError);
+      }
+
+      // Set up push notifications
+      try {
+        const pushSetup = await pushNotificationService.setupPushNotifications();
+        if (pushSetup) {
+          console.log('Push notifications setup completed');
+        } else {
+          console.log('Push notifications setup skipped or failed');
+        }
+      } catch (pushError) {
+        console.error('Failed to setup push notifications:', pushError);
+      }
+
       setUser(user);
       setError(null); // Clear any previous errors on successful login
       return true;
@@ -341,6 +363,22 @@ export const AuthProvider = ({ children }) => {
         setTokenRefreshInterval(null);
       }
       
+      // Disconnect from WebSocket
+      try {
+        websocketService.disconnect();
+        console.log('WebSocket disconnected');
+      } catch (wsError) {
+        console.error('Error disconnecting WebSocket:', wsError);
+      }
+
+      // Clean up push notifications
+      try {
+        await pushNotificationService.cleanup();
+        console.log('Push notifications cleaned up');
+      } catch (pushError) {
+        console.error('Error cleaning up push notifications:', pushError);
+      }
+
       // Remove tokens from localStorage
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');

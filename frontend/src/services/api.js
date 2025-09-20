@@ -218,5 +218,31 @@ export const organizationService = {
   getOrganizationById: (id) => api.get(`/api/organizations/${id}`),
 };
 
-// Export the api instance for direct use if needed
-export default api;
+// Document services
+export const documentService = {
+  uploadDocument: (formData) => {
+    return api.post('/api/documents/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+  getDocument: (documentId) => api.get(`/api/documents/${documentId}`),
+  downloadDocument: (documentId) => api.get(`/api/documents/${documentId}/download`, {
+    responseType: 'blob'
+  }),
+  verifyDocument: (documentId, verificationData) => api.post(`/api/documents/${documentId}/verify`, verificationData),
+  getDocumentBlockchainStatus: (documentId) => api.get(`/api/documents/${documentId}/blockchain-status`),
+  getUserDocuments: (userId) => api.get(`/api/documents/user/${userId}`),
+  getPendingVerifications: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api.get(`/api/documents/pending-verification${queryString ? `?${queryString}` : ''}`);
+  },
+  shareDocument: (documentId, shareData) => api.post(`/api/documents/${documentId}/share`, shareData),
+  getVerificationStats: () => api.get('/api/verification/stats'),
+  bulkReviewDocuments: (reviewData) => api.post('/api/verification/bulk-review', reviewData),
+  getCredentialRequests: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return api.get(`/api/verification/credential-requests${queryString ? `?${queryString}` : ''}`);
+  },
+};
