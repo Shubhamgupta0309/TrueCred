@@ -561,6 +561,11 @@ def approve_request(request_id):
         if err:
             return error_response(message=f"Failed to create credential: {err}", status_code=400)
 
+        # Mark the credential as verified since it was approved by the issuer
+        credential.verified = True
+        credential.verified_at = datetime.utcnow()
+        credential.save()
+
         # If there are attachments on the request, attempt to pin them and store hashes on the credential
         try:
             attachments = cr.attachments or []

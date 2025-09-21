@@ -18,9 +18,20 @@ export default function PendingExperienceRequests({ requests, onAction }) {
     }, 1500);
   };
 
-  const handleVerify = (req) => {
-    setSelectedRequest(req);
-    setShowUploadModal(true);
+  const handleViewDetails = (req) => {
+    if (!req || !req.documentUrls || req.documentUrls.length === 0) {
+      alert('No documents available for this experience');
+      return;
+    }
+
+    // Open the first document URL in a new tab
+    const documentUrl = req.documentUrls[0].url;
+    if (documentUrl) {
+      console.log('Opening document URL:', documentUrl);
+      window.open(documentUrl, '_blank');
+    } else {
+      alert('Document URL not found');
+    }
   };
 
   const handleFileChange = (e) => {
@@ -31,32 +42,17 @@ export default function PendingExperienceRequests({ requests, onAction }) {
     if (!selectedRequest || !file) return;
     setUploading(true);
     try {
-      // Read file as base64
-      const reader = new FileReader();
-      reader.onload = async (ev) => {
-        const base64Data = ev.target.result.split(',')[1];
-        // You may need to adjust the endpoint and payload for experience verification
-        const payload = {
-          experience_id: selectedRequest.id,
-          document: base64Data,
-          filename: file.name
-        };
-        // Example endpoint, adjust as needed:
-        // const resp = await api.post(`/api/company/verify-experience/${selectedRequest.student_id}`, payload);
-        // For now, just simulate success:
-        setTimeout(() => {
-          onAction && onAction(selectedRequest.id, 'Verified');
-          setShowUploadModal(false);
-          setFile(null);
-          setSelectedRequest(null);
-          setUploading(false);
-        }, 1500);
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      setUploading(false);
+      // For now, just call the approve API without the document
+      // TODO: Update the verify endpoint to accept document uploads
+      await onAction(selectedRequest.id, 'approved');
+      setShowUploadModal(false);
+      setFile(null);
+      setSelectedRequest(null);
+    } catch (error) {
+      console.error('Error verifying experience:', error);
       alert('Failed to verify experience');
-      console.error('Verify error', err);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -91,9 +87,18 @@ export default function PendingExperienceRequests({ requests, onAction }) {
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => handleViewDetails(req)}
                   className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
                 >
                   <FileText className="w-4 h-4" /> View Details
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+                  onClick={() => handleAction(req.id, 'approved')}
+                  disabled={processingId === req.id}
+                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 disabled:opacity-50"
+                >
+                  {processingId === req.id ? <Loader2 className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4" />} Approve
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}

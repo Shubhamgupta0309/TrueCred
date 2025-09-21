@@ -9,7 +9,7 @@ import VerificationPendingPage from './pages/VerificationPendingPage';
 import TestVerificationLinks from './pages/TestVerificationLinks';
 import StudentProfile from './pages/StudentProfile';
 import Profile from './pages/Profile';
-import NotificationTemplates from './pages/NotificationTemplates';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 /**
  * Application router configuration with future flags enabled
@@ -37,10 +37,7 @@ const router = createBrowserRouter([
     path: "/profile", 
     element: <ProtectedRoute element={<Profile />} allowedRoles={['student', 'user']} /> 
   },
-  { 
-    path: "/notification-templates", 
-    element: <ProtectedRoute element={<NotificationTemplates />} allowedRoles={['student', 'college', 'company']} /> 
-  },
+  { path: "/students/:truecredId", element: <ProtectedRoute element={<StudentProfile />} allowedRoles={['college','company','student']} /> },
   { path: "*", element: <Navigate to="/" replace /> }
 ], {
   future: {

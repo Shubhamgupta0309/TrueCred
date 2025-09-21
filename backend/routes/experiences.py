@@ -272,6 +272,64 @@ def verify_experience(experience_id):
         message="Experience verified successfully"
     )
 
+@experiences_bp.route('/<experience_id>/reject', methods=['POST'])
+@jwt_required()
+def reject_experience(experience_id):
+    """
+    Reject a specific experience verification request.
+    ---
+    Requires authentication.
+    
+    Path Parameters:
+      experience_id: ID of the experience to reject
+    
+    Request Body:
+      reason: Reason for rejection (optional)
+    
+    Returns:
+      Rejected experience
+    """
+    current_user_id = get_jwt_identity()
+    data = request.json or {}
+    
+    # Get the rejection reason
+    reason = data.get('reason', 'No reason provided')
+    
+    # For rejection, we'll update the experience status and add rejection reason
+    from models.experience import Experience
+    try:
+        experience = Experience.objects.get(id=experience_id)
+    except Experience.DoesNotExist:
+        return not_found_response(resource_type="Experience", resource_id=experience_id)
+    
+    # Check if the current user is from the same organization
+    from models.user import User
+    try:
+        user = User.objects.get(id=current_user_id)
+        if user.role != 'company' or experience.organization != user.organization:
+            return error_response(
+                message="Only the associated company can reject this experience",
+                status_code=403
+            )
+    except User.DoesNotExist:
+        return error_response(message="User not found", status_code=404)
+    
+    # Update experience status
+    experience.is_verified = False
+    experience.pending_verification = False
+    experience.verification_status = 'rejected'
+    experience.rejection_reason = reason
+    experience.verified_by = None
+    experience.verified_at = None
+    experience.save()
+    
+    logger.info(f"Experience {experience_id} rejected by user {current_user_id} for reason: {reason}")
+    
+    return success_response(
+        data=experience.to_json(),
+        message="Experience verification rejected"
+    )
+
 @experiences_bp.route('/<experience_id>/credentials', methods=['GET'])
 @jwt_required()
 def get_experience_credentials(experience_id):
@@ -402,4 +460,108 @@ def unlink_credential_from_experience(experience_id, credential_id):
     return success_response(
         data=experience.to_json(),
         message="Credential unlinked successfully"
+    )
+
+@experiences_bp.route('/pending', methods=['GET'])
+@jwt_required()
+def get_pending_experiences():
+    """
+    Get pending experiences for verification by the current company.
+    ---
+    Requires authentication and company role.
+    
+    Returns:
+      List of experiences pending verification for the current user's company
+    """
+    current_user_id = get_jwt_identity()
+    
+    # Get current user to verify they are a company
+    from models.user import User
+    try:
+        user = User.objects.get(id=current_user_id)
+        if user.role != 'company':
+            return error_response(
+                message="Only companies can access pending experiences",
+                status_code=403
+            )
+    except User.DoesNotExist:
+        return error_response(
+            message="User not found",
+            status_code=404
+        )
+    
+    # Get company name from user's organization field
+    company_name = user.organization
+    if not company_name:
+        return success_response(
+            data=[],
+            message="No company name found for user"
+        )
+    
+    # Query for experiences that match the company and are pending verification
+    from models.experience import Experience
+    pending_experiences = Experience.objects(
+        organization=company_name,
+        is_verified=False
+    ).filter(
+        __raw__={
+            '$or': [
+                {'pending_verification': True},
+                {'verification_status': 'pending'}
+            ]
+        }
+    ).order_by('-created_at')
+    
+    # Convert to JSON and include user information
+    result = []
+    for exp in pending_experiences:
+        exp_data = exp.to_json()
+        # Add formatted data for frontend
+        exp_data['experienceTitle'] = exp.title
+        exp_data['submissionDate'] = exp.created_at.strftime('%B %d, %Y') if exp.created_at else 'Unknown'
+        
+        # Add user information
+        if exp.user:
+            exp_data['student'] = {
+                'id': str(exp.user.id),
+                'name': exp.user.first_name + ' ' + (exp.user.last_name or ''),
+                'email': exp.user.email,
+                'truecred_id': exp.user.truecred_id
+            }
+            exp_data['studentName'] = exp_data['student']['name'].strip()
+            # For college name, we might need to get it from somewhere else
+            # For now, use organization or a placeholder
+            exp_data['collegeName'] = exp.user.organization or 'Not specified'
+        else:
+            exp_data['student'] = None
+            exp_data['studentName'] = 'Unknown Student'
+            exp_data['collegeName'] = 'Unknown'
+        
+        # Add IPFS document URLs if available
+        from services.ipfs_service import IPFSService
+        ipfs_service = IPFSService()
+        
+        exp_data['documentUrls'] = []
+        if exp.ipfs_hash:
+            exp_data['documentUrls'].append({
+                'name': 'Experience Document',
+                'url': ipfs_service.get_gateway_url(exp.ipfs_hash)
+            })
+        
+        # Add document hashes from document_hashes dict
+        if exp.document_hashes:
+            for doc_name, doc_hash in exp.document_hashes.items():
+                if doc_hash:
+                    exp_data['documentUrls'].append({
+                        'name': doc_name,
+                        'url': ipfs_service.get_gateway_url(doc_hash)
+                    })
+        
+        result.append(exp_data)
+    
+    logger.info(f"Found {len(result)} pending experiences for company {company_name}")
+    
+    return success_response(
+        data=result,
+        message=f"Retrieved {len(result)} pending experiences"
     )

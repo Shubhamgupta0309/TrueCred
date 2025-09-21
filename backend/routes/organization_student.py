@@ -196,13 +196,41 @@ def upload_student_credential(student_id):
             student.affiliated_organizations.append(current_user.organization)
             student.save()
 
-        # If this upload is in response to a credential request, mark it issued
+        # If this upload is in response to a credential request, mark it issued and create a verified credential
         try:
             request_id = data.get('request_id') if isinstance(data, dict) else None
             if request_id:
                 from models.credential_request import CredentialRequest
+                from services.credential_service import CredentialService
                 cr = CredentialRequest.objects(id=request_id).first()
                 if cr:
+                    # Create a verified credential for the student
+                    credential_data = {
+                        'title': cr.title,
+                        'issuer': current_user.organization or cr.issuer or 'Unknown Issuer',
+                        'description': cr.metadata.get('description') if cr.metadata else '',
+                        'type': cr.type or 'certificate',
+                        'issue_date': datetime.utcnow().isoformat(),
+                        'expiry_date': None,
+                        'document_url': credential.document_url,
+                        'metadata': cr.metadata or {}
+                    }
+                    
+                    # Create the verified credential
+                    verified_credential, err = CredentialService.create_credential(user_id=cr.user_id, data=credential_data)
+                    if verified_credential:
+                        # Mark as verified
+                        verified_credential.verified = True
+                        verified_credential.verified_at = datetime.utcnow()
+                        
+                        # Copy document hashes if available
+                        if hasattr(credential, 'document_hashes') and credential.document_hashes:
+                            verified_credential.document_hashes = credential.document_hashes
+                        
+                        verified_credential.save()
+                        logger.info(f'Created verified credential {verified_credential.id} for request {cr.id}')
+                    
+                    # Mark request as issued
                     cr.status = 'issued'
                     cr.issuer = current_user.organization or cr.issuer
                     cr.issuer_id = current_user.organization or cr.issuer_id
@@ -215,7 +243,7 @@ def upload_student_credential(student_id):
                             'type': 'credential_request_update',
                             'title': 'Credential request issued',
                             'message': f"Your credential request '{cr.title}' has been issued by {cr.issuer}.",
-                            'data': {'request_id': str(cr.id), 'credential_id': str(credential.id)},
+                            'data': {'request_id': str(cr.id), 'credential_id': str(verified_credential.id) if verified_credential else str(credential.id)},
                             'created_at': datetime.utcnow()
                         }
                         if hasattr(current_app, 'db') and current_app.db:

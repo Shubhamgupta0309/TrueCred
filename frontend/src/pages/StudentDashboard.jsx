@@ -23,8 +23,14 @@ const mockNotifications = [];
 // Normalize credential array into UI-friendly shape and deduplicate by a stable id.
 // If backend doesn't provide an id, fall back to base64 of title|date so repeated fetches produce same id.
 const normalizeCredentials = (arr) => {
+  // Ensure arr is an array
+  if (!Array.isArray(arr)) {
+    console.warn('normalizeCredentials received non-array input:', arr);
+    return [];
+  }
+  
   const map = new Map();
-  (arr || []).forEach((c) => {
+  arr.forEach((c) => {
     let id = c.id || c._id || c.id_str || c._id_str || (c._id && String(c._id)) || null;
     const title = c.title || c.name || 'Untitled Credential';
     const date = c.issue_date || c.created_at || c.updated_at || c.timestamp || null;
@@ -138,8 +144,19 @@ function StudentDashboard({ onAuthError }) {
           const credResponse = await credentialService.getCredentials();
           console.debug('GET /api/credentials response:', credResponse);
           if (credResponse.data && credResponse.data.success) {
-            // Normalize the credentials data
-            const creds = credResponse.data.data?.credentials || credResponse.data.credentials || credResponse.data || [];
+            // Extract credentials array from various possible response structures
+            let creds = [];
+            if (Array.isArray(credResponse.data.data)) {
+              creds = credResponse.data.data;
+            } else if (credResponse.data.data && Array.isArray(credResponse.data.data.credentials)) {
+              creds = credResponse.data.data.credentials;
+            } else if (Array.isArray(credResponse.data.credentials)) {
+              creds = credResponse.data.credentials;
+            } else if (Array.isArray(credResponse.data)) {
+              creds = credResponse.data;
+            }
+            
+            console.debug('Extracted credentials array:', creds);
             const normalizedCreds = normalizeCredentials(creds);
             setCredentials(normalizedCreds);
           } else {

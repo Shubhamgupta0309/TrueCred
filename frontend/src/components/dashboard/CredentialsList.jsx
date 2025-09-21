@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import StatusBadge from './StatusBadge';
-import { FileText, Calendar, Eye, RefreshCw } from 'lucide-react';
+import { FileText, Calendar, Eye, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { credentialService } from '../../services/api';
 
 export default function CredentialsList({ credentials, onVerificationUpdate }) {
   const [verifyingId, setVerifyingId] = useState(null);
   const [verificationResults, setVerificationResults] = useState({});
+
+  // Filter to show only verified credentials
+  const verifiedCredentials = credentials.filter(cred => 
+    cred.status === 'Verified' || cred.status === 'verified' || cred.status === 'issued' || cred.verified === true
+  );
 
   // Handle blockchain verification
   const handleVerifyOnBlockchain = async (credentialId) => {
@@ -56,63 +61,73 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
     <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6">
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
         <FileText className="w-5 h-5 text-purple-600" />
-        My Credentials
+        My Credentials ({verifiedCredentials.length})
       </h3>
       <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
-        {credentials.map((cred, index) => (
-          <motion.div
-            key={cred.id}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:shadow-md transition-all duration-200"
-          >
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-              <div>
-                <p className="font-semibold text-gray-800">{cred.title}</p>
-                <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
-                  <Calendar className="w-4 h-4" />
-                  Submitted on {cred.date ? (new Date(cred.date).toLocaleDateString()) : 'Unknown'}
-                </p>
+        {verifiedCredentials.length === 0 ? (
+          <div className="text-gray-500 text-center py-8">
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+            <p>No verified credentials yet.</p>
+            <p className="text-sm mt-2">Your approved credentials will appear here.</p>
+          </div>
+        ) : (
+          verifiedCredentials.map((cred, index) => (
+            <motion.div
+              key={cred.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer"
+            >
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-gray-800">{cred.title}</p>
+                    <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                      <Calendar className="w-4 h-4" />
+                      Verified on {cred.date ? (new Date(cred.date).toLocaleDateString()) : 'Unknown'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 mt-2 sm:mt-0">
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => handleVerifyOnBlockchain(cred.id)}
+                    disabled={verifyingId === cred.id}
+                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Verify on blockchain"
+                  >
+                    <RefreshCw className={`w-5 h-5 ${verifyingId === cred.id ? 'animate-spin' : ''}`} />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-100 rounded-full"
+                    title="View Details"
+                  >
+                    <Eye className="w-5 h-5" />
+                  </motion.button>
+                </div>
               </div>
-              <div className="flex items-center gap-4 mt-2 sm:mt-0">
-                <StatusBadge status={cred.status} />
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleVerifyOnBlockchain(cred.id)}
-                  disabled={verifyingId === cred.id}
-                  className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Verify on blockchain"
+              
+              {verificationResults[cred.id] && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className={`mt-2 p-2 rounded text-sm ${
+                    verificationResults[cred.id].success 
+                      ? 'bg-green-50 text-green-700 border border-green-200' 
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}
                 >
-                  <RefreshCw className={`w-5 h-5 ${verifyingId === cred.id ? 'animate-spin' : ''}`} />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-100 rounded-full"
-                  title="View Details"
-                >
-                  <Eye className="w-5 h-5" />
-                </motion.button>
-              </div>
-            </div>
-            
-            {verificationResults[cred.id] && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className={`mt-2 p-2 rounded text-sm ${
-                  verificationResults[cred.id].success 
-                    ? 'bg-green-50 text-green-700 border border-green-200' 
-                    : 'bg-red-50 text-red-700 border border-red-200'
-                }`}
-              >
-                {verificationResults[cred.id].message}
-              </motion.div>
-            )}
-          </motion.div>
-        ))}
+                  {verificationResults[cred.id].message}
+                </motion.div>
+              )}
+            </motion.div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Building, Mail, Globe, Phone, CheckCircle, AlertCircle } from 'lucide-react';
+import { Building, Mail, Globe, Phone, CheckCircle, AlertCircle, Save } from 'lucide-react';
 import { companyService, api } from '../../services/api';
 
 export default function CompanyProfileForm({ user, onUpdate }) {
   const [formData, setFormData] = useState({
     name: '',
-    website: '',
+    fullName: '',
     address: '',
+    city: '',
+    state: '',
+    country: '',
+    postalCode: '',
+    website: '',
     phone: '',
-    email: ''
+    email: '',
+    accreditationBody: '',
+    establishmentYear: '',
+    description: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -93,28 +101,307 @@ export default function CompanyProfileForm({ user, onUpdate }) {
       )}
 
       {!isEditing ? (
-        <div>
-          <p className="font-medium">{formData.name || 'Not specified'}</p>
-          <p className="text-sm text-gray-600">{formData.email || 'Not specified'}</p>
-          <p className="text-sm text-gray-600">{formData.website || ''}</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Company Name</h3>
+              <p className="text-gray-800">{formData.name || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Full Legal Name</h3>
+              <p className="text-gray-800">{formData.fullName || 'Not specified'}</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-gray-700 mb-1">Address</h3>
+            <p className="text-gray-800">{formData.address || 'Not specified'}</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">City</h3>
+              <p className="text-gray-800">{formData.city || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">State/Province</h3>
+              <p className="text-gray-800">{formData.state || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Country</h3>
+              <p className="text-gray-800">{formData.country || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Postal Code</h3>
+              <p className="text-gray-800">{formData.postalCode || 'Not specified'}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Website</h3>
+              <p className="text-gray-800">{formData.website || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Phone</h3>
+              <p className="text-gray-800">{formData.phone || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Email</h3>
+              <p className="text-gray-800">{formData.email || 'Not specified'}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Accreditation Body</h3>
+              <p className="text-gray-800">{formData.accreditationBody || 'Not specified'}</p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-700 mb-1">Establishment Year</h3>
+              <p className="text-gray-800">{formData.establishmentYear || 'Not specified'}</p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-gray-700 mb-1">Description</h3>
+            <p className="text-gray-800">{formData.description || 'Not specified'}</p>
+          </div>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium">Company Name</label>
-            <input name="name" value={formData.name} onChange={handleChange} className="w-full border rounded p-2" required />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="name">
+                Company Name*
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                required
+                placeholder="e.g., PrimeX Technologies"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="fullName">
+                Full Legal Name
+              </label>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                value={formData.fullName}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="e.g., PrimeX Technologies Private Limited"
+              />
+            </div>
           </div>
+          
           <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input name="email" value={formData.email} onChange={handleChange} className="w-full border rounded p-2" />
+            <label className="block text-gray-700 mb-2" htmlFor="address">
+              Address
+            </label>
+            <input
+              id="address"
+              name="address"
+              type="text"
+              value={formData.address}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              placeholder="Street address"
+            />
           </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="city">
+                City
+              </label>
+              <input
+                id="city"
+                name="city"
+                type="text"
+                value={formData.city}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="City"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="state">
+                State/Province
+              </label>
+              <input
+                id="state"
+                name="state"
+                type="text"
+                value={formData.state}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="State/Province"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="country">
+                Country
+              </label>
+              <input
+                id="country"
+                name="country"
+                type="text"
+                value={formData.country}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Country"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="postalCode">
+                Postal Code
+              </label>
+              <input
+                id="postalCode"
+                name="postalCode"
+                type="text"
+                value={formData.postalCode}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Postal/ZIP code"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="website">
+                Website
+              </label>
+              <input
+                id="website"
+                name="website"
+                type="url"
+                value={formData.website}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="https://www.example.com"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="phone">
+                Phone
+              </label>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="+1 (123) 456-7890"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="email">
+                Email
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="contact@example.com"
+              />
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="accreditationBody">
+                Accreditation Body
+              </label>
+              <input
+                id="accreditationBody"
+                name="accreditationBody"
+                type="text"
+                value={formData.accreditationBody}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="e.g., ISO 9001 Certified"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-gray-700 mb-2" htmlFor="establishmentYear">
+                Establishment Year
+              </label>
+              <input
+                id="establishmentYear"
+                name="establishmentYear"
+                type="text"
+                value={formData.establishmentYear}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="e.g., 2010"
+              />
+            </div>
+          </div>
+          
           <div>
-            <label className="block text-sm font-medium">Website</label>
-            <input name="website" value={formData.website} onChange={handleChange} className="w-full border rounded p-2" />
+            <label className="block text-gray-700 mb-2" htmlFor="description">
+              Description
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              rows={4}
+              placeholder="Brief description of your company..."
+            />
           </div>
-          <div className="flex justify-end">
-            <button type="submit" disabled={loading} className="px-4 py-2 bg-teal-600 text-white rounded">
-              {loading ? 'Saving...' : 'Save'}
+          
+          <div className="flex justify-end gap-4">
+            {isEditing && (
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+            )}
+            
+            <button
+              type="submit"
+              className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white mr-2"></span>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Information
+                </>
+              )}
             </button>
           </div>
         </form>

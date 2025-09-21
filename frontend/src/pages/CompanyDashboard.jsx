@@ -54,14 +54,32 @@ export default function CompanyDashboard() {
     fetchData();
   }, []);
 
-  const handleAction = (requestId, newStatus) => {
-    const requestToMove = pendingRequests.find(req => req.id === requestId);
-    if (requestToMove) {
-      setHistory(prevHistory => [
-        ...prevHistory,
-        { ...requestToMove, status: newStatus, actionDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
-      ]);
-      setPendingRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+  const handleAction = async (requestId, newStatus, reason = null) => {
+    try {
+      let response;
+      if (newStatus === 'approved' || newStatus === 'Approved') {
+        response = await companyService.approveExperienceRequest(requestId);
+      } else if (newStatus === 'rejected' || newStatus === 'Rejected') {
+        response = await companyService.rejectExperienceRequest(requestId, reason || 'No reason provided');
+      }
+      
+      if (response && response.data && response.data.success) {
+        // Move to history on success
+        const requestToMove = pendingRequests.find(req => req.id === requestId);
+        if (requestToMove) {
+          setHistory(prevHistory => [
+            ...prevHistory,
+            { ...requestToMove, status: newStatus, actionDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) }
+          ]);
+          setPendingRequests(prevRequests => prevRequests.filter(req => req.id !== requestId));
+        }
+      } else {
+        console.error('Failed to process request:', response?.data?.message);
+        // You might want to show an error toast here
+      }
+    } catch (error) {
+      console.error('Error processing request:', error);
+      // You might want to show an error toast here
     }
   };
 

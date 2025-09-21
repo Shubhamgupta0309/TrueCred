@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 from mongoengine import (
     Document, StringField, DateTimeField, ReferenceField, 
-    ListField, BooleanField, DictField, DENY, CASCADE
+    ListField, BooleanField, DictField, URLField, DENY, CASCADE
 )
 from models.user import User
 
@@ -71,11 +71,8 @@ class Experience(Document):
     ipfs_hash = StringField()               # IPFS hash for the main experience document
     ipfs_metadata_hash = StringField()      # IPFS hash for experience metadata
     document_hashes = DictField()           # Dictionary of associated document IPFS hashes (key: document name, value: IPFS hash)
+    document_url = URLField()               # URL to the main experience document
     blockchain_hash = StringField()         # Hash stored on the blockchain for verification
-    
-    # Blockchain transaction info
-    blockchain_tx_hash = StringField()      # Transaction hash from blockchain
-    blockchain_credential_id = StringField() # Credential ID from blockchain
     
     # Linked credentials
     credentials = ListField(ReferenceField('Credential'))

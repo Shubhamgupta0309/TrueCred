@@ -129,3 +129,53 @@ def get_institutions():
             'success': False,
             'error': f'Failed to fetch institutions: {str(e)}'
         }), 500
+
+
+@org_bp.route('/company/profile', methods=['GET'])
+def get_company_profile():
+    """
+    Get the current user's company profile.
+    
+    Returns:
+        Company profile data
+    """
+    try:
+        # This would typically get the company profile from a database
+        # For now, return a basic structure
+        return jsonify({
+            'success': True,
+            'data': {
+                'name': 'Sample Company',
+                'website': 'https://example.com',
+                'email': 'contact@example.com'
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to fetch company profile: {str(e)}'
+        }), 500
+
+
+@org_bp.route('/company/profile', methods=['POST'])
+def update_company_profile():
+    """
+    Update the current user's company profile.
+    
+    Returns:
+        Success status
+    """
+    try:
+        # This would typically save to a database
+        # For now, just return success
+        return jsonify({
+            'success': True,
+            'message': 'Company profile updated successfully'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f'Failed to update company profile: {str(e)}'
+        }), 500

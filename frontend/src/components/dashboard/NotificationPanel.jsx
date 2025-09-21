@@ -12,7 +12,7 @@ export default function NotificationPanel({ notifications }) {
       <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
         {notifications.map((notif, index) => (
           <motion.div
-            key={notif.id}
+            key={notif.id || notif._id || `notification-${index}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.15 }}
