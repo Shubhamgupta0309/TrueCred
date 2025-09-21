@@ -197,6 +197,8 @@ export const collegeService = {
   getPendingRequests: () => api.get('/api/college/pending-requests'),
   approveRequest: (requestId) => api.post(`/api/credentials/${requestId}/approve`),
   rejectRequest: (requestId, reason) => api.post(`/api/credentials/${requestId}/reject`, { reason }),
+  updateProfile: (profileData) => api.post('/api/college/profile', profileData),
+  getProfile: () => api.get('/api/college/profile'),
 };
 
 // Company services
@@ -205,6 +207,8 @@ export const companyService = {
   approveExperienceRequest: (requestId) => api.post(`/api/experiences/${requestId}/approve`),
   rejectExperienceRequest: (requestId, reason) => api.post(`/api/experiences/${requestId}/reject`, { reason }),
   getExperienceHistory: () => api.get('/api/experiences/history'),
+  updateProfile: (profileData) => api.post('/api/company/profile', profileData),
+  getProfile: () => api.get('/api/company/profile'),
 };
 
 // Notification services
@@ -218,31 +222,5 @@ export const organizationService = {
   getOrganizationById: (id) => api.get(`/api/organizations/${id}`),
 };
 
-// Document services
-export const documentService = {
-  uploadDocument: (formData) => {
-    return api.post('/api/documents/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-  },
-  getDocument: (documentId) => api.get(`/api/documents/${documentId}`),
-  downloadDocument: (documentId) => api.get(`/api/documents/${documentId}/download`, {
-    responseType: 'blob'
-  }),
-  verifyDocument: (documentId, verificationData) => api.post(`/api/documents/${documentId}/verify`, verificationData),
-  getDocumentBlockchainStatus: (documentId) => api.get(`/api/documents/${documentId}/blockchain-status`),
-  getUserDocuments: (userId) => api.get(`/api/documents/user/${userId}`),
-  getPendingVerifications: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return api.get(`/api/documents/pending-verification${queryString ? `?${queryString}` : ''}`);
-  },
-  shareDocument: (documentId, shareData) => api.post(`/api/documents/${documentId}/share`, shareData),
-  getVerificationStats: () => api.get('/api/verification/stats'),
-  bulkReviewDocuments: (reviewData) => api.post('/api/verification/bulk-review', reviewData),
-  getCredentialRequests: (params = {}) => {
-    const queryString = new URLSearchParams(params).toString();
-    return api.get(`/api/verification/credential-requests${queryString ? `?${queryString}` : ''}`);
-  },
-};
+// Export the api instance for direct use if needed
+export default api;

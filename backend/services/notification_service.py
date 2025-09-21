@@ -69,55 +69,6 @@ class NotificationService:
             )
             
             if notification:
-                # Emit real-time notification via WebSocket
-                try:
-                    from services.websocket_service import websocket_service
-                    from models.notification_preferences import NotificationPreferences
-
-                    # Check user preferences for WebSocket notifications
-                    preferences = NotificationPreferences.get_or_create_for_user(user_id)
-                    notification_type_internal = NotificationPreferences.get_notification_type_from_string(notification_type)
-
-                    if preferences.should_send_notification(notification_type_internal, 'websocket'):
-                        notification_data = {
-                            'id': str(notification.id),
-                            'type': notification_type,
-                            'title': title,
-                            'message': message,
-                            'data': data,
-                            'created_at': notification.created_at.isoformat() if notification.created_at else None,
-                            'timestamp': datetime.utcnow().isoformat()
-                        }
-                        websocket_service.emit_notification(user_id, notification_data)
-                        logger.info(f"Real-time notification emitted for user {user_id}")
-                    else:
-                        logger.info(f"WebSocket notification skipped for user {user_id} due to preferences")
-                except Exception as ws_error:
-                    logger.warning(f"Failed to emit WebSocket notification: {ws_error}")
-                
-                # Send push notification
-                try:
-                    from routes.push_notifications import send_push_for_notification
-                    from models.notification_preferences import NotificationPreferences
-
-                    # Check user preferences for push notifications
-                    preferences = NotificationPreferences.get_or_create_for_user(user_id)
-                    notification_type_internal = NotificationPreferences.get_notification_type_from_string(notification_type)
-
-                    if preferences.should_send_notification(notification_type_internal, 'push'):
-                        send_push_for_notification(user_id, {
-                            'id': str(notification.id),
-                            'type': notification_type,
-                            'title': title,
-                            'message': message,
-                            'data': data
-                        })
-                        logger.info(f"Push notification sent for user {user_id}")
-                    else:
-                        logger.info(f"Push notification skipped for user {user_id} due to preferences")
-                except Exception as push_error:
-                    logger.warning(f"Failed to send push notification: {push_error}")
-                
                 return {
                     'status': 'created',
                     'notification_id': str(notification.id),
@@ -131,49 +82,6 @@ class NotificationService:
                 }
         except Exception as e:
             logger.error(f"Error creating database notification: {e}")
-            return {
-                'status': 'error',
-                'error': str(e),
-                'timestamp': datetime.utcnow().isoformat()
-            }
-
-    @staticmethod
-    def send_templated_notification(user_id, template_type, variables, recipient_ids=None):
-        """
-        Send a notification using a template.
-
-        Args:
-            user_id: ID of the user sending the notification
-            template_type: Type of notification template to use
-            variables: Dictionary of variables to substitute in the template
-            recipient_ids: List of recipient user IDs (optional)
-
-        Returns:
-            Dictionary with status and notification details
-        """
-        try:
-            from services.notification_template_service import NotificationTemplateService
-
-            # Send the templated notification
-            success = NotificationTemplateService.send_templated_notification(
-                user_id, template_type, variables, recipient_ids
-            )
-
-            if success:
-                return {
-                    'status': 'sent',
-                    'template_type': template_type,
-                    'timestamp': datetime.utcnow().isoformat()
-                }
-            else:
-                return {
-                    'status': 'error',
-                    'error': 'Failed to send templated notification',
-                    'timestamp': datetime.utcnow().isoformat()
-                }
-
-        except Exception as e:
-            logger.error(f"Error sending templated notification: {e}")
             return {
                 'status': 'error',
                 'error': str(e),

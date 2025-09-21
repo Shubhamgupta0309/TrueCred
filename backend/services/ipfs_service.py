@@ -415,6 +415,27 @@ class IPFSService:
 
         return {"error": "Not connected to IPFS"}
     
+    def get_gateway_url(self, ipfs_hash: str) -> str:
+        """
+        Get the HTTP gateway URL for an IPFS hash.
+        
+        Args:
+            ipfs_hash: IPFS hash
+            
+        Returns:
+            str: Full gateway URL for the hash
+        """
+        if not ipfs_hash:
+            return ""
+        
+        # Use a public gateway if local gateway is not available
+        # For production, you might want to use a reliable public gateway
+        if self.gateway_url and 'localhost' not in self.gateway_url:
+            return f"{self.gateway_url}/ipfs/{ipfs_hash}"
+        else:
+            # Fallback to public gateway
+            return f"https://ipfs.io/ipfs/{ipfs_hash}"
+    
     def get_node_info(self) -> Dict[str, Any]:
         """
         Get information about the connected IPFS node.

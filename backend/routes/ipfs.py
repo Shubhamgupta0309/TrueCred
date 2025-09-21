@@ -226,6 +226,10 @@ def upload_document():
             except Experience.DoesNotExist:
                 return error_response('Experience not found', 404)
         
+        # Add ipfs_uri for frontend compatibility
+        if 'document_gateway_url' in result:
+            result['ipfs_uri'] = result['document_gateway_url']
+        
         # Return result
         return success_response(result)
     except Exception as e:
