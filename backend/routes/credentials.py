@@ -767,6 +767,11 @@ def upload_credential_for_student(student_id):
         credential, err = CredentialService.create_credential(user_id=student_id, data=credential_data)
         if err:
             return error_response(message=f"Failed to create credential: {err}", status_code=400)
+
+        # Mark the credential as verified since it was uploaded by an authorized issuer
+        credential.verified = True
+        credential.verified_at = datetime.utcnow()
+        credential.save()
         # First: support issuer-provided base64 document(s) in the JSON body
         try:
             # `document` may be a single base64 string or data URL; `documents` may be a list of base64 strings or dicts
@@ -1146,7 +1151,7 @@ def verify_credential(credential_id):
 @jwt_required()
 def verify_credential_blockchain(credential_id):
     """
-    Verify a credential using blockchain data.
+    Verify a credential using blockchain data or database verification.
     ---
     Requires authentication.
     """
@@ -1158,43 +1163,53 @@ def verify_credential_blockchain(credential_id):
         if not credential:
             return not_found_response(resource_type='Credential', resource_id=credential_id)
         
-        # Check if credential has blockchain data
-        if not credential.blockchain_credential_id:
-            return error_response(
-                message="Credential not stored on blockchain",
-                status_code=400
-            )
+        verification_data = {
+            'credential_id': credential_id,
+            'blockchain_verified': False,
+            'database_verified': credential.verified,
+            'blockchain_data': None,
+            'verification_method': None
+        }
         
-        # Verify using blockchain
-        from services.blockchain_service import BlockchainService
-        blockchain = BlockchainService()
+        # Try blockchain verification if blockchain_credential_id exists
+        if credential.blockchain_credential_id:
+            try:
+                from services.blockchain_service import BlockchainService
+                blockchain = BlockchainService()
+                
+                blockchain_result = blockchain.verify_credential(credential.blockchain_credential_id)
+                
+                if blockchain_result and blockchain_result.get('status') == 'success':
+                    verification_data['blockchain_verified'] = True
+                    verification_data['blockchain_data'] = blockchain_result
+                    verification_data['verification_method'] = 'blockchain'
+                    
+                    # Update credential verification status if blockchain confirms validity
+                    if blockchain_result.get('is_valid') and not credential.verified:
+                        credential.verified = True
+                        credential.verified_at = datetime.utcnow()
+                        credential.save()
+                    
+                    return success_response(
+                        data=verification_data,
+                        message="Credential verified successfully via blockchain"
+                    )
+                else:
+                    logger.warning(f"Blockchain verification failed for credential {credential_id}: {blockchain_result}")
+            except Exception as e:
+                logger.warning(f"Error during blockchain verification for credential {credential_id}: {e}")
         
-        verification_result = blockchain.verify_credential(credential.blockchain_credential_id)
-        
-        if verification_result and verification_result.get('status') == 'success':
-            # Update credential verification status if blockchain confirms validity
-            if verification_result.get('is_valid') and not credential.verified:
-                credential.verified = True
-                credential.verified_at = datetime.utcnow()
-                credential.save()
-            
+        # If blockchain verification failed or not available, check database verification
+        if credential.verified:
+            verification_data['verification_method'] = 'database'
             return success_response(
-                data={
-                    'credential_id': credential_id,
-                    'blockchain_verified': True,
-                    'blockchain_data': verification_result,
-                    'database_match': (
-                        verification_result.get('title') == credential.title and
-                        verification_result.get('issuer') == credential.issuer
-                    ),
-                    'mock_mode': verification_result.get('mock', False)
-                },
-                message="Credential verified successfully via blockchain"
+                data=verification_data,
+                message="Credential verified via database (issuer approval)"
             )
         else:
             return error_response(
-                message="Blockchain verification failed",
-                error_code="blockchain_verification_failed",
+                message="Credential not verified",
+                error_code="credential_not_verified",
                 status_code=400
             )
             

@@ -19,9 +19,13 @@ logger = logging.getLogger(__name__)
 # Create blueprint
 org_student_bp = Blueprint('org_student', __name__, url_prefix='/api/organization')
 
-@org_student_bp.route('/search-students', methods=['GET'])
-@jwt_required()
-def search_students():
+@org_student_bp.route('/test', methods=['GET'])
+def test_endpoint():
+    """Test endpoint to check if the blueprint is working."""
+    return success_response(
+        data={'message': 'Organization student blueprint is working'},
+        message='Test successful'
+    )
     """
     Search for students by name, email, or TrueCred ID.
     
@@ -99,13 +103,13 @@ def upload_student_credential(student_id):
     URL Parameters:
         student_id: ID of the student
         
-    Request Body:
+    Request Body (FormData or JSON):
         title: Title of the credential
         description: Description of the credential
         type: Type of credential (diploma, degree, certificate, badge, award, license, other)
-        issue_date: Date when the credential was issued (YYYY-MM-DD)
+        issue_date: Date when the credential was issued (YYYY-MM-DD) - auto-generated if not provided
         expiry_date: Date when the credential expires (YYYY-MM-DD, optional)
-        document: Base64 encoded document (optional)
+        certificate: Certificate file (optional)
         
     Returns:
         The created credential
@@ -138,17 +142,28 @@ def upload_student_credential(student_id):
                 status_code=400
             )
         
-        # Get request data
-        data = request.json
+        # Get request data - support both FormData and JSON
+        if request.content_type and 'multipart/form-data' in request.content_type:
+            # Handle FormData
+            data = request.form.to_dict()
+            certificate_file = request.files.get('certificate')
+        else:
+            # Handle JSON
+            data = request.json or {}
+            certificate_file = None
         
         # Validate required fields
-        required_fields = ['title', 'type', 'issue_date']
+        required_fields = ['title', 'type']
         for field in required_fields:
             if field not in data:
                 return error_response(
                     message=f"Missing required field: {field}",
                     status_code=400
                 )
+        
+        # Set default issue date if not provided
+        if 'issue_date' not in data or not data['issue_date']:
+            data['issue_date'] = datetime.utcnow().strftime('%Y-%m-%d')
         
         # Parse dates
         try:
@@ -175,16 +190,74 @@ def upload_student_credential(student_id):
             verified_at=datetime.utcnow()
         )
         
-        # If document is provided, handle it
-        if 'document' in data and data['document']:
-            # This would typically involve storing the document,
-            # generating hashes, and updating the credential
-            # For now, we'll just note that a document was included
-            credential.metadata = {
-                'has_document': True,
-                'uploaded_by': str(current_user.id),
-                'organization': current_user.organization
-            }
+        # Handle certificate file upload
+        if certificate_file:
+            # Validate file type - only PDFs allowed
+            if not certificate_file.filename.lower().endswith('.pdf'):
+                return error_response(
+                    message="Only PDF files are allowed for certificate upload",
+                    status_code=400
+                )
+            
+            # Validate file size (max 10MB)
+            certificate_file.seek(0, 2)  # Seek to end
+            file_size = certificate_file.tell()
+            certificate_file.seek(0)  # Seek back to beginning
+            
+            if file_size > 10 * 1024 * 1024:  # 10MB limit
+                return error_response(
+                    message="Certificate file size must be less than 10MB",
+                    status_code=400
+                )
+            
+            try:
+                from services.ipfs_service import IPFSService
+                
+                # Read file content
+                file_content = certificate_file.read()
+                
+                # Store on IPFS
+                ipfs = IPFSService()
+                if ipfs.connect():
+                    upload_result = ipfs.add_file(file_content, certificate_file.filename)
+                    if upload_result and 'Hash' in upload_result:
+                        ipfs_hash = upload_result['Hash']
+                        gateway_url = ipfs.get_gateway_url(ipfs_hash)
+                        
+                        credential.document_url = gateway_url
+                        credential.document_hashes = {
+                            certificate_file.filename: ipfs_hash
+                        }
+                        
+                        # Try to pin the hash
+                        try:
+                            ipfs.pin_hash(ipfs_hash)
+                            logger.info(f'Certificate uploaded to IPFS: {ipfs_hash}')
+                        except Exception as e:
+                            logger.warning(f'Failed to pin certificate hash: {e}')
+                    else:
+                        logger.warning('Failed to upload certificate to IPFS')
+                        return error_response(
+                            message="Failed to upload certificate to IPFS",
+                            status_code=500
+                        )
+                else:
+                    logger.warning('IPFS service not available for certificate upload')
+                    return error_response(
+                        message="IPFS service not available. Certificate upload failed.",
+                        status_code=503
+                    )
+                
+                # Update metadata
+                credential.metadata = {
+                    'has_document': True,
+                    'uploaded_by': str(current_user.id),
+                    'organization': current_user.organization,
+                    'original_filename': certificate_file.filename
+                }
+            except Exception as e:
+                logger.error(f'Error handling certificate upload: {e}')
+                # Continue without certificate if upload fails
         
         # Save the credential
         credential.save()

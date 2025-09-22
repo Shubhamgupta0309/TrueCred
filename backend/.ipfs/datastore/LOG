@@ -1,0 +1,32 @@
+=============== Sep 22, 2025 (IST) ===============
+23:39:20.185645 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+23:39:20.195575 db@open opening
+23:39:20.198574 version@stat F·[] S·0B[] Sc·[]
+23:39:20.204656 db@janitor F·2 G·0
+23:39:20.205163 db@open done T·9.5879ms
+23:39:20.237196 db@close closing
+23:39:20.237196 db@close done T·0s
+=============== Sep 22, 2025 (IST) ===============
+23:39:27.958442 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+23:39:27.959444 version@stat F·[] S·0B[] Sc·[]
+23:39:27.959444 db@open opening
+23:39:27.959444 journal@recovery F·1
+23:39:27.966156 journal@recovery recovering @1
+23:39:27.978451 memdb@flush created L0@2 N·6 S·1KiB "/F5..3GA,v6":"/pi..rty,v1"
+23:39:27.980433 version@stat F·[1] S·1KiB[1KiB] Sc·[0.25]
+23:39:28.010438 db@janitor F·3 G·0
+23:39:28.010438 db@open done T·50.9942ms
+23:39:41.998966 db@close closing
+23:39:41.998966 db@close done T·0s
+=============== Sep 22, 2025 (IST) ===============
+23:41:02.010620 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+23:41:02.014646 version@stat F·[1] S·1KiB[1KiB] Sc·[0.25]
+23:41:02.014646 db@open opening
+23:41:02.014646 journal@recovery F·1
+23:41:02.018057 journal@recovery recovering @3
+23:41:02.028617 memdb@flush created L0@5 N·3 S·321B "/lo..ers,v9":"/re..egy,v8"
+23:41:02.039323 version@stat F·[2] S·1KiB[1KiB] Sc·[0.50]
+23:41:02.056917 db@janitor F·4 G·0
+23:41:02.056917 db@open done T·42.2711ms
+23:43:12.333136 db@close closing
+23:43:12.334134 db@close done T·998µs

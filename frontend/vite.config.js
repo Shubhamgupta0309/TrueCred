@@ -12,6 +12,13 @@ export default defineConfig({
     },
   },
   server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
+      }
+    },
     headers: {
       // Allow unsafe-eval for MetaMask to work
       'Content-Security-Policy': "script-src 'self' 'unsafe-inline' 'unsafe-eval'; object-src 'self'"
