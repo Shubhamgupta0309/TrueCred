@@ -1,7 +1,7 @@
 {
   "Identity": {
-    "PeerID": "12D3KooW9sQVG6mmWWts7qn9Mrqetu8nZssrtq9ffkidrqQL6BQb",
-    "PrivKey": "CAESQIECvBWRnwjhDhW4qNpyu2KaCNM4vSftQkx/0xMxsDYoAMddZIzp8zWZsbtCSIZtCYUie5apdM5dWn2iPUUqbZg="
+    "PeerID": "12D3KooWLQgusH5rksSBmUq1i7Ki6ZhMUQuvvvtXmytpXnG5vcD7",
+    "PrivKey": "CAESQKvEbDkXwZ0DyIqqP66g5V3LGh5rrIjFoCKKgJT/WX7unV/PY/rjlReW9qG/JDpNa9M7b5goUf/cLEg/2LxhQtI="
   },
   "Datastore": {
     "StorageMax": "10GB",

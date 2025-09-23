@@ -343,35 +343,36 @@ def request_credential():
         )
         cr.save()
 
-        # Store credential request hash on blockchain for immutability
-        blockchain_result = None
+        # Store credential request hash on blockchain (call service; returns mock in dev/test)
         try:
             from services.blockchain_service import BlockchainService
             blockchain = BlockchainService()
-            if blockchain.is_connected():
-                # Create a hash of the credential request data
-                import hashlib
-                request_data = f"{str(cr.id)}:{cr.user_id}:{cr.title}:{cr.issuer}:{datetime.utcnow().isoformat()}"
-                request_hash = hashlib.sha256(request_data.encode()).hexdigest()
-                
-                # Store on blockchain
-                blockchain_result = blockchain.store_credential_hash(
-                    title=f"Request: {cr.title}",
-                    issuer=cr.issuer or "Unknown Issuer",
-                    student_id=cr.user_id,
-                    ipfs_hash=request_hash  # Using request hash as IPFS hash for now
-                )
-                
-                if blockchain_result and blockchain_result.get('status') == 'success':
-                    # Update credential request with blockchain info
-                    cr.blockchain_tx_hash = blockchain_result.get('transaction_hash')
-                    cr.blockchain_credential_id = blockchain_result.get('credential_id')
-                    cr.save()
-                    logger.info(f"Credential request {cr.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
-                else:
-                    logger.warning(f"Failed to store credential request on blockchain: {blockchain_result}")
+
+            # Create a hash of the credential request data
+            import hashlib
+            request_data = f"{str(cr.id)}:{cr.user_id}:{cr.title}:{cr.issuer}:{datetime.utcnow().isoformat()}"
+            request_hash = hashlib.sha256(request_data.encode()).hexdigest()
+
+            # Call the blockchain service (it may return mock data when not connected)
+            blockchain_result = blockchain.store_credential_hash(
+                title=f"Request: {cr.title}",
+                issuer=cr.issuer or "Unknown Issuer",
+                student_id=cr.user_id,
+                ipfs_hash=request_hash
+            )
+
+            # Persist only on real on-chain success
+            if blockchain.is_connected() and blockchain_result and blockchain_result.get('status') == 'success':
+                cr.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                cr.blockchain_credential_id = blockchain_result.get('credential_id')
+                try:
+                    cr.blockchain_data = blockchain_result
+                except Exception:
+                    pass
+                cr.save()
+                logger.info(f"Credential request {cr.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
             else:
-                logger.info("Blockchain service not connected, skipping blockchain storage")
+                logger.info(f"Not persisting blockchain data for credential request {cr.id} (connected={blockchain.is_connected()}, result={blockchain_result})")
         except Exception as e:
             logger.error(f"Error storing credential request on blockchain: {e}")
             # Don't fail the request if blockchain storage fails
@@ -665,30 +666,30 @@ def approve_request(request_id):
         cr.status = 'issued'
         cr.save()
 
-        # Store issued credential hash on blockchain
-        blockchain_result = None
+        # Store issued credential hash on blockchain (call service even in dev to get mock values)
         try:
             from services.blockchain_service import BlockchainService
             blockchain = BlockchainService()
-            if blockchain.is_connected():
-                # Store the issued credential on blockchain
-                blockchain_result = blockchain.store_credential_hash(
-                    title=credential.title,
-                    issuer=credential.issuer or "Unknown Issuer",
-                    student_id=cr.user_id,
-                    ipfs_hash=credential.document_url or credential.document_hash or ""
-                )
-                
-                if blockchain_result and blockchain_result.get('status') == 'success':
-                    # Update credential with blockchain info
-                    credential.blockchain_tx_hash = blockchain_result.get('transaction_hash')
-                    credential.blockchain_credential_id = blockchain_result.get('credential_id')
-                    credential.save()
-                    logger.info(f"Credential {credential.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
-                else:
-                    logger.warning(f"Failed to store credential on blockchain: {blockchain_result}")
+
+            blockchain_result = blockchain.store_credential_hash(
+                title=credential.title,
+                issuer=credential.issuer or "Unknown Issuer",
+                student_id=cr.user_id,
+                ipfs_hash=credential.document_url or credential.document_hash or ""
+            )
+
+            # Persist only when actually connected and status == 'success'
+            if blockchain.is_connected() and blockchain_result and blockchain_result.get('status') == 'success':
+                credential.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                credential.blockchain_credential_id = blockchain_result.get('credential_id')
+                try:
+                    credential.blockchain_data = blockchain_result
+                except Exception:
+                    pass
+                credential.save()
+                logger.info(f"Credential {credential.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
             else:
-                logger.info("Blockchain service not connected, skipping blockchain storage")
+                logger.info(f"Not persisting blockchain data for credential {credential.id} (connected={blockchain.is_connected()}, result={blockchain_result})")
         except Exception as e:
             logger.error(f"Error storing credential on blockchain: {e}")
             # Don't fail the approval if blockchain storage fails
@@ -771,6 +772,7 @@ def upload_credential_for_student(student_id):
         # Mark the credential as verified since it was uploaded by an authorized issuer
         credential.verified = True
         credential.verified_at = datetime.utcnow()
+        credential.verification_status = 'verified'
         credential.save()
         # First: support issuer-provided base64 document(s) in the JSON body
         try:
@@ -965,30 +967,30 @@ def upload_credential_for_student(student_id):
             except Exception:
                 logger.info('Failed to persist student notification, logging instead: %s', note_student)
 
-        # Store issued credential hash on blockchain
-        blockchain_result = None
+        # Store issued credential hash on blockchain (call service and persist result or mock)
         try:
             from services.blockchain_service import BlockchainService
             blockchain = BlockchainService()
-            if blockchain.is_connected():
-                # Store the issued credential on blockchain
-                blockchain_result = blockchain.store_credential_hash(
-                    title=credential.title,
-                    issuer=credential.issuer or "Unknown Issuer",
-                    student_id=student_id,
-                    ipfs_hash=credential.document_url or credential.document_hash or ""
-                )
-                
-                if blockchain_result and blockchain_result.get('status') == 'success':
-                    # Update credential with blockchain info
-                    credential.blockchain_tx_hash = blockchain_result.get('transaction_hash')
-                    credential.blockchain_credential_id = blockchain_result.get('credential_id')
-                    credential.save()
-                    logger.info(f"Credential {credential.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
-                else:
-                    logger.warning(f"Failed to store credential on blockchain: {blockchain_result}")
+
+            blockchain_result = blockchain.store_credential_hash(
+                title=credential.title,
+                issuer=credential.issuer or "Unknown Issuer",
+                student_id=student_id,
+                ipfs_hash=credential.document_url or credential.document_hash or ""
+            )
+
+            # Persist only on real on-chain success
+            if blockchain.is_connected() and blockchain_result and blockchain_result.get('status') == 'success':
+                credential.blockchain_tx_hash = blockchain_result.get('transaction_hash')
+                credential.blockchain_credential_id = blockchain_result.get('credential_id')
+                try:
+                    credential.blockchain_data = blockchain_result
+                except Exception:
+                    pass
+                credential.save()
+                logger.info(f"Credential {credential.id} stored on blockchain: {blockchain_result.get('transaction_hash')}")
             else:
-                logger.info("Blockchain service not connected, skipping blockchain storage")
+                logger.info(f"Not persisting blockchain data for credential {credential.id} (connected={blockchain.is_connected()}, result={blockchain_result})")
         except Exception as e:
             logger.error(f"Error storing credential on blockchain: {e}")
             # Don't fail the upload if blockchain storage fails

@@ -7,7 +7,7 @@ from mongoengine import (
     Document, StringField, DateTimeField, ReferenceField, 
     ListField, BooleanField, DictField, URLField, DENY, CASCADE
 )
-from models.user import User
+from .user import User
 
 class Experience(Document):
     """

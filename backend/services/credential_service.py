@@ -4,8 +4,8 @@ Credential service for the TrueCred application.
 This service provides functions for credential management, validation,
 and verification.
 """
-from models.credential import Credential
-from models.user import User
+from ..models.credential import Credential
+from ..models.user import User
 from datetime import datetime
 import logging
 from bson import ObjectId

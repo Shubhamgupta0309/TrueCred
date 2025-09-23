@@ -1,0 +1,19 @@
+{
+	"sans": [
+		"*.k51qzi5uqu5dk3smizi6edappcgnn3it21nseg7tkirw5gjfhf9fht22ukuocy.libp2p.direct"
+	],
+	"issuer_data": {
+		"url": "https://acme-v02.api.letsencrypt.org/acme/cert/06fad82fadf757df47c9e7572920e9936f94",
+		"ca": "https://acme-v02.api.letsencrypt.org/directory",
+		"account": "https://acme-v02.api.letsencrypt.org/acme/acct/2678987291",
+		"renewal_info": {
+			"suggestedWindow": {
+				"start": "2025-11-21T08:42:21Z",
+				"end": "2025-11-23T03:53:10Z"
+			},
+			"_uniqueIdentifier": "jw0TovYuftFQbDMYOF1ZjiNykco.BvrYL633V99HyedXKSDpk2-U",
+			"_retryAfter": "2025-09-23T18:26:49.7187088+05:30",
+			"_selectedTime": "2025-11-22T08:34:58Z"
+		}
+	}
+}
