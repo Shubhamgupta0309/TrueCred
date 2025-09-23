@@ -7,7 +7,7 @@ from mongoengine import (
     Document, StringField, DateTimeField, BooleanField, 
     ReferenceField, DictField, URLField, DENY, ListField
 )
-from models.user import User
+from .user import User
 
 class Credential(Document):
     """
