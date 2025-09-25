@@ -44,6 +44,10 @@ export default function BlockchainTokenDisplay({ credential, onVerificationUpdat
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Compute canonical tx hash to display/copy (prefer top-level, then nested)
+  const displayTxFull = credential.blockchain_tx_hash || credential.blockchain_data?.tx_hash || null;
+  const displayTxShort = displayTxFull ? `${displayTxFull.substring(0, 12)}...` : 'N/A';
+
   // Handle blockchain verification
   const handleVerifyOnBlockchain = async () => {
     setVerifying(true);
@@ -80,11 +84,35 @@ export default function BlockchainTokenDisplay({ credential, onVerificationUpdat
     }
   };
   
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+  // Format date (defensive): accepts ISO strings, numeric strings, or unix timestamps
+  // If a numeric timestamp appears to be in seconds (< 1e12) convert to ms.
+  const formatDate = (value) => {
+    if (value === undefined || value === null || value === '') return 'N/A';
+
+    // Normalize numeric strings
+    let ts = value;
+    if (typeof ts === 'string') {
+      // If it's an all-digits string, treat as timestamp
+      if (/^\d+$/.test(ts)) {
+        ts = parseInt(ts, 10);
+      }
+    }
+
+    let dateObj;
+    if (typeof ts === 'number') {
+      // If timestamp looks like seconds (typical for blockchain), convert to ms
+      if (ts < 1e12) {
+        ts = ts * 1000;
+      }
+      dateObj = new Date(ts);
+    } else {
+      // Fallback: let Date parse ISO strings or other formats
+      dateObj = new Date(ts);
+    }
+
+    if (Number.isNaN(dateObj.getTime())) return 'N/A';
+
+    return dateObj.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -132,10 +160,10 @@ export default function BlockchainTokenDisplay({ credential, onVerificationUpdat
           
           <div className="mt-2 flex items-center">
             <div className="bg-gray-100 py-1 px-2 rounded text-sm font-mono text-gray-800 flex-grow mr-2 truncate">
-              {credential.blockchain_hash || '0x7a69...4e0b'}
+              {displayTxShort}
             </div>
             <button
-              onClick={() => copyToClipboard(credential.blockchain_hash || '0x7a69...4e0b')}
+              onClick={() => copyToClipboard(displayTxFull || '')}
               className="p-1 text-gray-500 hover:text-gray-800"
               title="Copy to clipboard"
             >

@@ -390,6 +390,9 @@ class Credential(Document):
             'verification_attempts': getattr(self, 'verification_attempts', []),
             'related_experiences': [str(exp.id) for exp in getattr(self, 'related_experiences', [])] if hasattr(self, 'related_experiences') else [],
             'metadata': self.metadata,
+            'blockchain_tx_hash': getattr(self, 'blockchain_tx_hash', None),
+            'blockchain_credential_id': getattr(self, 'blockchain_credential_id', None),
+            'blockchain_data': getattr(self, 'blockchain_data', None),
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }

@@ -3,6 +3,13 @@ TrueCred Backend Application
 
 This is the main application entry point for the TrueCred backend.
 """
+import sys
+import os
+
+# Add parent directory to path for relative imports when run directly
+if __name__ == '__main__':
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager

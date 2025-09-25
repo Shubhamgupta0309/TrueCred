@@ -17,8 +17,17 @@ from eth_typing import ChecksumAddress
 from hexbytes import HexBytes
 from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
+# Load environment variables; ensure we load backend/.env when running from workspace root
+try:
+    # Default load first (environment or working dir)
+    load_dotenv()
+    # Also attempt to load the backend/.env file relative to this file
+    env_path = Path(__file__).resolve().parents[1] / '.env'
+    if env_path.exists():
+        load_dotenv(dotenv_path=str(env_path))
+except Exception:
+    # Ignore dotenv errors, environment may already be set by the host
+    pass
 
 class BlockchainService:
     """Service for interacting with the TrueCred smart contract."""
@@ -658,10 +667,12 @@ class BlockchainService:
             return {
                 "status": "success",
                 "transaction_hash": mock_tx_hash,
+                "tx_hash": mock_tx_hash,
                 "block_number": 12345,
                 "gas_used": 21000,
                 "credential_id": mock_credential_id,
                 "contract_address": self.contract_address or "0x0000000000000000000000000000000000000000",
+                "timestamp": int(time.time()),
                 "mock": True
             }
         
@@ -722,13 +733,26 @@ class BlockchainService:
                         credential_id = "0x" + log.topics[1].hex()[2:].zfill(64)
                         break
             
+            # attempt to get block timestamp
+            timestamp = None
+            try:
+                block = self.web3.eth.get_block(tx_receipt.blockNumber)
+                # block.timestamp may be int or HexBytes depending on provider
+                timestamp = int(block.timestamp)
+            except Exception:
+                timestamp = None
+
+            tx_hex = self.web3.to_hex(tx_hash)
+
             return {
                 "status": "success" if tx_receipt.status == 1 else "failed",
-                "transaction_hash": self.web3.to_hex(tx_hash),
+                "transaction_hash": tx_hex,
+                "tx_hash": tx_hex,
                 "block_number": tx_receipt.blockNumber,
                 "gas_used": tx_receipt.gasUsed,
                 "credential_id": credential_id,
-                "contract_address": self.contract_address
+                "contract_address": self.contract_address,
+                "timestamp": timestamp
             }
             
         except Exception as e:

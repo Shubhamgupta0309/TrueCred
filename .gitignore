@@ -65,3 +65,6 @@ Desktop.ini
 
 # MongoDB
 *.db
+
+# Node modules
+node_modules/
