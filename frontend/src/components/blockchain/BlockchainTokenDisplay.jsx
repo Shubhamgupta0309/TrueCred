@@ -252,6 +252,25 @@ export default function BlockchainTokenDisplay({ credential, onVerificationUpdat
                   >
                     <Copy className="h-3 w-3" />
                   </button>
+                  <button
+                    onClick={() => {
+                      try {
+                        const h = credential.ipfs_hash;
+                        if (!h) return window.alert('No IPFS hash available');
+                        const url = String(h).startsWith('http')
+                          ? String(h)
+                          : (String(h).startsWith('ipfs://') ? `http://localhost:8080/ipfs/${String(h).replace('ipfs://','')}` : `http://localhost:8080/ipfs/${h}`);
+                        window.open(url, '_blank', 'noopener');
+                      } catch (e) {
+                        console.error('Failed to open IPFS document', e);
+                        window.alert('Failed to open document. See console for details.');
+                      }
+                    }}
+                    className="p-1 text-gray-500 hover:text-blue-600 ml-2"
+                    title="View document"
+                  >
+                    View Document
+                  </button>
                 </div>
               )}
               
