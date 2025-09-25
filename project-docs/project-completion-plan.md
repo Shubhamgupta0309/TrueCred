@@ -55,6 +55,10 @@ Frontend:
 - [ ] Credential requests stored and shown in dashboard
 - [ ] Issuer can view, issue, reject requests
 - [ ] Notifications created and shown
+ - [x] Student education saved and profile completion toggles
+ - [x] Credential requests stored and shown in dashboard
+ - [x] Issuer can view, issue, reject requests
+ - [x] Notifications created and shown
 - [ ] **Blockchain hashes stored for all credential requests**
 - [ ] **Truffle contracts deployed and integrated**
 
@@ -251,7 +255,17 @@ Frontend:
 - **Database**: MongoDB with credential requests and user data
 - **API**: Authentication and credential endpoints functional
 
-### 🚀 **Next Steps**
+### � Session updates (work completed in current session)
+- Backend now persists blockchain metadata only on confirmed on-chain success and exposes those fields in API responses (`blockchain_tx_hash`, `blockchain_credential_id`, `blockchain_data`).
+- Frontend `BlockchainTokenDisplay` patched to:
+	- defensively format timestamps (handle seconds vs milliseconds)
+	- remove fake placeholder `0x7a69...4e0b` and display canonical tx hash or `N/A`
+	- show a truncated tx hash with copy-to-clipboard functionality
+- Added scripts: `scripts/patch_blockchain_data.py` (backfill), `scripts/inspect_txs.py` and `scripts/inspect_single_tx.py` (inspect receipts/blocks).
+- Ran unit tests locally; build/test runs passed; committed and pushed changes to branch `shubham`.
+
+
+### �🚀 **Next Steps**
 1. **Start Backend Server**: `cd backend && python app.py`
 2. **Start Frontend**: `cd frontend && npm run dev`
 3. **Test Current Flow**: Login → College Dashboard → View pending requests
@@ -322,6 +336,10 @@ Manual test steps:
 - [ ] Credential requests stored and shown in dashboard
 - [ ] Issuer can view, issue, reject requests
 - [ ] Notifications created and shown
+ - [x] Student education saved and profile completion toggles
+ - [x] Credential requests stored and shown in dashboard
+ - [x] Issuer can view, issue, reject requests
+ - [x] Notifications created and shown
 
 ---
 
