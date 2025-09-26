@@ -7,6 +7,7 @@ import { credentialService } from '../../services/api';
 export default function CredentialsList({ credentials, onVerificationUpdate }) {
   const [verifyingId, setVerifyingId] = useState(null);
   const [verificationResults, setVerificationResults] = useState({});
+  const [selectedCredential, setSelectedCredential] = useState(null);
 
   // Filter to show only verified credentials
   const verifiedCredentials = credentials.filter(cred => 
@@ -106,6 +107,10 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                     whileTap={{ scale: 0.9 }}
                     className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-100 rounded-full"
                     title="View Details"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedCredential(cred);
+                    }}
                   >
                     <Eye className="w-5 h-5" />
                   </motion.button>
@@ -129,6 +134,151 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
           ))
         )}
       </div>
+  
+      {/* Credential Details Modal */}
+      {selectedCredential && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold text-gray-800">{selectedCredential.title}</h2>
+                <button
+                  onClick={() => setSelectedCredential(null)}
+                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedCredential.verified ? 'text-green-600 bg-green-100' : 'text-gray-600 bg-gray-100'}`}>
+                    {selectedCredential.verified ? 'Verified' : (selectedCredential.pending_verification ? 'Pending' : 'Not Verified')}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">Basic Information</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Issuer:</span> {selectedCredential.issuer}</p>
+                      <p><span className="font-medium">Type:</span> {selectedCredential.type || 'Not specified'}</p>
+                      <p><span className="font-medium">Document URL:</span> {selectedCredential.document_url || selectedCredential.ipfs_hash || 'Not available'}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">Dates</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Issued:</span> {selectedCredential.issue_date ? new Date(selectedCredential.issue_date).toLocaleDateString() : 'Unknown'}</p>
+                      <p><span className="font-medium">Verified At:</span> {selectedCredential.verified_at ? new Date(selectedCredential.verified_at).toLocaleString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedCredential.description && (
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">Description</h3>
+                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{selectedCredential.description}</p>
+                  </div>
+                )}
+
+                {/* Verification Details */}
+                {(selectedCredential.blockchain_data || selectedCredential.blockchain_tx_hash) && (
+                  <div>
+                    <h3 className="font-semibold text-gray-700 mb-2">Verification Details</h3>
+                    <div className="space-y-2 text-sm">
+                      <p><span className="font-medium">Transaction Hash:</span> {selectedCredential.blockchain_data?.tx_hash || selectedCredential.blockchain_tx_hash || 'N/A'}</p>
+                      <p><span className="font-medium">Block Number:</span> {selectedCredential.blockchain_data?.block_number || selectedCredential.block_number || 'N/A'}</p>
+                      <p><span className="font-medium">Timestamp:</span> {selectedCredential.blockchain_data?.timestamp ? new Date(selectedCredential.blockchain_data.timestamp).toLocaleString() : 'N/A'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Documents */}
+                <div>
+                  <h3 className="font-semibold text-gray-700 mb-2">Documents</h3>
+                  <div className="space-y-2">
+                    {
+                      (() => {
+                        // helper to normalize/build URLs
+                        const buildDocUrl = (val) => {
+                          if (!val) return null;
+                          const s = String(val);
+                          if (s.startsWith('http://') || s.startsWith('https://')) return s;
+                          if (s.startsWith('ipfs://')) return `http://localhost:8080/ipfs/${s.replace('ipfs://','')}`;
+                          return `http://localhost:8080/ipfs/${s}`;
+                        };
+
+                        // friendly filename extractor
+                        const filenameFromUrl = (u) => {
+                          try {
+                            const parts = new URL(u).pathname.split('/').filter(Boolean);
+                            const last = parts[parts.length - 1];
+                            return last || u;
+                          } catch (e) {
+                            return u;
+                          }
+                        };
+
+                        const docsMap = new Map();
+
+                        // add explicit document_url
+                        if (selectedCredential.document_url) {
+                          const url = buildDocUrl(selectedCredential.document_url);
+                          if (url) docsMap.set(url, { label: 'Document', url, filename: filenameFromUrl(url) });
+                        }
+
+                        // add ipfs_hash if present
+                        if (selectedCredential.ipfs_hash) {
+                          const url = buildDocUrl(selectedCredential.ipfs_hash);
+                          if (url) docsMap.set(url, { label: 'IPFS', url, filename: filenameFromUrl(url) });
+                        }
+
+                        // add any document_hashes entries
+                        if (selectedCredential.document_hashes) {
+                          Object.entries(selectedCredential.document_hashes).forEach(([name, hash]) => {
+                            const url = buildDocUrl(hash);
+                            if (url) docsMap.set(url, { label: name || 'Document', url, filename: name || filenameFromUrl(url) });
+                          });
+                        }
+
+                        // attachments
+                        if (selectedCredential.attachments && selectedCredential.attachments.length > 0) {
+                          selectedCredential.attachments.forEach((a, idx) => {
+                            const raw = a.uri || a.url || a.document_url || a.hash || a.document_hash;
+                            const url = buildDocUrl(raw);
+                            const name = a.filename || a.name || `attachment-${idx+1}`;
+                            if (url) docsMap.set(url, { label: name, url, filename: name });
+                          });
+                        }
+
+                        // render unique documents
+                        const items = Array.from(docsMap.values());
+                        if (items.length === 0) {
+                          return (<div className="text-gray-500">No documents available.</div>);
+                        }
+
+                        return items.map((d) => (
+                          <div key={d.url} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                            <span className="text-sm font-medium">{d.filename || d.label}</span>
+                            <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm underline">View Document</a>
+                          </div>
+                        ));
+                      })()
+                    }
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

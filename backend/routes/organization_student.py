@@ -269,6 +269,46 @@ def upload_student_credential(student_id):
             student.affiliated_organizations.append(current_user.organization)
             student.save()
 
+        # Attempt to store credential on blockchain (if service available)
+        try:
+            from services.blockchain_service import BlockchainService
+
+            blockchain = BlockchainService()
+
+            # Determine ipfs/hash to send (prefer document_hashes value if available)
+            ipfs_hash = None
+            try:
+                if hasattr(credential, 'document_hashes') and credential.document_hashes:
+                    # take first hash value
+                    ipfs_hash = list(credential.document_hashes.values())[0]
+            except Exception:
+                ipfs_hash = None
+
+            # Fallback to document_url if necessary
+            ipfs_value = credential.document_url or ipfs_hash or ''
+
+            result = blockchain.store_credential_hash(
+                title=credential.title,
+                issuer=credential.issuer,
+                student_id=str(student.id),
+                ipfs_hash=ipfs_value
+            )
+
+            # Persist blockchain data only when connected and success
+            if blockchain.is_connected() and result and result.get('status') == 'success':
+                try:
+                    credential.blockchain_tx_hash = result.get('transaction_hash')
+                    credential.blockchain_credential_id = result.get('credential_id')
+                    credential.blockchain_data = result
+                    credential.save()
+                    logger.info(f'Persisted blockchain data for credential {credential.id}')
+                except Exception:
+                    logger.exception('Failed to persist blockchain data to credential')
+            else:
+                logger.info(f'Blockchain not connected or store failed (connected=%s, result=%s)', blockchain.is_connected(), result)
+        except Exception:
+            logger.exception('Error while attempting to store credential on blockchain')
+
         # If this upload is in response to a credential request, mark it issued and create a verified credential
         try:
             request_id = data.get('request_id') if isinstance(data, dict) else None
@@ -328,10 +368,17 @@ def upload_student_credential(student_id):
         except Exception:
             logger.exception('Error while marking credential request as issued')
         
-        # Return success response
+        # Return success response with the created credential data so the frontend can show blockchain info
+        try:
+            credential_data = credential.to_json()
+        except Exception:
+            credential_data = {
+                'credential_id': str(credential.id),
+            }
+
         return success_response(
             data={
-                'credential_id': str(credential.id),
+                'credential': credential_data,
                 'student': {
                     'id': str(student.id),
                     'name': f"{student.first_name or ''} {student.last_name or ''}".strip() or student.username,
