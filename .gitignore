@@ -1,0 +1,99 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build outputs
+dist/
+build/
+frontend/dist/
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# IPFS datastore (do not track large or locked IPFS files)
+backend/.ipfs/
+
+# Local databases and logs
+backend/credentials.db
+backend/logs/
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment
+.env
+.venv
+env/
+venv/
+ENV/
+.env.*
+
+# Flask
+instance/
+.webassets-cache
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+*.iws
+out/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+coverage.xml
+*.cover
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# MongoDB
+*.db
+
+# Node modules
+node_modules/
