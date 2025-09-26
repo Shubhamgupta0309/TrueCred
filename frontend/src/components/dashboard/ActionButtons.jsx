@@ -506,7 +506,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6 h-full flex flex-col justify-center">
+    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6 flex flex-col justify-start">
       <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
       <div className="space-y-4">
         <input 

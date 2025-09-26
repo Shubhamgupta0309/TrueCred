@@ -4,12 +4,12 @@ import { Bell, AlertTriangle } from 'lucide-react';
 
 export default function NotificationPanel({ notifications }) {
   return (
-    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6 h-full">
+    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-4">
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
         <Bell className="w-5 h-5 text-purple-600" />
         Notifications
       </h3>
-      <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+  <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
         {notifications.map((notif, index) => (
           <motion.div
             key={notif.id || notif._id || `notification-${index}`}
