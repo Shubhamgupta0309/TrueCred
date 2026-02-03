@@ -151,20 +151,34 @@ class CredentialService:
                 if field not in data or not data[field]:
                     return None, f"Missing required field: {field}"
             
-            # Process dates
+            # Process dates (accept both full ISO datetimes and date-only strings YYYY-MM-DD)
+            def _parse_date_field(value, field_name):
+                if not value:
+                    return None
+                # Try parsing as ISO datetime (allow trailing Z UTC marker)
+                try:
+                    return datetime.fromisoformat(value.replace('Z', '+00:00'))
+                except Exception:
+                    pass
+                # Try common date-only format
+                try:
+                    return datetime.strptime(value, '%Y-%m-%d')
+                except Exception:
+                    raise ValueError(f"Invalid {field_name} format")
+
             issue_date = None
             if 'issue_date' in data and data['issue_date']:
                 try:
-                    issue_date = datetime.fromisoformat(data['issue_date'].replace('Z', '+00:00'))
-                except ValueError:
-                    return None, "Invalid issue date format"
-            
+                    issue_date = _parse_date_field(data['issue_date'], 'issue_date')
+                except ValueError as e:
+                    return None, str(e)
+
             expiry_date = None
             if 'expiry_date' in data and data['expiry_date']:
                 try:
-                    expiry_date = datetime.fromisoformat(data['expiry_date'].replace('Z', '+00:00'))
-                except ValueError:
-                    return None, "Invalid expiry date format"
+                    expiry_date = _parse_date_field(data['expiry_date'], 'expiry_date')
+                except ValueError as e:
+                    return None, str(e)
             
             # Create new credential
             credential = Credential(
@@ -238,9 +252,14 @@ class CredentialService:
                 except ValueError:
                     return None, "Invalid issue date format"
             
+            # Robust parsing for update path as well
             if 'expiry_date' in data and data['expiry_date']:
                 try:
-                    credential.expiry_date = datetime.fromisoformat(data['expiry_date'].replace('Z', '+00:00'))
+                    # Try ISO then fallback to YYYY-MM-DD
+                    try:
+                        credential.expiry_date = datetime.fromisoformat(data['expiry_date'].replace('Z', '+00:00'))
+                    except Exception:
+                        credential.expiry_date = datetime.strptime(data['expiry_date'], '%Y-%m-%d')
                 except ValueError:
                     return None, "Invalid expiry date format"
             elif 'expiry_date' in data and data['expiry_date'] is None:

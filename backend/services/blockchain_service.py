@@ -104,11 +104,18 @@ class BlockchainService:
             print("Warning: Contract address not configured")
             return None
             
-        # Load ABI from contract build file
+        # Load ABI from contract build file. Try service-local build first, then
+        # fall back to Truffle's build output (common when contracts are compiled
+        # by Truffle in a sibling `truffle` folder).
         contract_path = Path(__file__).parent / "build" / "TrueCred.json"
         if not contract_path.exists():
-            print(f"Warning: Contract file not found at {contract_path}")
-            return None
+            # Try truffle build output
+            truffle_contract_path = Path(__file__).resolve().parents[1] / 'truffle' / 'build' / 'contracts' / 'TrueCred.json'
+            if truffle_contract_path.exists():
+                contract_path = truffle_contract_path
+            else:
+                print(f"Warning: Contract file not found at {contract_path} nor at {truffle_contract_path}")
+                return None
             
         try:
             with open(contract_path, "r") as f:
@@ -803,6 +810,3 @@ class BlockchainService:
                 "status": "error",
                 "error": str(e)
             }
-
-# Create a singleton instance - commented out to avoid startup issues
-# blockchain_service = BlockchainService()
