@@ -67,11 +67,11 @@ export default function VerificationPendingPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full opacity-20 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500 rounded-full opacity-10 blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-600 rounded-full opacity-10 blur-3xl"></div>
       </div>
 
       <motion.div
@@ -80,9 +80,9 @@ export default function VerificationPendingPage() {
         transition={{ duration: 0.6 }}
         className="relative w-full max-w-md"
       >
-        <div className="bg-white rounded-2xl shadow-xl shadow-purple-500/10 overflow-hidden">
+        <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-xl shadow-cyan-500/10 overflow-hidden backdrop-blur-md">
           {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6 text-center">
+          <div className="bg-gradient-to-r from-cyan-700 to-cyan-600 px-8 py-6 text-center">
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -91,7 +91,7 @@ export default function VerificationPendingPage() {
               <h2 className="text-2xl font-bold text-white">
                 Email Verification Required
               </h2>
-              <p className="text-purple-100 text-sm mt-1">
+              <p className="text-cyan-100 text-sm mt-1">
                 Please verify your email to continue
               </p>
             </motion.div>
@@ -100,9 +100,9 @@ export default function VerificationPendingPage() {
           {/* Content */}
           <div className="px-8 py-8">
             <div className="flex flex-col items-center justify-center space-y-6">
-              <div className="bg-purple-50 p-4 rounded-lg w-full text-center">
+              <div className="bg-cyan-950/40 border border-cyan-500/20 p-4 rounded-lg w-full text-center">
                 <svg
-                  className="w-16 h-16 text-purple-600 mx-auto mb-4"
+                  className="w-16 h-16 text-cyan-300 mx-auto mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -115,18 +115,18 @@ export default function VerificationPendingPage() {
                     d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
                   />
                 </svg>
-                <h3 className="text-lg font-semibold text-gray-800 mb-2">Check Your Email</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-lg font-semibold text-cyan-100 mb-2">Check Your Email</h3>
+                <p className="text-cyan-200 mb-4">
                   We've sent a verification link to: <strong>{email}</strong>
                 </p>
-                <p className="text-gray-600 mb-4">
+                <p className="text-cyan-200 mb-4">
                   Please check your inbox and click the verification link to activate your account.
                 </p>
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-cyan-300/70">
                   <p>Don't forget to check your spam folder if you can't find the email.</p>
                 </div>
                 {hasResent && (
-                  <div className="mt-4 p-2 bg-blue-50 text-blue-700 rounded-md text-sm">
+                  <div className="mt-4 p-2 bg-cyan-950/40 border border-cyan-500/30 text-cyan-100 rounded-md text-sm">
                     <p>A new verification email has been sent! Please check your inbox.</p>
                   </div>
                 )}
@@ -135,7 +135,7 @@ export default function VerificationPendingPage() {
               {/* Resend Email Form */}
               <div className="w-full">
                 <div className="mb-4">
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="email" className="block text-sm font-medium text-cyan-200 mb-1">
                     Didn't receive the email? Enter your address to resend:
                   </label>
                   <input
@@ -143,19 +143,19 @@ export default function VerificationPendingPage() {
                     id="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:ring-2 focus:ring-cyan-400 focus:outline-none"
                     placeholder="Your email address"
                   />
                 </div>
                 
                 {resendMessage && (
-                  <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200">
+                  <div className="mb-4 p-3 bg-emerald-950/30 text-emerald-200 rounded-lg border border-emerald-500/30">
                     {resendMessage}
                   </div>
                 )}
                 
                 {resendError && (
-                  <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg border border-red-200">
+                  <div className="mb-4 p-3 bg-red-950/30 text-red-200 rounded-lg border border-red-500/30">
                     {resendError}
                   </div>
                 )}
@@ -166,7 +166,7 @@ export default function VerificationPendingPage() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleResendEmail}
                     disabled={isResending || countdown > 0}
-                    className="w-full bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 px-4 rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 focus:ring-4 focus:ring-purple-300 focus:outline-none transition-all duration-200 shadow-lg hover:shadow-purple-500/25 disabled:opacity-75 disabled:cursor-not-allowed"
+                    className="w-full bg-gradient-to-r from-cyan-600 to-cyan-500 text-slate-950 py-3 px-4 rounded-lg font-semibold hover:from-cyan-500 hover:to-cyan-400 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200 shadow-lg hover:shadow-cyan-500/25 disabled:opacity-75 disabled:cursor-not-allowed"
                   >
                     {isResending ? (
                       <div className="flex items-center justify-center">
@@ -187,7 +187,7 @@ export default function VerificationPendingPage() {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleBackToLogin}
-                    className="w-full bg-white text-purple-700 border border-purple-300 py-3 px-4 rounded-lg font-medium hover:bg-purple-50 focus:ring-4 focus:ring-purple-300 focus:outline-none transition-all duration-200"
+                    className="w-full bg-cyan-950/20 text-cyan-100 border border-cyan-500/30 py-3 px-4 rounded-lg font-medium hover:bg-cyan-900/30 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200"
                   >
                     Back to Login
                   </motion.button>
@@ -198,7 +198,7 @@ export default function VerificationPendingPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-gray-500 text-sm">
+        <div className="text-center mt-6 text-cyan-300/70 text-sm">
           <p>Need help? Contact our support team</p>
         </div>
       </motion.div>

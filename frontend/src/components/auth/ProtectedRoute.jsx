@@ -28,13 +28,15 @@ const ProtectedRoute = ({ element, allowedRoles = [] }) => {
       
       setIsChecking(false);
     }
-  }, [isAuthenticated, user, loading, allowedRoles]);  if (isChecking || loading) {
+  }, [isAuthenticated, user, loading, allowedRoles]);
+
+  if (isChecking || loading) {
     // Show loading state while checking authorization
     return (
-      <div className="min-h-screen flex items-center justify-center bg-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-700">Verifying access...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mx-auto"></div>
+          <p className="mt-4 text-cyan-200">Verifying access...</p>
         </div>
       </div>
     );

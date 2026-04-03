@@ -5,10 +5,11 @@ import { Briefcase, Edit, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
 export default function ExperienceList({ experiences }) {
   const [selectedExperience, setSelectedExperience] = useState(null);
 
-  // Filter to show only verified experiences
-  const verifiedExperiences = experiences.filter(exp => 
-    exp.is_verified === true || exp.verification_status === 'verified'
-  );
+  // Filter to show only verified/approved experiences
+  const verifiedExperiences = experiences.filter(exp => {
+    const status = (exp.verification_status || exp.status || '').toLowerCase();
+    return exp.is_verified === true || status === 'verified' || status === 'approved' || status === 'issued';
+  });
 
   const getStatusIcon = (exp) => {
     if (exp.is_verified) {
@@ -124,37 +125,37 @@ export default function ExperienceList({ experiences }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Basic Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Organization:</span> {selectedExperience.organization}</p>
-                      <p><span className="font-medium">Type:</span> {selectedExperience.type}</p>
-                      <p><span className="font-medium">Location:</span> {selectedExperience.location || 'Not specified'}</p>
-                      <p><span className="font-medium">Current:</span> {selectedExperience.is_current ? 'Yes' : 'No'}</p>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Basic Information</h3>
+                    <div className="space-y-2 text-sm text-cyan-100">
+                      <p><span className="font-medium text-cyan-200">Organization:</span> {selectedExperience.organization}</p>
+                      <p><span className="font-medium text-cyan-200">Type:</span> {selectedExperience.type}</p>
+                      <p><span className="font-medium text-cyan-200">Location:</span> {selectedExperience.location || 'Not specified'}</p>
+                      <p><span className="font-medium text-cyan-200">Current:</span> {selectedExperience.is_current ? 'Yes' : 'No'}</p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Dates</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Start Date:</span> {selectedExperience.start_date ? new Date(selectedExperience.start_date).toLocaleDateString() : 'Not specified'}</p>
-                      <p><span className="font-medium">End Date:</span> {selectedExperience.end_date ? new Date(selectedExperience.end_date).toLocaleDateString() : 'Present'}</p>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Dates</h3>
+                    <div className="space-y-2 text-sm text-cyan-100">
+                      <p><span className="font-medium text-cyan-200">Start Date:</span> {selectedExperience.start_date ? new Date(selectedExperience.start_date).toLocaleDateString() : 'Not specified'}</p>
+                      <p><span className="font-medium text-cyan-200">End Date:</span> {selectedExperience.end_date ? new Date(selectedExperience.end_date).toLocaleDateString() : 'Present'}</p>
                     </div>
                   </div>
                 </div>
 
                 {selectedExperience.description && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Description</h3>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{selectedExperience.description}</p>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Description</h3>
+                    <p className="text-sm text-cyan-100 bg-cyan-900/30 p-3 rounded-lg">{selectedExperience.description}</p>
                   </div>
                 )}
 
                 {selectedExperience.skills && selectedExperience.skills.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Skills</h3>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Skills</h3>
                     <div className="flex flex-wrap gap-2">
                       {selectedExperience.skills.map((skill, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs">
+                        <span key={idx} className="px-2 py-1 bg-cyan-900/40 text-cyan-100 border border-cyan-500/30 rounded-full text-xs">
                           {skill}
                         </span>
                       ))}
@@ -164,11 +165,11 @@ export default function ExperienceList({ experiences }) {
 
                 {selectedExperience.is_verified && selectedExperience.verified_at && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Verification Details</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Verified At:</span> {new Date(selectedExperience.verified_at).toLocaleString()}</p>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Verification Details</h3>
+                    <div className="space-y-2 text-sm text-cyan-100">
+                      <p><span className="font-medium text-cyan-200">Verified At:</span> {new Date(selectedExperience.verified_at).toLocaleString()}</p>
                       {selectedExperience.verified_by && (
-                        <p><span className="font-medium">Verified By:</span> {selectedExperience.verified_by}</p>
+                        <p><span className="font-medium text-cyan-200">Verified By:</span> {selectedExperience.verified_by}</p>
                       )}
                     </div>
                   </div>
@@ -176,16 +177,16 @@ export default function ExperienceList({ experiences }) {
 
                 {selectedExperience.document_hashes && Object.keys(selectedExperience.document_hashes).length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Documents</h3>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Documents</h3>
                     <div className="space-y-2">
                       {Object.entries(selectedExperience.document_hashes).map(([filename, hash]) => (
-                        <div key={hash} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                          <span className="text-sm font-medium">{filename}</span>
+                        <div key={hash} className="flex items-center gap-2 p-2 bg-cyan-900/30 rounded-lg border border-cyan-500/30">
+                          <span className="text-sm font-medium text-cyan-100">{filename}</span>
                           <a
                             href={`http://localhost:8080/ipfs/${hash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:text-blue-800 text-sm underline"
+                            className="text-cyan-300 hover:text-cyan-100 text-sm underline"
                           >
                             View Document
                           </a>
@@ -197,10 +198,10 @@ export default function ExperienceList({ experiences }) {
 
                 {selectedExperience.credentials && selectedExperience.credentials.length > 0 && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Related Credentials</h3>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Related Credentials</h3>
                     <div className="space-y-2">
                       {selectedExperience.credentials.map((credId) => (
-                        <div key={credId} className="p-2 bg-blue-50 rounded-lg text-sm">
+                        <div key={credId} className="p-2 bg-cyan-900/30 rounded-lg text-sm text-cyan-100 border border-cyan-500/30">
                           Credential ID: {credId}
                         </div>
                       ))}

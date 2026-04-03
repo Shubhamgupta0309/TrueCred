@@ -158,20 +158,17 @@ export default function StudentSearch({ onStudentSelect }) {
           )}
         </div>
         
-        <p className="text-sm text-cyan-300/70 mt-2">
-          Enter at least 3 characters to search, or enter a complete TrueCred ID (TC######) for exact match.
-        </p>
       </form>
       
       {error && (
-        <div className="p-4 mb-4 bg-red-50 rounded-lg border border-red-200">
-          <p className="text-red-700">{error}</p>
+        <div className="p-4 mb-4 bg-red-950/30 rounded-lg border border-red-500/30">
+          <p className="text-red-200">{error}</p>
         </div>
       )}
       
       {loading ? (
         <div className="p-4 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
           <p className="mt-2 text-cyan-200">Searching...</p>
         </div>
       ) : (

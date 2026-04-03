@@ -120,54 +120,54 @@ const OCRVerification = ({
   const getStatusIcon = (status) => {
     switch (status) {
       case 'verified':
-        return <CheckCircle className="h-6 w-6 text-green-600" />;
+        return <CheckCircle className="h-6 w-6 text-emerald-400" />;
       case 'pending_review':
-        return <AlertTriangle className="h-6 w-6 text-yellow-600" />;
+        return <AlertTriangle className="h-6 w-6 text-amber-400" />;
       case 'rejected':
       case 'no_template':
-        return <AlertCircle className="h-6 w-6 text-red-600" />;
+        return <AlertCircle className="h-6 w-6 text-red-400" />;
       default:
-        return <Shield className="h-6 w-6 text-gray-600" />;
+        return <Shield className="h-6 w-6 text-cyan-300" />;
     }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
       case 'verified':
-        return 'bg-green-50 border-green-200';
+        return 'bg-emerald-950/40 border-emerald-500/30 text-emerald-100';
       case 'pending_review':
-        return 'bg-yellow-50 border-yellow-200';
+        return 'bg-amber-950/30 border-amber-500/30 text-amber-100';
       case 'rejected':
       case 'no_template':
-        return 'bg-red-50 border-red-200';
+        return 'bg-red-950/30 border-red-500/30 text-red-100';
       default:
-        return 'bg-gray-50 border-gray-200';
+        return 'bg-slate-950/60 border-cyan-500/30 text-cyan-100';
     }
   };
 
   const getConfidenceColor = (score) => {
-    if (score > 50) return 'text-green-600';  // Auto-approve: >50
-    if (score >= 30) return 'text-yellow-600';  // Manual review: 30-50
-    return 'text-red-600';  // Reject: <30
+    if (score > 50) return 'text-emerald-300';  // Auto-approve: >50
+    if (score >= 30) return 'text-amber-300';  // Manual review: 30-50
+    return 'text-red-300';  // Reject: <30
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5" />
+    <Card className="w-full max-w-2xl mx-auto bg-cyan-950/30 border border-cyan-500/30 text-cyan-100 shadow-lg shadow-cyan-500/10 backdrop-blur-md">
+      <CardHeader className="border-b border-cyan-500/20">
+        <CardTitle className="flex items-center gap-2 text-cyan-100">
+          <Shield className="h-5 w-5 text-cyan-300" />
           OCR Certificate Verification
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-cyan-200/80">
           Upload your certificate for automatic verification
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <form onSubmit={handleVerify} className="space-y-6">
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="certificate-file">Certificate *</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition">
+            <Label htmlFor="certificate-file" className="text-cyan-200">Certificate *</Label>
+            <div className="border-2 border-dashed border-cyan-500/30 rounded-lg p-6 text-center hover:border-cyan-400/60 bg-slate-950/40 transition">
               <Input
                 id="certificate-file"
                 type="file"
@@ -178,19 +178,19 @@ const OCRVerification = ({
               <label htmlFor="certificate-file" className="cursor-pointer">
                 {certificateFile ? (
                   <div className="space-y-2">
-                    <FileText className="h-12 w-12 mx-auto text-green-600" />
-                    <p className="text-sm font-medium">{certificateFile.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <FileText className="h-12 w-12 mx-auto text-emerald-400" />
+                    <p className="text-sm font-medium text-cyan-100">{certificateFile.name}</p>
+                    <p className="text-xs text-cyan-300/70">
                       {(certificateFile.size / 1024).toFixed(2)} KB
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Upload className="h-12 w-12 mx-auto text-gray-400" />
-                    <p className="text-sm text-gray-600">
+                    <Upload className="h-12 w-12 mx-auto text-cyan-400" />
+                    <p className="text-sm text-cyan-100">
                       Click to upload certificate
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-cyan-300/70">
                       PNG or JPG (max 10MB)
                     </p>
                   </div>
@@ -199,11 +199,11 @@ const OCRVerification = ({
             </div>
 
             {previewUrl && (
-              <div className="mt-4">
+              <div className="mt-4 rounded-lg border border-cyan-500/30 bg-slate-950/40 p-3">
                 <img 
                   src={previewUrl} 
                   alt="Preview" 
-                  className="max-w-full h-auto max-h-64 mx-auto border rounded"
+                  className="max-w-full h-auto max-h-64 mx-auto border border-cyan-500/20 rounded"
                 />
               </div>
             )}
@@ -211,14 +211,14 @@ const OCRVerification = ({
 
           {/* Template Type (Optional) */}
           <div className="space-y-2">
-            <Label htmlFor="template-type">Certificate Type (Optional)</Label>
+            <Label htmlFor="template-type" className="text-cyan-200">Certificate Type (Optional)</Label>
             <Select value={templateType} onValueChange={setTemplateType}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-900 border-cyan-500/30 text-cyan-100 hover:bg-slate-900/90">
                 <SelectValue placeholder="Auto-detect or select type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-950 border-cyan-500/30 text-cyan-100">
                 {templateTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value} value={type.value} className="text-cyan-100 focus:bg-cyan-900/40 focus:text-cyan-100">
                     {type.label}
                   </SelectItem>
                 ))}
@@ -240,28 +240,28 @@ const OCRVerification = ({
               <div className="flex items-start gap-4">
                 {getStatusIcon(verificationResult.verification_status)}
                 <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2">
+                  <h3 className="font-semibold text-lg mb-2 text-cyan-100">
                     {verificationResult.message}
                   </h3>
                   
                   {/* Confidence Score */}
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Confidence Score</span>
+                      <span className="text-sm font-medium text-cyan-200">Confidence Score</span>
                       <span className={`text-lg font-bold ${getConfidenceColor(verificationResult.confidence_score)}`}>
                         {verificationResult.confidence_score}%
                       </span>
                     </div>
                     <Progress 
                       value={verificationResult.confidence_score} 
-                      className="h-2"
+                      className="h-2 bg-cyan-950/60"
                     />
                   </div>
 
                   {/* Matched Template */}
                   {verificationResult.matched_template && (
                     <div className="mb-4">
-                      <Badge variant="outline" className="mb-2">
+                      <Badge variant="outline" className="mb-2 border-cyan-500/30 text-cyan-100 bg-cyan-950/40">
                         Template: {verificationResult.matched_template}
                       </Badge>
                     </div>
@@ -269,13 +269,13 @@ const OCRVerification = ({
 
                   {/* Extracted Data */}
                   {verificationResult.extracted_data && Object.keys(verificationResult.extracted_data).length > 0 && (
-                    <div className="bg-white/50 rounded p-4 mt-4">
-                      <p className="font-medium mb-2 text-sm">Extracted Information:</p>
+                    <div className="bg-cyan-950/40 border border-cyan-500/20 rounded p-4 mt-4">
+                      <p className="font-medium mb-2 text-sm text-cyan-100">Extracted Information:</p>
                       <div className="space-y-1 text-sm">
                         {Object.entries(verificationResult.extracted_data).map(([key, value]) => (
                           <div key={key} className="flex justify-between">
-                            <span className="text-gray-600 capitalize">{key.replace('_', ' ')}:</span>
-                            <span className="font-medium">{value}</span>
+                            <span className="text-cyan-300 capitalize">{key.replace('_', ' ')}:</span>
+                            <span className="font-medium text-cyan-100">{String(value)}</span>
                           </div>
                         ))}
                       </div>
@@ -285,10 +285,10 @@ const OCRVerification = ({
                   {/* Matching Details */}
                   {verificationResult.matching_details && (
                     <details className="mt-4">
-                      <summary className="text-sm text-gray-600 cursor-pointer hover:text-gray-800">
+                      <summary className="text-sm text-cyan-300 cursor-pointer hover:text-cyan-100">
                         View matching details
                       </summary>
-                      <div className="mt-2 text-sm space-y-1 bg-white/50 rounded p-3">
+                      <div className="mt-2 text-sm space-y-1 bg-cyan-950/40 border border-cyan-500/20 rounded p-3 text-cyan-100">
                         <div className="flex justify-between">
                           <span>Text Similarity:</span>
                           <span className="font-medium">
@@ -312,7 +312,7 @@ const OCRVerification = ({
           {/* Submit Button */}
           <Button 
             type="submit" 
-            className="w-full" 
+            className="w-full bg-cyan-600 text-slate-950 hover:bg-cyan-500" 
             disabled={verifying || !certificateFile}
           >
             {verifying ? (

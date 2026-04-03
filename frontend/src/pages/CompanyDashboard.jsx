@@ -8,11 +8,11 @@ import PendingExperienceRequests from '../components/company/PendingExperienceRe
 import ExperienceHistory from '../components/company/ExperienceHistory';
 import CompanyProfileForm from '../components/company/CompanyProfileForm';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
+import TemplateManager from '../components/TemplateManager';
 import { companyService, notificationService } from '../services/api';
 
 const initialPendingRequests = [];
 const initialHistory = [];
-const mockNotifications = [];
 
 export default function CompanyDashboard() {
   const { user, logout } = useAuth();
@@ -20,7 +20,7 @@ export default function CompanyDashboard() {
   const [activeTab, setActiveTab] = useState('intro');
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [history, setHistory] = useState(initialHistory);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -177,6 +177,7 @@ export default function CompanyDashboard() {
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'intro' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('intro')}>Intro</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'requests' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('requests')}>Pending Requests</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'history' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('history')}>History</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'templates' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('templates')}>Certificate Templates</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('profile')}>Company Profile</button>
             </div>
           </div>
@@ -234,6 +235,23 @@ export default function CompanyDashboard() {
               <div className="lg:col-span-2 space-y-8">
                 <motion.div variants={itemVariants}>
                   <ExperienceHistory history={history} />
+                </motion.div>
+              </div>
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={notifications} />
+                </motion.div>
+              </div>
+            </>
+          ) : activeTab === 'templates' ? (
+            <>
+              <div className="lg:col-span-2 space-y-8">
+                <motion.div variants={itemVariants}>
+                  <TemplateManager
+                    organizationId={user?.company_id || user?.organization_id || user?.id}
+                    organizationName={user?.organization || user?.company_name || 'Company'}
+                    organizationType="company"
+                  />
                 </motion.div>
               </div>
               <div className="space-y-8">

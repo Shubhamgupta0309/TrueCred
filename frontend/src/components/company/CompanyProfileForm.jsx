@@ -181,7 +181,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 required
                 placeholder="e.g., PrimeX Technologies"
               />
@@ -197,7 +197,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.fullName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="e.g., PrimeX Technologies Private Limited"
               />
             </div>
@@ -213,7 +213,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
               type="text"
               value={formData.address}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
               placeholder="Street address"
             />
           </div>
@@ -229,7 +229,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.city}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="City"
               />
             </div>
@@ -244,7 +244,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.state}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="State/Province"
               />
             </div>
@@ -259,7 +259,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.country}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="Country"
               />
             </div>
@@ -274,7 +274,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.postalCode}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="Postal/ZIP code"
               />
             </div>
@@ -291,7 +291,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="url"
                 value={formData.website}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="https://www.example.com"
               />
             </div>
@@ -306,7 +306,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="+1 (123) 456-7890"
               />
             </div>
@@ -321,7 +321,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="contact@example.com"
               />
             </div>
@@ -338,7 +338,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.accreditationBody}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="e.g., ISO 9001 Certified"
               />
             </div>
@@ -353,7 +353,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.establishmentYear}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
                 placeholder="e.g., 2010"
               />
             </div>
@@ -368,7 +368,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400"
               rows={4}
               placeholder="Brief description of your company..."
             />

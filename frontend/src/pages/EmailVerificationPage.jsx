@@ -65,26 +65,26 @@ export default function EmailVerificationPage() {
   }, [location, verifyEmail, navigate]);
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full opacity-20 blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500 rounded-full opacity-10 blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-cyan-600 rounded-full opacity-10 blur-3xl"></div>
       </div>
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="bg-white rounded-2xl shadow-xl shadow-purple-500/10 max-w-md w-full p-8 text-center"
+        className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-xl shadow-cyan-500/10 max-w-md w-full p-8 text-center text-cyan-100 backdrop-blur-md"
       >
         {status === 'verifying' && (
           <>
             <div className="flex justify-center mb-6">
-              <Loader size={64} className="text-purple-600 animate-spin" />
+              <Loader size={64} className="text-cyan-400 animate-spin" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">Verifying Your Email</h2>
-            <p className="text-gray-600">Please wait while we verify your email address...</p>
+            <h2 className="text-2xl font-bold text-cyan-100 mb-3">Verifying Your Email</h2>
+            <p className="text-cyan-200">Please wait while we verify your email address...</p>
           </>
         )}
         
@@ -93,11 +93,11 @@ export default function EmailVerificationPage() {
             <div className="flex justify-center mb-6">
               <CheckCircle size={64} className="text-green-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">Email Verified!</h2>
-            <p className="text-gray-600 mb-6">{message}</p>
-            <p className="text-sm text-gray-500">Redirecting you to the dashboard in a few seconds...</p>
+            <h2 className="text-2xl font-bold text-cyan-100 mb-3">Email Verified!</h2>
+            <p className="text-cyan-200 mb-6">{message}</p>
+            <p className="text-sm text-cyan-300/70">Redirecting you to the dashboard in a few seconds...</p>
             <div className="mt-4">
-              <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div className="w-full bg-cyan-950/50 rounded-full h-1.5">
                 <motion.div 
                   className="bg-green-500 h-1.5 rounded-full" 
                   initial={{ width: 0 }}
@@ -114,14 +114,14 @@ export default function EmailVerificationPage() {
             <div className="flex justify-center mb-6">
               <XCircle size={64} className="text-red-600" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">Verification Failed</h2>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <h2 className="text-2xl font-bold text-cyan-100 mb-3">Verification Failed</h2>
+            <p className="text-cyan-200 mb-6">{message}</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/auth')}
-                className="bg-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-purple-700 focus:ring-4 focus:ring-purple-300 focus:outline-none transition-all duration-200"
+                className="bg-cyan-600 text-slate-950 py-3 px-6 rounded-lg font-medium hover:bg-cyan-500 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200"
               >
                 Return to Login
               </motion.button>
@@ -129,7 +129,7 @@ export default function EmailVerificationPage() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => window.location.reload()}
-                className="border border-gray-300 text-gray-700 py-3 px-6 rounded-lg font-medium hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 focus:outline-none transition-all duration-200"
+                className="border border-cyan-500/30 text-cyan-100 py-3 px-6 rounded-lg font-medium hover:bg-cyan-950/20 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200"
               >
                 Try Again
               </motion.button>

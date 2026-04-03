@@ -192,7 +192,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       institution: college.fullName || college.name,
       institution_id: college.id
     }));
-    setCollegeSearchText('');
+    setCollegeSearchText(null);
   };
 
   const handleFileSelect = (event) => {

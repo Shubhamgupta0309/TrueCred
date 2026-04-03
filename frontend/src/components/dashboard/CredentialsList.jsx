@@ -9,10 +9,11 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
   const [verificationResults, setVerificationResults] = useState({});
   const [selectedCredential, setSelectedCredential] = useState(null);
 
-  // Filter to show only verified credentials
-  const verifiedCredentials = credentials.filter(cred => 
-    cred.status === 'Verified' || cred.status === 'verified' || cred.status === 'issued' || cred.verified === true
-  );
+  // Filter to show only verified/approved credentials (including OCR-verified)
+  const verifiedCredentials = credentials.filter(cred => {
+    const status = (cred.status || cred.verification_status || '').toLowerCase();
+    return status === 'verified' || status === 'approved' || status === 'issued' || cred.verified === true;
+  });
 
   // Handle blockchain verification
   const handleVerifyOnBlockchain = async (credentialId) => {
@@ -164,18 +165,18 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <h3 className="font-semibold text-cyan-200 mb-2">Basic Information</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Issuer:</span> {selectedCredential.issuer}</p>
-                      <p><span className="font-medium">Type:</span> {selectedCredential.type || 'Not specified'}</p>
-                      <p><span className="font-medium">Document URL:</span> {selectedCredential.document_url || selectedCredential.ipfs_hash || 'Not available'}</p>
+                    <div className="space-y-2 text-sm text-cyan-100">
+                      <p><span className="font-medium text-cyan-200">Issuer:</span> {selectedCredential.issuer}</p>
+                      <p><span className="font-medium text-cyan-200">Type:</span> {selectedCredential.type || 'Not specified'}</p>
+                      <p><span className="font-medium text-cyan-200">Document URL:</span> {selectedCredential.document_url || selectedCredential.ipfs_hash || 'Not available'}</p>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="font-semibold text-cyan-200 mb-2">Dates</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Issued:</span> {selectedCredential.issue_date ? new Date(selectedCredential.issue_date).toLocaleDateString() : 'Unknown'}</p>
-                      <p><span className="font-medium">Verified At:</span> {selectedCredential.verified_at ? new Date(selectedCredential.verified_at).toLocaleString() : 'N/A'}</p>
+                    <div className="space-y-2 text-sm text-cyan-100">
+                      <p><span className="font-medium text-cyan-200">Issued:</span> {selectedCredential.issue_date ? new Date(selectedCredential.issue_date).toLocaleDateString() : 'Unknown'}</p>
+                      <p><span className="font-medium text-cyan-200">Verified At:</span> {selectedCredential.verified_at ? new Date(selectedCredential.verified_at).toLocaleString() : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -191,10 +192,10 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                 {(selectedCredential.blockchain_data || selectedCredential.blockchain_tx_hash) && (
                   <div>
                     <h3 className="font-semibold text-cyan-200 mb-2">Verification Details</h3>
-                    <div className="space-y-2 text-sm">
-                      <p><span className="font-medium">Transaction Hash:</span> {selectedCredential.blockchain_data?.tx_hash || selectedCredential.blockchain_tx_hash || 'N/A'}</p>
-                      <p><span className="font-medium">Block Number:</span> {selectedCredential.blockchain_data?.block_number || selectedCredential.block_number || 'N/A'}</p>
-                      <p><span className="font-medium">Timestamp:</span> {selectedCredential.blockchain_data?.timestamp ? new Date(selectedCredential.blockchain_data.timestamp).toLocaleString() : 'N/A'}</p>
+                    <div className="space-y-2 text-sm text-cyan-100">
+                      <p><span className="font-medium text-cyan-200">Transaction Hash:</span> {selectedCredential.blockchain_data?.tx_hash || selectedCredential.blockchain_tx_hash || 'N/A'}</p>
+                      <p><span className="font-medium text-cyan-200">Block Number:</span> {selectedCredential.blockchain_data?.block_number || selectedCredential.block_number || 'N/A'}</p>
+                      <p><span className="font-medium text-cyan-200">Timestamp:</span> {selectedCredential.blockchain_data?.timestamp ? new Date(selectedCredential.blockchain_data.timestamp).toLocaleString() : 'N/A'}</p>
                     </div>
                   </div>
                 )}
@@ -260,13 +261,13 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                         // render unique documents
                         const items = Array.from(docsMap.values());
                         if (items.length === 0) {
-                          return (<div className="text-gray-500">No documents available.</div>);
+                          return (<div className="text-cyan-300/70">No documents available.</div>);
                         }
 
                         return items.map((d) => (
-                          <div key={d.url} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                            <span className="text-sm font-medium">{d.filename || d.label}</span>
-                            <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 text-sm underline">View Document</a>
+                          <div key={d.url} className="flex items-center gap-2 p-2 bg-cyan-900/30 rounded-lg border border-cyan-500/30">
+                            <span className="text-sm font-medium text-cyan-100">{d.filename || d.label}</span>
+                            <a href={d.url} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:text-cyan-100 text-sm underline">View Document</a>
                           </div>
                         ));
                       })()

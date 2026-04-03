@@ -94,7 +94,7 @@ const TemplateManager = ({ organizationId, organizationName, organizationType })
   if (showUpload) {
     return (
       <div className="space-y-4">
-        <Button variant="outline" onClick={() => setShowUpload(false)}>
+        <Button variant="outline" className="border-cyan-500/30 text-cyan-100 bg-cyan-950/20 hover:bg-cyan-900/30" onClick={() => setShowUpload(false)}>
           ← Back to Templates
         </Button>
         <TemplateUpload

@@ -201,7 +201,7 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
               placeholder="e.g., Computer Science Degree 2024"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
-              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50"
+              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50 focus:bg-slate-800 focus:border-cyan-400 focus:outline-none focus:ring-0"
               required
             />
           </div>
@@ -210,12 +210,12 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
           <div className="space-y-2">
             <Label htmlFor="template-type" className="text-cyan-200">Certificate Type *</Label>
             <Select value={templateType} onValueChange={setTemplateType}>
-              <SelectTrigger className="bg-slate-900 border-cyan-500/30 text-cyan-100">
+              <SelectTrigger className="bg-slate-900 border-cyan-500/30 text-cyan-100 focus:bg-slate-800 focus:border-cyan-400 focus:outline-none focus:ring-0">
                 <SelectValue placeholder="Select certificate type" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-900 border-cyan-500/30">
                 {templateTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
+                  <SelectItem key={type.value} value={type.value} className="text-cyan-100 hover:bg-slate-800">
                     {type.label}
                   </SelectItem>
                 ))}
@@ -231,7 +231,7 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
               placeholder="name, date, course (comma-separated)"
               value={requiredFields}
               onChange={(e) => setRequiredFields(e.target.value)}
-              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50"
+              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50 focus:bg-slate-800 focus:border-cyan-400 focus:outline-none focus:ring-0"
             />
             <p className="text-xs text-cyan-300/70">
               Fields that must be present for verification
@@ -246,7 +246,7 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
               placeholder="grade, roll_number (comma-separated)"
               value={optionalFields}
               onChange={(e) => setOptionalFields(e.target.value)}
-              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50"
+              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50 focus:bg-slate-800 focus:border-cyan-400 focus:outline-none focus:ring-0"
             />
             <p className="text-xs text-cyan-300/70">
               Additional fields that may be extracted
