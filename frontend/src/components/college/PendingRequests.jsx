@@ -73,9 +73,10 @@ export default function PendingRequests({ requests = [], onAction }) {
 
   const handleReject = async (req) => {
     if (!req || !req.id) return;
+    const reason = window.prompt('Optional: enter rejection reason', '') || '';
     setProcessingId(req.id);
     try {
-      const resp = await collegeService.rejectRequest(req.id);
+      const resp = await collegeService.rejectRequest(req.id, reason);
       if (resp && resp.data) {
         success('Request rejected successfully!');
         onAction && onAction(req.id, 'Rejected');
@@ -222,6 +223,36 @@ export default function PendingRequests({ requests = [], onAction }) {
                 <div className="mb-2">
                   <h4 className="font-semibold text-gray-800 text-sm">Institution</h4>
                   <p className="text-gray-700">{req.institutionName || req.institution_name || req.issuer || 'Not specified'}</p>
+                </div>
+
+                <div className="mb-2">
+                  <h4 className="font-semibold text-gray-800 text-sm">OCR Verification</h4>
+                  <p className="text-gray-700 capitalize">
+                    {(req.verification_status || 'not_checked').replace('_', ' ')}
+                  </p>
+                  <p className="text-gray-700">Confidence: {typeof req.confidence_score === 'number' ? `${req.confidence_score}%` : 'N/A'}</p>
+                  {req.matched_template_name && (
+                    <p className="text-xs text-gray-500">Matched template: {req.matched_template_name}</p>
+                  )}
+                  {req.ocr_decision_details?.decision_reason && (
+                    <p className="text-xs text-gray-500 mt-1">{req.ocr_decision_details.decision_reason}</p>
+                  )}
+                  {req.ocr_decision_details?.matching_details?.text_similarity !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Text similarity: {req.ocr_decision_details.matching_details.text_similarity}%
+                    </p>
+                  )}
+                  {req.ocr_decision_details?.matching_details?.layout_similarity !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Layout similarity: {req.ocr_decision_details.matching_details.layout_similarity}%
+                    </p>
+                  )}
+                  {req.ocr_decision_details?.matching_details?.required_fields_matched !== undefined && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Required fields: {req.ocr_decision_details.matching_details.required_fields_matched}/
+                      {req.ocr_decision_details.matching_details.required_fields_total || 0}
+                    </p>
+                  )}
                 </div>
                 
                 <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">

@@ -202,10 +202,11 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check if file is a PDF
-    if (file.type !== 'application/pdf') {
+    // Allow PDF and image uploads so OCR can run reliably against templates.
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
       setUploadStatus('error');
-      setStatusMessage('Only PDF files are allowed.');
+      setStatusMessage('Only PDF, PNG, or JPG files are allowed.');
       return;
     }
 
@@ -255,6 +256,8 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     // If changing institution, also update the search text
     if (name === 'institution') {
       setCollegeSearchText(value);
+      // Force re-selection from dropdown to ensure organization_id is always valid.
+      setCredentialInfo(prev => ({ ...prev, institution_id: '' }));
       // Fetch institutions with the search query
       fetchColleges(value);
     }
@@ -290,6 +293,11 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     if (!checkAuthBeforeAction()) return;
     
     if (!selectedFile || !credentialInfo.institution || !credentialInfo.title) return;
+    if (!credentialInfo.institution_id) {
+      setUploadStatus('error');
+      setStatusMessage('Please select the organization from dropdown so we can match templates correctly.');
+      return;
+    }
 
     setUploading(true);
     setUploadStatus(null);
@@ -352,8 +360,57 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       const reqResp = await api.post('/api/credentials/request', requestPayload);
       console.log('Credential request response:', reqResp.data);
 
+      // Phase 1-3 fix: immediately run OCR verification for the created request
+      // so request status/verification_status stay in sync.
+      const requestId =
+        reqResp?.data?.data?.request_id ||
+        reqResp?.data?.request_id ||
+        null;
+
+      let ocrMessage = '';
+      if (requestId && credentialInfo.institution_id) {
+        try {
+          const ocrFormData = new FormData();
+          ocrFormData.append('credential_file', selectedFile);
+          ocrFormData.append('organization_id', credentialInfo.institution_id);
+          ocrFormData.append('credential_request_id', requestId);
+          if (credentialInfo.title) {
+            ocrFormData.append('template_title', credentialInfo.title);
+          }
+
+          // Title-based filter is primary; do not over-restrict with template_type.
+
+          const ocrResp = await api.post('/api/ocr/verify-credential-ocr', ocrFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+
+          const ocrData = ocrResp?.data?.data || {};
+          const verificationStatus = ocrData.verification_status;
+          const confidenceScore = ocrData.confidence_score;
+          const decisionReason = ocrData.decision_reason;
+          const titleFilter = ocrData.template_title_filter;
+
+          ocrMessage = ` OCR: ${verificationStatus || 'unknown'} (${confidenceScore ?? 'N/A'}%).`;
+          if (titleFilter) {
+            ocrMessage += ` Template filter: ${titleFilter}.`;
+          }
+          if (decisionReason) {
+            ocrMessage += ` ${decisionReason}`;
+          }
+        } catch (ocrError) {
+          console.error('OCR verification failed after request creation:', ocrError);
+          ocrMessage = ' OCR check could not complete right now.';
+        }
+      } else if (!credentialInfo.institution_id) {
+        ocrMessage = ' OCR skipped because institution_id is missing.';
+      }
+
       setUploadStatus('success');
-      setStatusMessage(reqResp.data.message || `Credential request submitted to ${credentialInfo.institution}.`);
+      setStatusMessage(
+        `${reqResp.data.message || `Credential request submitted to ${credentialInfo.institution}.`}${ocrMessage}`
+      );
       // Notify parent to refresh dashboard data
       if (onSuccess && typeof onSuccess === 'function') {
         try { onSuccess(); } catch (e) { console.warn('onSuccess callback failed', e); }
@@ -513,7 +570,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
           type="file" 
           ref={fileInputRef}
           className="hidden" 
-          accept=".pdf" 
+          accept=".pdf,.png,.jpg,.jpeg" 
           onChange={handleFileSelect} 
         />
         <motion.button
@@ -777,7 +834,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
               </button>
               <button
                 onClick={uploadCredential}
-                disabled={!credentialInfo.institution || !credentialInfo.title}
+                disabled={!credentialInfo.institution || !credentialInfo.title || !credentialInfo.institution_id}
                 className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload Credential

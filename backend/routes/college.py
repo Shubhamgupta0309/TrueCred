@@ -240,6 +240,13 @@ def get_pending_requests():
                 'issuer_id': req.issuer_id,
                 'type': req.type,
                 'status': req.status,
+                'ocr_verified': req.ocr_verified,
+                'confidence_score': req.confidence_score,
+                'verification_status': req.verification_status,
+                'matched_template_name': req.matched_template_name,
+                'ocr_extracted_data': req.ocr_extracted_data or {},
+                'ocr_decision_details': req.ocr_decision_details or {},
+                'manual_review_required': req.manual_review_required,
                 'created_at': req.created_at.isoformat() if req.created_at else None,
                 'updated_at': req.updated_at.isoformat() if req.updated_at else None,
                 'attachments': req.attachments or [],  # Include attachments for document viewing

@@ -19,3 +19,10 @@ eth-account==0.8.0
 py-solc-x==1.1.1
 hexbytes==0.3.1
 eth-utils==2.2.0
+
+# OCR and Image Processing
+pytesseract==0.3.10
+Pillow==10.0.0
+opencv-python==4.8.0.74
+scikit-image==0.21.0
+numpy==1.24.3

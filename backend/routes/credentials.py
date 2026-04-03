@@ -400,6 +400,102 @@ def request_credential():
         except Exception as e:
             logger.error('Failed to create notification: %s', e)
 
+        # Server-side OCR trigger: ensures request is evaluated even if frontend OCR call is skipped.
+        try:
+            attachment = (cr.attachments or [])[0] if (cr.attachments or []) else None
+            attachment_uri = attachment.get('uri') if isinstance(attachment, dict) else None
+            attachment_name = (attachment.get('filename') or '').lower() if isinstance(attachment, dict) else ''
+
+            if not cr.issuer_id:
+                cr.ocr_verified = False
+                cr.confidence_score = 0
+                cr.verification_status = 'failed'
+                cr.manual_review_required = True
+                cr.ocr_decision_details = {
+                    'decision_reason': 'OCR not run: issuer_id is missing on request.',
+                    'matching_details': {},
+                    'template_title_filter': cr.title,
+                    'thresholds': {}
+                }
+                cr.save()
+            elif not attachment_uri:
+                cr.ocr_verified = False
+                cr.confidence_score = 0
+                cr.verification_status = 'failed'
+                cr.manual_review_required = True
+                cr.ocr_decision_details = {
+                    'decision_reason': 'OCR not run: no attachment URI found on request.',
+                    'matching_details': {},
+                    'template_title_filter': cr.title,
+                    'thresholds': {}
+                }
+                cr.save()
+            else:
+                import requests
+                from services.template_matching_service import template_matching_service
+
+                file_resp = requests.get(attachment_uri, timeout=30)
+                if not file_resp.ok:
+                    raise ValueError(f'Could not fetch attachment for OCR: HTTP {file_resp.status_code}')
+
+                verification_result = template_matching_service.verify_certificate_against_templates(
+                    image_data=file_resp.content,
+                    organization_id=str(cr.issuer_id),
+                    template_title=cr.title
+                )
+
+                if verification_result.get('success'):
+                    cr.ocr_verified = True
+                    cr.confidence_score = verification_result.get('confidence_score', 0)
+                    cr.verification_status = verification_result.get('verification_status')
+                    cr.matched_template_id = verification_result.get('matched_template_id')
+                    cr.matched_template_name = verification_result.get('matched_template_name')
+                    cr.ocr_extracted_data = verification_result.get('key_fields', {})
+                    cr.ocr_decision_details = {
+                        'decision_reason': verification_result.get('decision_reason'),
+                        'matching_details': verification_result.get('matching_details', {}),
+                        'template_title_filter': verification_result.get('template_title_filter'),
+                        'thresholds': verification_result.get('thresholds', {})
+                    }
+                    cr.manual_review_required = verification_result.get('verification_status') == 'pending_review'
+
+                    if verification_result.get('verification_status') == 'verified':
+                        cr.status = 'issued'
+                        cr.manual_review_required = False
+                    elif verification_result.get('verification_status') == 'rejected':
+                        cr.status = 'rejected'
+                    else:
+                        cr.status = 'pending'
+                else:
+                    cr.ocr_verified = False
+                    cr.confidence_score = verification_result.get('confidence_score', 0) or 0
+                    cr.verification_status = verification_result.get('verification_status', 'failed')
+                    cr.manual_review_required = True
+                    cr.ocr_decision_details = {
+                        'decision_reason': verification_result.get('error', 'OCR verification failed'),
+                        'matching_details': verification_result.get('details', {}),
+                        'template_title_filter': cr.title,
+                        'thresholds': {}
+                    }
+
+                cr.save()
+        except Exception as ocr_error:
+            logger.error('Server-side OCR trigger failed for request %s: %s', str(cr.id), ocr_error)
+            try:
+                cr.ocr_verified = False
+                cr.confidence_score = 0
+                cr.verification_status = 'error'
+                cr.manual_review_required = True
+                cr.ocr_decision_details = {
+                    'decision_reason': f'Server-side OCR trigger failed: {ocr_error}',
+                    'matching_details': {},
+                    'template_title_filter': cr.title,
+                    'thresholds': {}
+                }
+                cr.save()
+            except Exception:
+                logger.exception('Failed to persist OCR error details for request %s', str(cr.id))
+
         return success_response(data={'request_id': str(cr.id)}, message='Credential request submitted', status_code=201)
     except Exception as e:
         logger.error('Error creating credential request: %s', e, exc_info=True)

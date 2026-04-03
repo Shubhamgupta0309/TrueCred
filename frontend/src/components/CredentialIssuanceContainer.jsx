@@ -285,7 +285,7 @@ const CredentialIssuanceContainer = () => {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="expiryDate" className="block font-medium">Expiry Date</label>
+              <label htmlFor="expiryDate" className="block font-medium">Issued Date</label>
               <input
                 id="expiryDate"
                 name="expiryDate"
