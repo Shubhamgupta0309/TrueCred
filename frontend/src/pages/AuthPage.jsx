@@ -6,6 +6,7 @@ import MetaMaskConnect from '../components/auth/MetaMaskConnect';
 import ManualWalletInput from '../components/auth/ManualWalletInput';
 import ToggleLink from '../components/auth/ToggleLink';
 import EmailVerificationReminder from '../components/auth/EmailVerificationReminder';
+import BackgroundGlobeAnimation from '../components/landing/BackgroundGlobeAnimation';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '../utils';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -282,69 +283,70 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-purple-50 via-white to-purple-50 flex items-center justify-center p-4">
-      {/* Background decoration */}
-       <div className="absolute inset-0 overflow-hidden">
-      <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full opacity-20 blur-3xl"></div>
-      <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-300 rounded-full opacity-20 blur-3xl"></div>
-    </div>
+    <div className="min-h-screen w-full bg-[#06090e] flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Globe Animation */}
+      <div className="absolute inset-0 z-0">
+        <BackgroundGlobeAnimation opacity={0.12} />
+      </div>
 
-      {/* Email Verification Reminder */}
-      <AnimatePresence>
-        {showVerificationReminder && (
-          <EmailVerificationReminder 
-            email={verificationEmail} 
-            onClose={() => setShowVerificationReminder(false)} 
-          />
-        )}
-      </AnimatePresence>
+      {/* Content Container */}
+      <div className="relative z-10">
+        {/* Email Verification Reminder */}
+        <AnimatePresence>
+          {showVerificationReminder && (
+            <EmailVerificationReminder 
+              email={verificationEmail} 
+              onClose={() => setShowVerificationReminder(false)} 
+            />
+          )}
+        </AnimatePresence>
 
-      <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="relative w-full max-w-md"
-    >
-        <div className="bg-white rounded-2xl shadow-xl shadow-purple-500/10 overflow-hidden">
-          {/* Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6 text-center">
-            <motion.div
-              key={isLogin}
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h2 className="text-2xl font-bold text-white">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
-              </h2>
-              <p className="text-purple-100 text-sm mt-1">
-                {isLogin ? 'Sign in to your account' : 'Join our community today'}
-              </p>
-            </motion.div>
-          </div>
-
-          {/* Success Message */}
-          <AnimatePresence>
-            {successMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="relative w-full max-w-md"
+        >
+          <div className="bg-slate-950/40 backdrop-blur-xl rounded-2xl shadow-2xl shadow-cyan-500/10 overflow-hidden border border-cyan-500/20">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-cyan-600/20 to-cyan-700/20 px-8 py-6 text-center border-b border-cyan-500/20">
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="bg-green-50 border-l-4 border-green-500 px-8 py-4"
+                key={isLogin}
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
               >
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <p className="text-green-700 text-sm font-medium">{successMessage}</p>
-                </div>
+                <h2 className="text-2xl font-bold text-cyan-100">
+                  {isLogin ? 'Welcome Back' : 'Create Account'}
+                </h2>
+                <p className="text-cyan-300/70 text-sm mt-1">
+                  {isLogin ? 'Sign in to your account' : 'Join our community today'}
+                </p>
               </motion.div>
-            )}
-          </AnimatePresence>
+            </div>
 
-          {/* Form */}
-          <div className="px-8 py-6">
-            <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            {/* Success Message */}
+            <AnimatePresence>
+              {successMessage && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="bg-green-500/10 border-l-4 border-green-400 px-8 py-4"
+                >
+                  <div className="flex items-center">
+                    <svg className="w-5 h-5 text-green-400 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <p className="text-green-300 text-sm font-medium">{successMessage}</p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Form */}
+            <div className="px-8 py-6">
+              <form onSubmit={handleSubmit} className="space-y-6" noValidate>
               <AnimatePresence mode="wait">
                 <motion.div
                   key={isLogin ? 'login' : 'register'}
@@ -433,7 +435,7 @@ export default function AuthPage() {
                 <motion.div 
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mt-4 bg-red-50 border-l-4 border-red-500 p-4 shadow-sm auth-error-message"
+                  className="mt-4 bg-red-500/10 border-l-4 border-red-400 p-4 shadow-sm auth-error-message"
                 >
                   <div className="flex">
                     <div className="flex-shrink-0">
@@ -442,7 +444,7 @@ export default function AuthPage() {
                       </svg>
                     </div>
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-red-700">{errors.general}</p>
+                      <p className="text-sm font-medium text-red-300">{errors.general}</p>
                     </div>
                   </div>
                 </motion.div>
@@ -505,10 +507,10 @@ export default function AuthPage() {
               <div className="mt-6">
                 <div className="relative">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-300"></div>
+                    <div className="w-full border-t border-cyan-500/30"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="px-2 bg-white text-gray-500">Or login with wallet</span>
+                    <span className="px-2 bg-slate-950/40 text-cyan-300/70">Or login with wallet</span>
                   </div>
                 </div>
                 
@@ -525,10 +527,11 @@ export default function AuthPage() {
         </div>
 
         {/* Footer */}
-        <div className="text-center mt-6 text-gray-500 text-sm">
+        <div className="text-center mt-6 text-cyan-300/60 text-sm">
           <p>By continuing, you agree to our Terms of Service and Privacy Policy</p>
         </div>
       </motion.div>
     </div>
+  </div>
   );
 }

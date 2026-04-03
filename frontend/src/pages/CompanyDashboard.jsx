@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext.jsx';
 import CompanyDashboardHeader from '../components/company/CompanyDashboardHeader';
 import SearchFilterPanel from '../components/college/SearchFilterPanel'; // Reusing for now
 import PendingExperienceRequests from '../components/company/PendingExperienceRequests';
@@ -8,46 +9,56 @@ import CompanyProfileForm from '../components/company/CompanyProfileForm';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 import { companyService, notificationService } from '../services/api';
 
-// start with empty state; will fetch from API
-const mockCompanyUser = { name: '', email: '', role: 'Company' };
 const initialPendingRequests = [];
 const initialHistory = [];
 const mockNotifications = [];
 
 export default function CompanyDashboard() {
-  const [activeTab, setActiveTab] = useState('requests');
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState('intro');
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [history, setHistory] = useState(initialHistory);
   const [notifications, setNotifications] = useState(mockNotifications);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const userForHeader = {
+    name: user?.first_name && user?.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : user?.organization || user?.username || 'Company Admin',
+    email: user?.email || '',
+    role: 'Company'
+  };
 
   // Fetch company/experience data on mount
   React.useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+
       try {
-        const pendingResp = await companyService.getPendingExperienceRequests();
+        const [pendingResp, historyResp, notifResp] = await Promise.all([
+          companyService.getPendingExperienceRequests(),
+          companyService.getExperienceHistory(),
+          notificationService.getNotifications()
+        ]);
+
         if (pendingResp.data && pendingResp.data.success) {
           setPendingRequests(pendingResp.data.data || pendingResp.data.requests || []);
         }
-      } catch (e) {
-        console.error('Error fetching pending experience requests', e);
-      }
 
-      try {
-        const historyResp = await companyService.getExperienceHistory();
         if (historyResp.data && historyResp.data.success) {
           setHistory(historyResp.data.data || historyResp.data.history || []);
         }
-      } catch (e) {
-        console.error('Error fetching experience history', e);
-      }
 
-      try {
-        const notifResp = await notificationService.getNotifications();
         if (notifResp.data && notifResp.data.success) {
           setNotifications(notifResp.data.data.notifications || notifResp.data.notifications || []);
         }
       } catch (e) {
-        console.error('Error fetching notifications', e);
+        console.error('Error fetching company dashboard data', e);
+        setError('Failed to load company dashboard data. Please refresh and try again.');
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -83,6 +94,12 @@ export default function CompanyDashboard() {
     }
   };
 
+  const stats = [
+    { label: 'Pending Verifications', value: pendingRequests.length, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
+    { label: 'Completed Reviews', value: history.length, tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
+    { label: 'Notifications', value: notifications.length, tone: 'text-cyan-700 bg-cyan-50 border-cyan-100' }
+  ];
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
@@ -93,10 +110,38 @@ export default function CompanyDashboard() {
     visible: { opacity: 1, y: 0 },
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-600 mx-auto"></div>
+          <p className="mt-4 text-gray-700">Loading company dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-8 flex items-center justify-center">
+        <div className="bg-white shadow-md rounded-lg p-8 max-w-md w-full text-center">
+          <h2 className="text-xl font-bold text-gray-800">Error Loading Dashboard</h2>
+          <p className="mt-2 text-gray-600">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-teal-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <CompanyDashboardHeader user={mockCompanyUser} />
+        <CompanyDashboardHeader user={userForHeader} />
 
         <motion.div
           variants={containerVariants}
@@ -106,13 +151,40 @@ export default function CompanyDashboard() {
         >
           <div className="bg-white shadow-sm rounded-lg mb-8 lg:col-span-3">
             <div className="flex border-b">
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'intro' ? 'border-b-2 border-cyan-600 text-cyan-700' : 'text-gray-500 hover:text-cyan-500'}`} onClick={() => setActiveTab('intro')}>Intro</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'requests' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('requests')}>Pending Requests</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'history' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('history')}>History</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('profile')}>Company Profile</button>
             </div>
           </div>
 
-          {activeTab === 'requests' ? (
+          {activeTab === 'intro' ? (
+            <>
+              <div className="lg:col-span-2 space-y-6">
+                <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-cyan-100 p-6">
+                  <p className="text-xs uppercase tracking-[0.18em] text-cyan-700 font-semibold">TrueCred Startup Workspace</p>
+                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">Review Faster. Verify Smarter. Build Trust at Scale.</h2>
+                  <p className="mt-3 text-gray-600 leading-relaxed">
+                    This dashboard is your operations cockpit for company-side verification. Triage pending experience requests,
+                    complete approvals with clear evidence, and maintain a consistent verification trail for every candidate.
+                  </p>
+                </motion.div>
+                <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {stats.map((item) => (
+                    <div key={item.label} className={`rounded-xl border p-4 ${item.tone}`}>
+                      <p className="text-xs uppercase tracking-wide font-semibold">{item.label}</p>
+                      <p className="text-3xl font-bold mt-2">{item.value}</p>
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={notifications} />
+                </motion.div>
+              </div>
+            </>
+          ) : activeTab === 'requests' ? (
             <>
               {/* Main Column */}
               <div className="lg:col-span-2 space-y-8">
@@ -136,13 +208,12 @@ export default function CompanyDashboard() {
             </>
           ) : activeTab === 'history' ? (
             <>
-              <div className="lg:col-span-2">
-                <PendingExperienceRequests requests={[]} onAction={handleAction} />
-              </div>
-              <div className="space-y-8">
+              <div className="lg:col-span-2 space-y-8">
                 <motion.div variants={itemVariants}>
                   <ExperienceHistory history={history} />
                 </motion.div>
+              </div>
+              <div className="space-y-8">
                 <motion.div variants={itemVariants}>
                   <NotificationPanel notifications={notifications} />
                 </motion.div>
@@ -151,7 +222,7 @@ export default function CompanyDashboard() {
           ) : (
             <>
               <div className="lg:col-span-2">
-                <CompanyProfileForm user={mockCompanyUser} onUpdate={() => {}} />
+                <CompanyProfileForm user={userForHeader} onUpdate={() => {}} />
               </div>
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>

@@ -189,9 +189,9 @@ export default function MetaMaskConnect({ isDashboard = false }) {
       <button
         onClick={handleConnect}
         disabled={isConnecting}
-        className={`w-full flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg transition-all duration-200 hover:border-purple-400 hover:bg-purple-50 ${
-          isConnected ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-300 text-gray-600'
-        } ${isConnecting ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-md'}`}
+        className={`w-full flex items-center justify-center px-4 py-3 border-2 border-dashed rounded-lg transition-all duration-200 hover:border-cyan-400 hover:bg-cyan-950/20 ${
+          isConnected ? 'border-green-400/60 bg-green-950/20 text-green-300' : 'border-cyan-500/40 text-cyan-300'
+        } ${isConnecting ? 'opacity-75 cursor-not-allowed' : 'hover:shadow-md hover:shadow-cyan-500/20'}`}
       >
         <div className="flex items-center space-x-3">
           {/* MetaMask Fox Icon */}
@@ -214,7 +214,7 @@ export default function MetaMaskConnect({ isDashboard = false }) {
           </div>
           
           {isConnecting && (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-cyan-400"></div>
           )}
           
           {isConnected && (

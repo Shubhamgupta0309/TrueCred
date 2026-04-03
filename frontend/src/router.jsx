@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { Navigate } from 'react-router-dom';
 import AuthPage from './pages/AuthPage';
+import LandingPage from './pages/LandingPage';
 import StudentDashboard from './pages/StudentDashboard';
 import CollegeDashboard from './pages/CollegeDashboard';
 import CompanyDashboard from './pages/CompanyDashboard';
@@ -16,7 +17,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
  * to prevent React Router v7 deprecation warnings
  */
 const router = createBrowserRouter([
-  { path: "/", element: <AuthPage /> },
+  { path: "/", element: <LandingPage /> },
   { path: "/auth", element: <AuthPage /> },
   { path: "/verify-email", element: <EmailVerificationPage /> },
   { path: "/verification-pending", element: <VerificationPendingPage /> },
