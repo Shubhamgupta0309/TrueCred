@@ -108,6 +108,8 @@ def register_blueprints(app):
     from routes.college import college_bp
     from routes.user import user_bp
     from routes.notifications import notifications_bp
+    from routes.template_management import template_management_bp
+    from routes.ocr_verification import ocr_verification_bp
     
     # Register blueprints
     app.register_blueprint(api_bp, url_prefix='/api')
@@ -119,6 +121,8 @@ def register_blueprints(app):
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(health_bp, url_prefix='/api/health')
     app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
+    app.register_blueprint(template_management_bp, url_prefix='/api/templates')
+    app.register_blueprint(ocr_verification_bp, url_prefix='/api/ocr')
     # Blockchain routes removed - not needed for basic functionality
     app.register_blueprint(ipfs_bp)
     app.register_blueprint(org_bp)

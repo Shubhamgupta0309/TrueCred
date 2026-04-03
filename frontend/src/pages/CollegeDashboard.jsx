@@ -12,6 +12,7 @@ import StudentSearch from '../components/organization/StudentSearch';
 import StudentCredentialUpload from '../components/organization/StudentCredentialUpload';
 import ProfileCard from '../components/profile/ProfileCard';
 import CollegeProfileForm from '../components/college/CollegeProfileForm';
+import TemplateManager from '../components/TemplateManager';
 import { api, notificationService } from '../services/api';
 
 export default function CollegeDashboard() {
@@ -62,6 +63,12 @@ export default function CollegeDashboard() {
             credentialTitle: req.title || 'Untitled Credential',
             submissionDate: req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Unknown',
             status: req.status,
+            verification_status: req.verification_status,
+            ocr_verified: req.ocr_verified,
+            confidence_score: req.confidence_score,
+            matched_template_name: req.matched_template_name,
+            ocr_decision_details: req.ocr_decision_details || {},
+            manual_review_required: req.manual_review_required,
             type: req.type,
             issuer: req.issuer,
             attachments: req.attachments || [],  // Include attachments for document viewing
@@ -251,6 +258,16 @@ export default function CollegeDashboard() {
             >
               College Profile
             </button>
+            <button
+              className={`py-3 px-6 focus:outline-none ${
+                activeTab === 'templates'
+                  ? 'border-b-2 border-purple-600 text-purple-700'
+                  : 'text-gray-500 hover:text-purple-500'
+              }`}
+              onClick={() => setActiveTab('templates')}
+            >
+              Certificate Templates
+            </button>
           </div>
         </div>
 
@@ -310,7 +327,7 @@ export default function CollegeDashboard() {
                 </motion.div>
               </div>
             </motion.div>
-          ) : (
+          ) : activeTab === 'profile' ? (
             <motion.div
               key="profile"
               initial={{ opacity: 0 }}
@@ -364,10 +381,21 @@ export default function CollegeDashboard() {
                     </ul>
                   </div>
                 </motion.div>
-                <motion.div variants={itemVariants}>
-                  <NotificationPanel notifications={notifications} />
-                </motion.div>
               </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="templates"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="max-w-7xl mx-auto"
+            >
+              <TemplateManager 
+                organizationId={user?.college_id || user?.id}
+                organizationName={collegeProfile?.name || user?.username}
+                organizationType="college"
+              />
             </motion.div>
           )}
         </AnimatePresence>

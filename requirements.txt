@@ -1,6 +1,6 @@
 # TrueCred API Backend Requirements
 # Core dependencies
-Flask==2.3.7
+Flask==2.3.3
 Flask-JWT-Extended==4.5.2
 Flask-Cors==4.0.0
 PyJWT==2.8.0
@@ -20,7 +20,7 @@ eth-utils==2.2.0
 py-solc-x==1.1.1
 
 # IPFS integration
-ipfshttpclient==0.8.0
+ipfshttpclient==0.7.0
 multiaddr==0.0.9
 
 # Email handling
@@ -45,3 +45,10 @@ pytest-flask==1.2.0
 
 # Logging
 structlog==23.1.0
+
+# OCR and Image Processing
+pytesseract==0.3.10
+Pillow==10.0.0
+opencv-python==4.8.0.74
+scikit-image==0.21.0
+numpy==1.24.3

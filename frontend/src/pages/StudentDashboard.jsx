@@ -34,7 +34,7 @@ const normalizeCredentials = (arr) => {
     let id = c.id || c._id || c.id_str || c._id_str || (c._id && String(c._id)) || null;
     const title = c.title || c.name || 'Untitled Credential';
     const date = c.issue_date || c.created_at || c.updated_at || c.timestamp || null;
-    const status = c.status || c.verification_status || (c.verified ? 'verified' : (c.pending_verification ? 'pending' : 'unverified')) || 'unknown';
+    const status = c.verification_status || c.status || (c.verified ? 'verified' : (c.pending_verification ? 'pending' : 'unverified')) || 'unknown';
 
     if (!id) {
       // Create a stable fallback id from title+date
@@ -54,6 +54,28 @@ const normalizeCredentials = (arr) => {
   });
 
   return Array.from(map.values()).map((v) => ({ ...v.raw, id: v.id, title: v.title, date: v.date, status: v.status }));
+};
+
+const getEffectiveRequestStatus = (req) => {
+  const verificationStatus = (req?.verification_status || '').toLowerCase();
+  if (verificationStatus) {
+    if (verificationStatus === 'verified') return 'approved';
+    if (verificationStatus === 'pending_review') return 'pending_review';
+    if (verificationStatus === 'rejected') return 'rejected';
+    if (verificationStatus === 'no_template' || verificationStatus === 'failed' || verificationStatus === 'error') {
+      return 'pending';
+    }
+    return verificationStatus;
+  }
+  const requestStatus = (req?.status || 'pending').toLowerCase();
+  if (requestStatus === 'verified' || requestStatus === 'issued') return 'approved';
+  return requestStatus;
+};
+
+const getRequestStatusTextClass = (statusKey) => {
+  if (statusKey === 'approved' || statusKey === 'issued' || statusKey === 'verified') return 'text-green-600';
+  if (statusKey === 'pending_review' || statusKey === 'pending') return 'text-yellow-600';
+  return 'text-red-600';
 };
 
 function StudentDashboard({ onAuthError }) {
@@ -90,34 +112,6 @@ function StudentDashboard({ onAuthError }) {
         if (user) {
           if (!user.first_name || !user.last_name || user.profile_completed === false) {
             setNeedsProfileCompletion(true);
-                      {credentialError ? (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                          <p className="text-red-700 font-medium">Failed to load credentials</p>
-                          <p className="text-sm text-red-600 mt-1">{credentialError}</p>
-                        </div>
-                      ) : (
-                        <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                          <h2 className="text-lg font-bold text-gray-800 mb-2">My Credentials</h2>
-                          {pendingRequests && pendingRequests.length > 0 ? (
-                            <ul className="space-y-2">
-                              {pendingRequests.map(req => (
-                                <li key={req.id || req._id} className="p-2 border rounded hover:bg-gray-50">
-                                  <div className="flex justify-between">
-                                    <div>
-                                      <div className="font-medium text-gray-800">{req.title || req.metadata?.institution || 'Credential'}</div>
-                                      <div className="text-sm text-gray-500">{req.issuer || req.metadata?.institution || ''}</div>
-                                    </div>
-                                    <div className={`text-sm ${req.status==='pending'?'text-yellow-600':req.status==='issued'?'text-green-600':'text-red-600'}`}>{req.status || 'pending'}</div>
-                                  </div>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <div className="text-gray-500 text-center py-8">No credentials found.</div>
-                          )}
-                        </div>
-                      )}
-            setCredentialError('Unknown error fetching credentials');
           }
         }
 
@@ -315,19 +309,32 @@ function StudentDashboard({ onAuthError }) {
                               {pendingRequests && pendingRequests.length > 0 && (
                                 <div className="bg-white rounded-xl shadow-md p-6 mb-6">
                                   <h2 className="text-lg font-bold text-gray-800 mb-2">Your Credential Requests</h2>
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    {['pending','issued','rejected'].map((statusKey) => (
+                                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                    {['pending_review', 'pending', 'approved', 'rejected'].map((statusKey) => (
                                       <div key={statusKey} className="p-4 border rounded">
-                                        <h3 className="text-sm font-semibold text-gray-700 capitalize mb-2">{statusKey}</h3>
+                                        <h3 className="text-sm font-semibold text-gray-700 capitalize mb-2">{statusKey.replace('_', ' ')}</h3>
                                         <ul className="space-y-2">
-                                          {pendingRequests.filter(r => (r.status || '').toLowerCase() === statusKey).map(req => (
+                                          {pendingRequests.filter(r => getEffectiveRequestStatus(r) === statusKey).map(req => (
                                             <li key={req.id || req._id} className="p-2 border rounded hover:bg-gray-50">
                                               <div className="flex justify-between">
                                                 <div>
                                                   <div className="font-medium text-gray-800">{req.title || req.metadata?.institution || 'Requested Credential'}</div>
                                                   <div className="text-sm text-gray-500">{req.issuer || req.metadata?.institution || ''}</div>
+                                                  {req.verification_status && (
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                      OCR Status: {req.verification_status}
+                                                    </div>
+                                                  )}
+                                                  {typeof req.confidence_score === 'number' && (
+                                                    <div className="text-xs text-gray-500 mt-1">Confidence: {req.confidence_score}%</div>
+                                                  )}
+                                                  {req.ocr_decision_details?.decision_reason && (
+                                                    <div className="text-xs text-gray-500 mt-1 line-clamp-3">
+                                                      {req.ocr_decision_details.decision_reason}
+                                                    </div>
+                                                  )}
                                                 </div>
-                                                <div className={`text-sm ${statusKey==='pending'?'text-yellow-600':statusKey==='issued'?'text-green-600':'text-red-600'}`}>{statusKey}</div>
+                                                <div className={`text-sm ${getRequestStatusTextClass(statusKey)}`}>{statusKey.replace('_', ' ')}</div>
                                               </div>
                                             </li>
                                           ))}
