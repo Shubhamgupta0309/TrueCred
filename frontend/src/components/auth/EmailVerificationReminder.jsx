@@ -48,29 +48,29 @@ export default function EmailVerificationReminder({ email, onClose }) {
       exit={{ opacity: 0, y: -20 }}
       className={onClose ? "fixed inset-0 flex items-center justify-center p-4 bg-black/50 z-50" : "flex items-center justify-center p-4"}
     >
-      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+      <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-xl max-w-md w-full p-6 text-cyan-100 backdrop-blur-md">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-full mb-4">
-            <Mail className="w-8 h-8 text-yellow-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-amber-950/30 border border-amber-500/30 rounded-full mb-4">
+            <Mail className="w-8 h-8 text-amber-300" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800">Email Verification Required</h2>
-          <p className="text-gray-600 mt-2">
+          <h2 className="text-2xl font-bold text-cyan-100">Email Verification Required</h2>
+          <p className="text-cyan-200 mt-2">
             We've sent a verification link to <strong>{userEmail}</strong>. 
             Please check your inbox (and spam folder) and click the link to verify your email address.
           </p>
-          <p className="text-gray-500 mt-2 text-sm">
+          <p className="text-cyan-300/70 mt-2 text-sm">
             You must verify your email before you can access your account.
           </p>
         </div>
 
         {message && (
-          <div className="mb-4 p-3 bg-green-50 border-l-4 border-green-500 text-green-700">
+          <div className="mb-4 p-3 bg-emerald-950/30 border-l-4 border-emerald-500 text-emerald-200">
             {message}
           </div>
         )}
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700">
+          <div className="mb-4 p-3 bg-red-950/30 border-l-4 border-red-500 text-red-200">
             {error}
           </div>
         )}
@@ -81,7 +81,7 @@ export default function EmailVerificationReminder({ email, onClose }) {
             whileTap={{ scale: 0.98 }}
             onClick={handleResendVerification}
             disabled={isResending}
-            className="flex-1 bg-yellow-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 focus:outline-none transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-75"
+            className="flex-1 bg-cyan-600 text-slate-950 py-3 px-4 rounded-lg font-semibold hover:bg-cyan-500 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-75"
           >
             {isResending ? (
               <>
@@ -100,7 +100,7 @@ export default function EmailVerificationReminder({ email, onClose }) {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={onClose}
-              className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 focus:outline-none transition-all duration-200"
+              className="flex-1 border border-cyan-500/30 text-cyan-100 py-3 px-4 rounded-lg font-medium hover:bg-cyan-950/20 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200"
             >
               Close
             </motion.button>
@@ -109,7 +109,7 @@ export default function EmailVerificationReminder({ email, onClose }) {
               href="/auth"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="flex-1 border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 focus:outline-none transition-all duration-200 text-center flex items-center justify-center"
+              className="flex-1 border border-cyan-500/30 text-cyan-100 py-3 px-4 rounded-lg font-medium hover:bg-cyan-950/20 focus:ring-4 focus:ring-cyan-400 focus:outline-none transition-all duration-200 text-center flex items-center justify-center"
             >
               Back to Login
             </motion.a>

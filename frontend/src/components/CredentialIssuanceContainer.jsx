@@ -199,15 +199,15 @@ const CredentialIssuanceContainer = () => {
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-4xl mx-auto p-4"
     >
-      <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-lg shadow-lg p-6">
         <div className="mb-4">
-          <h2 className="text-2xl font-bold">Issue New Credential</h2>
-          <p className="text-gray-600">Fill in the details to issue a new verifiable credential to a student</p>
+          <h2 className="text-2xl font-bold text-cyan-100">Issue New Credential</h2>
+          <p className="text-cyan-300/70">Fill in the details to issue a new verifiable credential to a student</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="truecredId" className="block font-medium">TrueCred ID</label>
+              <label htmlFor="truecredId" className="block font-medium text-cyan-200">TrueCred ID</label>
               <div className="relative">
                 <input
                   id="truecredId"
@@ -217,11 +217,11 @@ const CredentialIssuanceContainer = () => {
                   value={form.truecredId}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded px-3 py-2 pr-8"
+                  className="w-full border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded px-3 py-2 pr-8"
                 />
                 {isValidatingId && (
                   <div className="absolute right-2 top-2">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-cyan-400"></div>
                   </div>
                 )}
               </div>
@@ -239,7 +239,7 @@ const CredentialIssuanceContainer = () => {
                 </div>
               )}
               {idValidation.isValid && idValidation.student && (
-                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
+                <div className="mt-2 p-3 bg-cyan-950/30 border border-cyan-500/30 rounded-md">
                   <div className="text-sm font-medium text-green-800">Student Found:</div>
                   <div className="text-sm text-green-700 mt-1">
                     <div><strong>Name:</strong> {idValidation.student.name}</div>
@@ -250,14 +250,14 @@ const CredentialIssuanceContainer = () => {
               )}
             </div>
             <div className="space-y-2">
-              <label htmlFor="credentialType" className="block font-medium">Credential Type</label>
+              <label htmlFor="credentialType" className="block font-medium text-cyan-200">Credential Type</label>
               <select
                 id="credentialType"
                 name="credentialType"
                 value={form.credentialType}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded px-3 py-2"
               >
                 <option value="">Select type</option>
                 <option value="degree">Degree</option>
@@ -271,7 +271,7 @@ const CredentialIssuanceContainer = () => {
             </div>
           </div>
           <div className="space-y-2">
-            <label htmlFor="details" className="block font-medium">Details</label>
+            <label htmlFor="details" className="block font-medium text-cyan-200">Details</label>
             <textarea
               id="details"
               name="details"
@@ -280,36 +280,36 @@ const CredentialIssuanceContainer = () => {
               placeholder="Enter credential details"
               rows={3}
               required
-              className="w-full border border-gray-300 rounded px-3 py-2"
+              className="w-full border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded px-3 py-2"
             ></textarea>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="expiryDate" className="block font-medium">Issued Date</label>
+              <label htmlFor="expiryDate" className="block font-medium text-cyan-200">Issued Date</label>
               <input
                 id="expiryDate"
                 name="expiryDate"
                 type="date"
                 value={form.expiryDate}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded px-3 py-2"
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="certificate" className="block font-medium">Certificate File (PDF only - uploads to IPFS)</label>
+              <label htmlFor="certificate" className="block font-medium text-cyan-200">Certificate File (PDF only - uploads to IPFS)</label>
               <input
                 id="certificate"
                 name="certificate"
                 type="file"
                 accept=".pdf"
                 onChange={handleFileChange}
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded px-3 py-2"
               />
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-cyan-300/70">
                 Only PDF files are accepted. File will be securely stored on IPFS.
               </div>
               {form.certificate && (
-                <div className="text-sm text-green-600">
+                <div className="text-sm text-green-400">
                   Selected: {form.certificate.name} ({(form.certificate.size / 1024 / 1024).toFixed(2)} MB)
                 </div>
               )}
@@ -319,12 +319,12 @@ const CredentialIssuanceContainer = () => {
             <button 
               type="submit" 
               disabled={isLoading || !idValidation.isValid}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="bg-cyan-600 text-slate-950 px-4 py-2 rounded hover:bg-cyan-500 disabled:bg-slate-600 disabled:cursor-not-allowed"
             >
               {isLoading ? "Issuing..." : "Issue Credential"}
             </button>
             {!idValidation.isValid && form.truecredId && (
-              <span className="ml-2 text-sm text-red-600">
+              <span className="ml-2 text-sm text-red-400">
                 Please enter a valid TrueCred ID first
               </span>
             )}

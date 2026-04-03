@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '../context/ToastContext.jsx';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import SearchFilterPanel from '../components/college/SearchFilterPanel';
@@ -16,7 +17,8 @@ import TemplateManager from '../components/TemplateManager';
 import { api, notificationService } from '../services/api';
 
 export default function CollegeDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { success, error: toastError } = useToast();
   const [pendingRequests, setPendingRequests] = useState([]);
   const [history, setHistory] = useState([]);
@@ -187,30 +189,51 @@ export default function CollegeDashboard() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
+  };
+
+  const handleFocusProfileForm = () => {
+    const profileForm = document.querySelector('[data-profile-form]');
+    if (profileForm instanceof HTMLElement) {
+      profileForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const editButton = profileForm.querySelector('[data-profile-edit]');
+      if (editButton instanceof HTMLElement) {
+        editButton.click();
+        return;
+      }
+      const firstField = profileForm.querySelector('input, textarea, select');
+      if (firstField instanceof HTMLElement) {
+        firstField.focus();
+      }
+    }
+  };
+
   const summaryStats = [
     {
       label: 'Pending Requests',
       value: pendingRequests.length,
-      tone: 'text-amber-700 bg-amber-50 border-amber-100'
+      tone: 'text-cyan-100 bg-cyan-900/30 border-cyan-500/30'
     },
     {
       label: 'Issued Today',
       value: history.filter((h) => h.status === 'Issued').length,
-      tone: 'text-emerald-700 bg-emerald-50 border-emerald-100'
+      tone: 'text-cyan-100 bg-cyan-900/30 border-cyan-500/30'
     },
     {
       label: 'Alerts',
       value: notifications.length,
-      tone: 'text-indigo-700 bg-indigo-50 border-indigo-100'
+      tone: 'text-cyan-100 bg-cyan-900/30 border-cyan-500/30'
     }
   ];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-100 p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-700">Loading your dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mx-auto"></div>
+          <p className="mt-4 text-cyan-200">Loading your dashboard...</p>
         </div>
       </div>
     );
@@ -218,17 +241,17 @@ export default function CollegeDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-100 p-4 md:p-8 flex items-center justify-center">
-        <div className="bg-white shadow-md rounded-lg p-8 max-w-md w-full">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8 flex items-center justify-center">
+        <div className="bg-cyan-950/30 border border-cyan-500/30 backdrop-blur-md shadow-md rounded-lg p-8 max-w-md w-full">
           <div className="text-center">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h2 className="mt-4 text-xl font-bold text-gray-800">Error Loading Dashboard</h2>
-            <p className="mt-2 text-gray-600">{error}</p>
+            <h2 className="mt-4 text-xl font-bold text-cyan-100">Error Loading Dashboard</h2>
+            <p className="mt-2 text-cyan-200">{error}</p>
             <button 
               onClick={() => window.location.reload()}
-              className="mt-6 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+              className="mt-6 px-4 py-2 bg-cyan-600 text-slate-950 rounded hover:bg-cyan-500 transition-colors"
             >
               Retry
             </button>
@@ -239,18 +262,18 @@ export default function CollegeDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <DashboardHeader user={userForHeader} />
 
         {/* Tab Navigation */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="flex border-b">
+        <div className="bg-cyan-950/30 border border-cyan-500/30 shadow-sm rounded-lg mb-8 backdrop-blur-md">
+          <div className="flex border-b border-cyan-500/20">
             <button
               className={`py-3 px-6 focus:outline-none ${
                 activeTab === 'intro'
-                  ? 'border-b-2 border-purple-600 text-purple-700'
-                  : 'text-gray-500 hover:text-purple-500'
+                  ? 'border-b-2 border-cyan-400 text-cyan-300'
+                  : 'text-cyan-200/70 hover:text-cyan-300'
               }`}
               onClick={() => setActiveTab('intro')}
             >
@@ -259,8 +282,8 @@ export default function CollegeDashboard() {
             <button
               className={`py-3 px-6 focus:outline-none ${
                 activeTab === 'requests'
-                  ? 'border-b-2 border-purple-600 text-purple-700'
-                  : 'text-gray-500 hover:text-purple-500'
+                  ? 'border-b-2 border-cyan-400 text-cyan-300'
+                  : 'text-cyan-200/70 hover:text-cyan-300'
               }`}
               onClick={() => setActiveTab('requests')}
             >
@@ -269,8 +292,8 @@ export default function CollegeDashboard() {
             <button
               className={`py-3 px-6 focus:outline-none ${
                 activeTab === 'issue'
-                  ? 'border-b-2 border-purple-600 text-purple-700'
-                  : 'text-gray-500 hover:text-purple-500'
+                  ? 'border-b-2 border-cyan-400 text-cyan-300'
+                  : 'text-cyan-200/70 hover:text-cyan-300'
               }`}
               onClick={() => setActiveTab('issue')}
             >
@@ -279,8 +302,8 @@ export default function CollegeDashboard() {
             <button
               className={`py-3 px-6 focus:outline-none ${
                 activeTab === 'profile'
-                  ? 'border-b-2 border-purple-600 text-purple-700'
-                  : 'text-gray-500 hover:text-purple-500'
+                  ? 'border-b-2 border-cyan-400 text-cyan-300'
+                  : 'text-cyan-200/70 hover:text-cyan-300'
               }`}
               onClick={() => setActiveTab('profile')}
             >
@@ -289,8 +312,8 @@ export default function CollegeDashboard() {
             <button
               className={`py-3 px-6 focus:outline-none ${
                 activeTab === 'templates'
-                  ? 'border-b-2 border-purple-600 text-purple-700'
-                  : 'text-gray-500 hover:text-purple-500'
+                  ? 'border-b-2 border-cyan-400 text-cyan-300'
+                  : 'text-cyan-200/70 hover:text-cyan-300'
               }`}
               onClick={() => setActiveTab('templates')}
             >
@@ -310,10 +333,10 @@ export default function CollegeDashboard() {
               className="grid grid-cols-1 lg:grid-cols-3 gap-8"
             >
               <div className="lg:col-span-2 space-y-6">
-                <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
-                  <p className="text-xs uppercase tracking-[0.18em] text-purple-700 font-semibold">TrueCred Startup Workspace</p>
-                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">Institution Verification Command Center</h2>
-                  <p className="mt-3 text-gray-600 leading-relaxed">
+                <motion.div variants={itemVariants} className="bg-cyan-950/30 rounded-2xl shadow-sm border border-cyan-500/30 p-6">
+                  <p className="text-xs uppercase tracking-[0.18em] text-cyan-300 font-semibold">TrueCred Startup Workspace</p>
+                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-cyan-100">Institution Verification Command Center</h2>
+                  <p className="mt-3 text-cyan-200 leading-relaxed">
                     Manage credential approvals, keep audit-ready verification history, and publish trusted templates so
                     student submissions can be evaluated with confidence and speed.
                   </p>
@@ -399,13 +422,27 @@ export default function CollegeDashboard() {
               {/* Main Column */}
               <div className="lg:col-span-2">
                 <CollegeProfileForm user={user} onUpdate={handleProfileUpdate} />
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={handleFocusProfileForm}
+                    className="px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-100 bg-cyan-950/20 hover:bg-cyan-900/30 transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
 
               {/* Right Column */}
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>
-                  <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6">
-                    <h3 className="text-lg font-bold text-gray-800 mb-4">Why Complete Your Profile?</h3>
+                  <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10 p-6">
+                    <h3 className="text-lg font-bold text-cyan-100 mb-4">Why Complete Your Profile?</h3>
                     <ul className="space-y-3">
                       <li className="flex items-start">
                         <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
@@ -413,7 +450,7 @@ export default function CollegeDashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         </span>
-                        <span className="text-gray-700">Enables students to easily find your institution</span>
+                        <span className="text-cyan-200">Enables students to easily find your institution</span>
                       </li>
                       <li className="flex items-start">
                         <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
@@ -421,7 +458,7 @@ export default function CollegeDashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         </span>
-                        <span className="text-gray-700">Adds credibility to issued certificates</span>
+                        <span className="text-cyan-200">Adds credibility to issued certificates</span>
                       </li>
                       <li className="flex items-start">
                         <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
@@ -429,7 +466,7 @@ export default function CollegeDashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         </span>
-                        <span className="text-gray-700">Improves verification process efficiency</span>
+                        <span className="text-cyan-200">Improves verification process efficiency</span>
                       </li>
                       <li className="flex items-start">
                         <span className="bg-green-100 rounded-full p-1 mr-2 mt-0.5">
@@ -437,7 +474,7 @@ export default function CollegeDashboard() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         </span>
-                        <span className="text-gray-700">Ensures correct institution details on certificates</span>
+                        <span className="text-cyan-200">Ensures correct institution details on certificates</span>
                       </li>
                     </ul>
                   </div>

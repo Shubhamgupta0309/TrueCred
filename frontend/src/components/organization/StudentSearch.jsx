@@ -133,7 +133,7 @@ export default function StudentSearch({ onStudentSelect }) {
   
   return (
     <div className="mb-6">
-      <h2 className="text-xl font-bold text-gray-800 mb-4">Search for Students</h2>
+      <h2 className="text-xl font-bold text-cyan-100 mb-4">Search for Students</h2>
       
       <form onSubmit={handleSearchSubmit} className="mb-4">
         <div className="relative">
@@ -143,46 +143,43 @@ export default function StudentSearch({ onStudentSelect }) {
             value={searchTerm}
             onChange={handleSearchChange}
             placeholder="Search by name, email, or TrueCred ID (e.g., TC123456)"
-            className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-4 py-2 pl-10 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
           />
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-300 h-5 w-5" />
           
           {searchTerm && (
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-cyan-300 hover:text-cyan-100"
             >
               <X className="h-5 w-5" />
             </button>
           )}
         </div>
         
-        <p className="text-sm text-gray-500 mt-2">
-          Enter at least 3 characters to search, or enter a complete TrueCred ID (TC######) for exact match.
-        </p>
       </form>
       
       {error && (
-        <div className="p-4 mb-4 bg-red-50 rounded-lg border border-red-200">
-          <p className="text-red-700">{error}</p>
+        <div className="p-4 mb-4 bg-red-950/30 rounded-lg border border-red-500/30">
+          <p className="text-red-200">{error}</p>
         </div>
       )}
       
       {loading ? (
         <div className="p-4 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-          <p className="mt-2 text-gray-600">Searching...</p>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400"></div>
+          <p className="mt-2 text-cyan-200">Searching...</p>
         </div>
       ) : (
         searchResults.length > 0 && (
           <motion.div
-            className="bg-white rounded-lg shadow-md border"
+            className="bg-cyan-950/30 rounded-lg shadow-md border border-cyan-500/30"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <h3 className="p-4 border-b text-lg font-medium text-gray-800">
+            <h3 className="p-4 border-b border-cyan-500/20 text-lg font-medium text-cyan-100">
               Search Results
             </h3>
             
@@ -190,8 +187,8 @@ export default function StudentSearch({ onStudentSelect }) {
               {searchResults.map(student => (
                 <motion.div
                   key={student.id}
-                  className="p-4 hover:bg-gray-50 cursor-pointer flex items-center justify-between"
-                  whileHover={{ backgroundColor: 'rgba(243, 244, 246, 1)' }}
+                  className="p-4 hover:bg-cyan-900/30 cursor-pointer flex items-center justify-between"
+                  whileHover={{ backgroundColor: 'rgba(8, 47, 73, 0.45)' }}
                   onClick={() => {
                     // If a parent provided a selection handler, call it (e.g., for uploading credentials).
                     if (onStudentSelect) {
@@ -203,14 +200,14 @@ export default function StudentSearch({ onStudentSelect }) {
                   }}
                 >
                   <div className="flex items-center">
-                    <div className="bg-blue-100 rounded-full p-2 mr-3">
-                      <User className="h-6 w-6 text-blue-600" />
+                    <div className="bg-cyan-900/40 rounded-full p-2 mr-3">
+                      <User className="h-6 w-6 text-cyan-300" />
                     </div>
                     
                     <div>
-                      <h4 className="font-medium text-gray-800">{student.name}</h4>
-                      <p className="text-sm text-gray-600">{student.email}</p>
-                      <p className="text-xs font-mono text-blue-700 mt-1">{student.truecred_id}</p>
+                      <h4 className="font-medium text-cyan-100">{student.name}</h4>
+                      <p className="text-sm text-cyan-200">{student.email}</p>
+                      <p className="text-xs font-mono text-cyan-300 mt-1">{student.truecred_id}</p>
                     </div>
                   </div>
                   
@@ -222,7 +219,7 @@ export default function StudentSearch({ onStudentSelect }) {
                       </div>
                     ) : (
                       <button
-                        className="flex items-center text-blue-600 hover:text-blue-800 text-sm"
+                        className="flex items-center text-cyan-300 hover:text-cyan-100 text-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleStudentSelect(student);

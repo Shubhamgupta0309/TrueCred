@@ -1,24 +1,26 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import CompanyDashboardHeader from '../components/company/CompanyDashboardHeader';
 import SearchFilterPanel from '../components/college/SearchFilterPanel'; // Reusing for now
 import PendingExperienceRequests from '../components/company/PendingExperienceRequests';
 import ExperienceHistory from '../components/company/ExperienceHistory';
 import CompanyProfileForm from '../components/company/CompanyProfileForm';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
+import TemplateManager from '../components/TemplateManager';
 import { companyService, notificationService } from '../services/api';
 
 const initialPendingRequests = [];
 const initialHistory = [];
-const mockNotifications = [];
 
 export default function CompanyDashboard() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('intro');
   const [pendingRequests, setPendingRequests] = useState(initialPendingRequests);
   const [history, setHistory] = useState(initialHistory);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -95,9 +97,9 @@ export default function CompanyDashboard() {
   };
 
   const stats = [
-    { label: 'Pending Verifications', value: pendingRequests.length, tone: 'text-amber-700 bg-amber-50 border-amber-100' },
-    { label: 'Completed Reviews', value: history.length, tone: 'text-emerald-700 bg-emerald-50 border-emerald-100' },
-    { label: 'Notifications', value: notifications.length, tone: 'text-cyan-700 bg-cyan-50 border-cyan-100' }
+    { label: 'Pending Verifications', value: pendingRequests.length, tone: 'text-cyan-100 bg-cyan-900/30 border-cyan-500/30' },
+    { label: 'Completed Reviews', value: history.length, tone: 'text-cyan-100 bg-cyan-900/30 border-cyan-500/30' },
+    { label: 'Notifications', value: notifications.length, tone: 'text-cyan-100 bg-cyan-900/30 border-cyan-500/30' }
   ];
 
   const containerVariants = {
@@ -110,12 +112,33 @@ export default function CompanyDashboard() {
     visible: { opacity: 1, y: 0 },
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
+  };
+
+  const handleFocusProfileForm = () => {
+    const profileForm = document.querySelector('[data-profile-form]');
+    if (profileForm instanceof HTMLElement) {
+      profileForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const editButton = profileForm.querySelector('[data-profile-edit]');
+      if (editButton instanceof HTMLElement) {
+        editButton.click();
+        return;
+      }
+      const firstField = profileForm.querySelector('input, textarea, select');
+      if (firstField instanceof HTMLElement) {
+        firstField.focus();
+      }
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-8 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-600 mx-auto"></div>
-          <p className="mt-4 text-gray-700">Loading company dashboard...</p>
+          <p className="mt-4 text-cyan-200">Loading company dashboard...</p>
         </div>
       </div>
     );
@@ -123,13 +146,13 @@ export default function CompanyDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-8 flex items-center justify-center">
-        <div className="bg-white shadow-md rounded-lg p-8 max-w-md w-full text-center">
-          <h2 className="text-xl font-bold text-gray-800">Error Loading Dashboard</h2>
-          <p className="mt-2 text-gray-600">{error}</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8 flex items-center justify-center">
+        <div className="bg-cyan-950/30 border border-cyan-500/30 shadow-md rounded-lg p-8 max-w-md w-full text-center backdrop-blur-md">
+          <h2 className="text-xl font-bold text-cyan-100">Error Loading Dashboard</h2>
+          <p className="mt-2 text-cyan-200">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-6 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 transition-colors"
+            className="mt-6 px-4 py-2 bg-cyan-600 text-slate-950 rounded hover:bg-cyan-500 transition-colors"
           >
             Retry
           </button>
@@ -139,7 +162,7 @@ export default function CompanyDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-white to-emerald-50 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <CompanyDashboardHeader user={userForHeader} />
 
@@ -149,22 +172,23 @@ export default function CompanyDashboard() {
           animate="visible"
           className="grid grid-cols-1 lg:grid-cols-3 gap-8"
         >
-          <div className="bg-white shadow-sm rounded-lg mb-8 lg:col-span-3">
-            <div className="flex border-b">
-              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'intro' ? 'border-b-2 border-cyan-600 text-cyan-700' : 'text-gray-500 hover:text-cyan-500'}`} onClick={() => setActiveTab('intro')}>Intro</button>
-              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'requests' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('requests')}>Pending Requests</button>
-              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'history' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('history')}>History</button>
-              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-teal-600 text-teal-700' : 'text-gray-500 hover:text-teal-500'}`} onClick={() => setActiveTab('profile')}>Company Profile</button>
+          <div className="bg-cyan-950/30 border border-cyan-500/30 shadow-sm rounded-lg mb-8 lg:col-span-3 backdrop-blur-md">
+            <div className="flex border-b border-cyan-500/20">
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'intro' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('intro')}>Intro</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'requests' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('requests')}>Pending Requests</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'history' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('history')}>History</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'templates' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('templates')}>Certificate Templates</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('profile')}>Company Profile</button>
             </div>
           </div>
 
           {activeTab === 'intro' ? (
             <>
               <div className="lg:col-span-2 space-y-6">
-                <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-cyan-100 p-6">
-                  <p className="text-xs uppercase tracking-[0.18em] text-cyan-700 font-semibold">TrueCred Startup Workspace</p>
-                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">Review Faster. Verify Smarter. Build Trust at Scale.</h2>
-                  <p className="mt-3 text-gray-600 leading-relaxed">
+                <motion.div variants={itemVariants} className="bg-cyan-950/30 rounded-2xl shadow-sm border border-cyan-500/30 p-6">
+                  <p className="text-xs uppercase tracking-[0.18em] text-cyan-300 font-semibold">TrueCred Startup Workspace</p>
+                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-cyan-100">Review Faster. Verify Smarter. Build Trust at Scale.</h2>
+                  <p className="mt-3 text-cyan-200 leading-relaxed">
                     This dashboard is your operations cockpit for company-side verification. Triage pending experience requests,
                     complete approvals with clear evidence, and maintain a consistent verification trail for every candidate.
                   </p>
@@ -219,10 +243,41 @@ export default function CompanyDashboard() {
                 </motion.div>
               </div>
             </>
+          ) : activeTab === 'templates' ? (
+            <>
+              <div className="lg:col-span-2 space-y-8">
+                <motion.div variants={itemVariants}>
+                  <TemplateManager
+                    organizationId={user?.company_id || user?.organization_id || user?.id}
+                    organizationName={user?.organization || user?.company_name || 'Company'}
+                    organizationType="company"
+                  />
+                </motion.div>
+              </div>
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={notifications} />
+                </motion.div>
+              </div>
+            </>
           ) : (
             <>
               <div className="lg:col-span-2">
                 <CompanyProfileForm user={userForHeader} onUpdate={() => {}} />
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={handleFocusProfileForm}
+                    className="px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-100 bg-cyan-950/20 hover:bg-cyan-900/30 transition-colors"
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>

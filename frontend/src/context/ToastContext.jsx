@@ -63,28 +63,28 @@ const Toast = ({ toast, onRemove }) => {
     switch (type) {
       case 'success':
         return {
-          bg: 'bg-green-50 border-green-200',
-          text: 'text-green-800',
-          icon: <CheckCircle className="w-5 h-5 text-green-600" />
+          bg: 'bg-emerald-950/40 border-emerald-500/30',
+          text: 'text-emerald-200',
+          icon: <CheckCircle className="w-5 h-5 text-emerald-300" />
         };
       case 'error':
         return {
-          bg: 'bg-red-50 border-red-200',
-          text: 'text-red-800',
-          icon: <XCircle className="w-5 h-5 text-red-600" />
+          bg: 'bg-red-950/40 border-red-500/30',
+          text: 'text-red-200',
+          icon: <XCircle className="w-5 h-5 text-red-300" />
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50 border-yellow-200',
-          text: 'text-yellow-800',
-          icon: <AlertCircle className="w-5 h-5 text-yellow-600" />
+          bg: 'bg-amber-950/40 border-amber-500/30',
+          text: 'text-amber-200',
+          icon: <AlertCircle className="w-5 h-5 text-amber-300" />
         };
       case 'info':
       default:
         return {
-          bg: 'bg-blue-50 border-blue-200',
-          text: 'text-blue-800',
-          icon: <AlertCircle className="w-5 h-5 text-blue-600" />
+          bg: 'bg-cyan-950/40 border-cyan-500/30',
+          text: 'text-cyan-200',
+          icon: <AlertCircle className="w-5 h-5 text-cyan-300" />
         };
     }
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import CredentialsList from '../components/dashboard/CredentialsList';
 import ExperienceList from '../components/dashboard/ExperienceList';
@@ -19,7 +20,6 @@ import { Upload, PlusCircle, Star, TrendingUp, Lock, Users } from 'lucide-react'
 // start with empty data; will fetch from API
 const mockCredentials = [];
 const mockExperiences = [];
-const mockNotifications = [];
 
 // Normalize credential array into UI-friendly shape and deduplicate by a stable id.
 // If backend doesn't provide an id, fall back to base64 of title|date so repeated fetches produce same id.
@@ -75,13 +75,13 @@ const getEffectiveRequestStatus = (req) => {
 
 const getStatusBadgeClass = (statusKey) => {
   const statusMap = {
-    'approved': 'bg-emerald-100 text-emerald-700 border-emerald-300',
-    'review': 'bg-amber-100 text-amber-700 border-amber-300',
+    'approved': 'bg-emerald-950/40 text-emerald-200 border-emerald-500/30',
+    'review': 'bg-amber-950/40 text-amber-200 border-amber-500/30',
     'pending': 'bg-cyan-900/40 text-cyan-100 border-cyan-500/40',
-    'rejected': 'bg-red-100 text-red-700 border-red-300',
-    'issued': 'bg-emerald-100 text-emerald-700 border-emerald-300'
+    'rejected': 'bg-red-950/40 text-red-200 border-red-500/30',
+    'issued': 'bg-emerald-950/40 text-emerald-200 border-emerald-500/30'
   };
-  return statusMap[statusKey] || 'bg-gray-100 text-gray-700 border-gray-300';
+  return statusMap[statusKey] || 'bg-slate-900/70 text-cyan-200 border-cyan-500/20';
 };
 
 const getStatusLabel = (statusKey) => {
@@ -95,38 +95,128 @@ const getStatusLabel = (statusKey) => {
   return labelMap[statusKey] || statusKey;
 };
 
+const normalizeKeyPart = (value) => (value === null || value === undefined ? '' : String(value).trim().toLowerCase());
+
+const normalizeDateKeyPart = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    return date.toISOString().slice(0, 10);
+  }
+  return normalizeKeyPart(value);
+};
+
+const getRequestKind = (req) => {
+  const explicitType = normalizeKeyPart(req?.type || req?.request_type || req?.category);
+  if (explicitType) return explicitType;
+
+  if (req?.company || req?.company_id || req?.position || req?.startDate || req?.endDate) {
+    return 'experience';
+  }
+
+  return 'credential';
+};
+
+const isApprovedOrIssued = (req) => {
+  const status = getEffectiveRequestStatus(req);
+  return status === 'approved' || status === 'issued';
+};
+
+const credentialRecordKey = (cred) => [
+  normalizeKeyPart(cred?.title || cred?.name || cred?.credentialName),
+  normalizeKeyPart(cred?.issuer || cred?.institution || cred?.organizationName),
+  normalizeKeyPart(cred?.type || 'credential'),
+  normalizeDateKeyPart(cred?.issue_date || cred?.date || cred?.created_at || cred?.verified_at),
+  normalizeKeyPart(cred?.institution_id || cred?.organization_id || cred?.blockchain_credential_id || cred?.document_url || cred?.ipfs_hash)
+].join('|');
+
+const experienceRecordKey = (exp) => [
+  normalizeKeyPart(exp?.title || exp?.position),
+  normalizeKeyPart(exp?.organization || exp?.company),
+  normalizeKeyPart(exp?.type || 'experience'),
+  normalizeDateKeyPart(exp?.start_date || exp?.startDate),
+  normalizeDateKeyPart(exp?.end_date || exp?.endDate),
+  normalizeKeyPart(exp?.company_id || exp?.organization_id || exp?.document_hashes?.[0] || exp?.credentials?.[0])
+].join('|');
+
+const dedupeByKey = (items, keyFn) => {
+  const map = new Map();
+  items.forEach((item) => {
+    const key = keyFn(item);
+    if (!map.has(key)) {
+      map.set(key, item);
+    }
+  });
+  return Array.from(map.values());
+};
+
+const mapApprovedCredentialRequest = (req) => ({
+  id: req.id,
+  title: req.title || req.credentialTitle || req.name || 'Unknown Credential',
+  issuer: req.issuer || req.institutionName || req.institution_name || 'Unknown Institution',
+  type: req.type || 'credential',
+  status: 'approved',
+  verification_status: req.verification_status || 'approved',
+  issue_date: req.issue_date || req.created_at || req.updated_at || null,
+  date: req.issue_date || req.created_at || req.updated_at || null,
+  verified: true,
+  pending_verification: false,
+  blockchain_data: req.blockchain_data,
+  document_url: req.document_url,
+  ipfs_hash: req.ipfs_hash,
+  attachments: req.attachments,
+});
+
+const mapApprovedExperienceRequest = (req) => ({
+  id: req.id,
+  title: req.title || req.position || 'Unknown Experience',
+  organization: req.company || req.organization || req.issuer || 'Unknown Organization',
+  type: req.type || 'experience',
+  status: 'approved',
+  verification_status: req.verification_status || 'approved',
+  is_verified: true,
+  pending_verification: false,
+  start_date: req.start_date || req.startDate || null,
+  end_date: req.end_date || req.endDate || null,
+  verified_at: req.verified_at || req.updated_at || req.created_at || null,
+  company_id: req.company_id || req.organization_id || null,
+  document_hashes: req.document_hashes,
+  credentials: req.credentials,
+});
+
 function StudentDashboard({ onAuthError }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [credentials, setCredentials] = useState(mockCredentials);
   const [experiences, setExperiences] = useState(mockExperiences);
-  const [notifications, setNotifications] = useState(mockNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [credentialError, setCredentialError] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'blockchain'
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [activeTab, setActiveTab] = useState('intro');
+  const [activeTab, setActiveTab] = useState('requests');
   const [pendingRequests, setPendingRequests] = useState([]);
 
-  const summaryStats = [
-    {
-      label: 'Issued Credentials',
-      value: credentials.length,
-      tone: 'text-emerald-700 bg-emerald-50 border-emerald-100'
-    },
-    {
-      label: 'Pending Requests',
-      value: pendingRequests.filter((r) => ['pending', 'pending_review'].includes(getEffectiveRequestStatus(r))).length,
-      tone: 'text-amber-700 bg-amber-50 border-amber-100'
-    },
-    {
-      label: 'Notifications',
-      value: notifications.length,
-      tone: 'text-sky-700 bg-sky-50 border-sky-100'
-    }
-  ];
-  
+  const approvedCredentialRequests = pendingRequests.filter((req) => {
+    return isApprovedOrIssued(req) && getRequestKind(req) !== 'experience';
+  });
+
+  const approvedExperienceRequests = pendingRequests.filter((req) => {
+    return isApprovedOrIssued(req) && getRequestKind(req) === 'experience';
+  });
+
+  const mergedCredentials = dedupeByKey(
+    [...credentials, ...approvedCredentialRequests.map(mapApprovedCredentialRequest)],
+    credentialRecordKey
+  );
+
+  const mergedExperiences = dedupeByKey(
+    [...experiences, ...approvedExperienceRequests.map(mapApprovedExperienceRequest)],
+    experienceRecordKey
+  );
+
   // Format the user data for the header
   const userForHeader = {
     name: user?.first_name && user?.last_name 
@@ -135,6 +225,11 @@ function StudentDashboard({ onAuthError }) {
     email: user?.email || '',
     role: 'Student',
     truecred_id: user?.truecred_id || 'TC000000'
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
   };
 
   // Fetch user data from API
@@ -336,8 +431,8 @@ function StudentDashboard({ onAuthError }) {
                 {/* Quick Stats */}
                 <div className="space-y-3">
                   {[
-                    { label: 'Credentials', value: credentials.length, color: 'from-cyan-600 to-cyan-700' },
-                    { label: 'Experiences', value: experiences.length, color: 'from-cyan-500 to-cyan-600' },
+                    { label: 'Credentials', value: mergedCredentials.length, color: 'from-cyan-600 to-cyan-700' },
+                    { label: 'Experiences', value: mergedExperiences.length, color: 'from-cyan-500 to-cyan-600' },
                     { label: 'In Review', value: pendingRequests.filter(r => ['review', 'pending'].includes(getEffectiveRequestStatus(r))).length, color: 'from-cyan-600 to-cyan-700' }
                   ].map((stat, i) => (
                     <div key={i} className={`bg-gradient-to-br ${stat.color} rounded-lg p-4 text-white`}>
@@ -391,8 +486,8 @@ function StudentDashboard({ onAuthError }) {
                   </div>
                 </div>
 
-                {/* Hidden ActionButtons */}
-                <div className="hidden">
+                {/* Offscreen ActionButtons so programmatic triggers can open its modals */}
+                <div className="absolute -left-[9999px] top-0">
                   <ActionButtons 
                     onAuthError={handleActionError} 
                     onSuccess={() => {
@@ -432,7 +527,6 @@ function StudentDashboard({ onAuthError }) {
                 {/* Tab Navigation */}
                 <div className="flex gap-2 overflow-x-auto pb-4">
                   {[
-                    { id: 'intro', label: '🏠 Home' },
                     { id: 'requests', label: '📋 Requests' },
                     { id: 'overview', label: '📚 Credentials' },
                     { id: 'profile', label: '👤 Profile' }
@@ -443,7 +537,7 @@ function StudentDashboard({ onAuthError }) {
                       whileHover={{ scale: 1.05 }}
                       className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 whitespace-nowrap ${
                         activeTab === tab.id
-                          ? 'bg-white text-slate-900 shadow-lg'
+                          ? 'bg-cyan-600 text-slate-950 shadow-lg shadow-cyan-500/20'
                               : 'bg-cyan-950/10 text-white hover:bg-cyan-950/20'
                       }`}
                     >
@@ -462,10 +556,10 @@ function StudentDashboard({ onAuthError }) {
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-6"
                     >
-                      <div className="bg-gradient-to-br from-white to-purple-50 rounded-2xl p-8 shadow-xl">
-                        <p className="text-sm uppercase tracking-wider text-cyan-400 font-semibold">TrueCred Platform</p>
-                        <h2 className="text-4xl font-bold text-slate-900 mt-4">Own Your Digital Trust</h2>
-                        <p className="text-lg text-slate-600 mt-6">Request credentials from institutions, track OCR verification in real-time, and build your verifiable portfolio.</p>
+                      <div className="bg-gradient-to-br from-cyan-950/40 to-slate-950 rounded-2xl p-8 shadow-xl border border-cyan-500/20">
+                        <p className="text-sm uppercase tracking-wider text-cyan-300 font-semibold">TrueCred Platform</p>
+                        <h2 className="text-4xl font-bold text-cyan-100 mt-4">Own Your Digital Trust</h2>
+                        <p className="text-lg text-cyan-200 mt-6">Request credentials from institutions, track OCR verification in real-time, and build your verifiable portfolio.</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -516,7 +610,7 @@ function StudentDashboard({ onAuthError }) {
                                           <p className="text-sm text-cyan-100 mt-1">{req.issuer}</p>
                                           {req.confidence_score !== undefined && (
                                             <div className="mt-2 flex items-center gap-2">
-                                              <div className="h-2 bg-opacity-30 bg-white rounded-full flex-1" style={{width: '120px'}}>
+                                                <div className="h-2 bg-cyan-950/50 rounded-full flex-1" style={{width: '120px'}}>
                                                 <div 
                                                   className={`h-full rounded-full ${
                                                     req.confidence_score > 50 ? 'bg-emerald-400' :
@@ -541,8 +635,8 @@ function StudentDashboard({ onAuthError }) {
                           })}
                         </div>
                       ) : (
-                        <div className="bg-white bg-opacity-10 backdrop-blur-md border border-white border-opacity-20 rounded-xl p-12 text-center">
-                          <p className="text-white text-lg">No requests yet</p>
+                        <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/20 rounded-xl p-12 text-center">
+                          <p className="text-cyan-100 text-lg">No requests yet</p>
                         </div>
                       )}
                     </motion.div>
@@ -556,14 +650,14 @@ function StudentDashboard({ onAuthError }) {
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-6"
                     >
-                      {credentials.length > 0 ? (
+                      {mergedCredentials.length > 0 ? (
                         <>
-                          <CredentialsList credentials={credentials} onVerificationUpdate={handleVerificationUpdate} />
-                          {experiences.length > 0 && <ExperienceList experiences={experiences} />}
+                          <CredentialsList credentials={mergedCredentials} onVerificationUpdate={handleVerificationUpdate} />
+                          {mergedExperiences.length > 0 && <ExperienceList experiences={mergedExperiences} />}
                         </>
                       ) : (
-                        <div className="bg-white bg-opacity-10 backdrop-blur-md border border-white border-opacity-20 rounded-xl p-12 text-center">
-                          <p className="text-white text-lg">No credentials</p>
+                        <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/20 rounded-xl p-12 text-center">
+                          <p className="text-cyan-100 text-lg">No credentials</p>
                         </div>
                       )}
                     </motion.div>
@@ -593,6 +687,20 @@ function StudentDashboard({ onAuthError }) {
                       ) : (
                         <ProfileCompletion onComplete={() => setNeedsProfileCompletion(false)} />
                       )}
+                      <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+                        <button
+                          onClick={() => navigate('/profile')}
+                          className="px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-100 bg-cyan-950/20 hover:bg-cyan-900/30 transition-colors"
+                        >
+                          Edit Profile
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -608,15 +716,12 @@ function StudentDashboard({ onAuthError }) {
                 {/* Student Search - Moved to Top */}
                 <div className="hidden lg:block">
                   <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/30 rounded-xl p-4">
-                    <p className="text-xs text-cyan-300 uppercase tracking-wide font-semibold mb-3">🔍 Search for Students</p>
-                    <p className="text-xs text-cyan-300/70 mb-3">Search by name, email, or TrueCred ID (e.g., TC123456)</p>
                     <StudentSearch onStudentSelect={(s) => setSelectedStudent(s)} />
-                    <p className="text-xs text-cyan-300/60 mt-3">Enter at least 3 characters to search, or enter a complete TrueCred ID (TC######) for exact match.</p>
                   </div>
                 </div>
 
                 {/* Quick Info / Tips */}
-                <div className="bg-white bg-opacity-10 backdrop-blur-md border border-white border-opacity-20 rounded-xl p-4">
+                <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/20 rounded-xl p-4">
                   <p className="text-xs text-cyan-300 uppercase tracking-wide font-semibold mb-3">💡 Tips</p>
                   <div className="space-y-2 text-xs text-cyan-100/80">
                     <p>• Upload certificates to get started</p>

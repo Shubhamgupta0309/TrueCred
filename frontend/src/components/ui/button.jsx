@@ -2,9 +2,9 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = {
-	default: "bg-purple-600 text-white hover:bg-purple-700",
-	outline: "border border-gray-300 bg-white text-gray-800 hover:bg-gray-50",
-	ghost: "text-gray-700 hover:bg-gray-100",
+	default: "bg-cyan-600 text-slate-950 hover:bg-cyan-500",
+	outline: "border border-cyan-500/30 bg-cyan-950/20 text-cyan-100 hover:bg-cyan-900/30",
+	ghost: "text-cyan-100 hover:bg-cyan-950/30",
 	destructive: "bg-red-600 text-white hover:bg-red-700",
 }
 
@@ -22,7 +22,7 @@ const Button = React.forwardRef(
 				ref={ref}
 				type={type}
 				className={cn(
-					"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:pointer-events-none disabled:opacity-50",
+					"inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 disabled:pointer-events-none disabled:opacity-50",
 					buttonVariants[variant] || buttonVariants.default,
 					buttonSizes[size] || buttonSizes.default,
 					className

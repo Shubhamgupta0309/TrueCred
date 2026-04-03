@@ -90,20 +90,20 @@ const IssuerDashboard = () => {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
+    <div className="max-w-3xl mx-auto p-6 bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg text-cyan-100 backdrop-blur-md">
       <h2 className="text-2xl font-bold mb-4">Issuer Dashboard</h2>
-      {error && <div className="text-red-500 mb-2">{error}</div>}
-      {success && <div className="text-green-600 mb-2">{success}</div>}
+      {error && <div className="text-red-300 mb-2">{error}</div>}
+      {success && <div className="text-emerald-200 mb-2">{success}</div>}
       <h3 className="text-xl font-semibold mb-2">Pending Requests</h3>
       <ul>
-        {requests.length === 0 && <li className="text-gray-500">No pending requests</li>}
+        {requests.length === 0 && <li className="text-cyan-300/70">No pending requests</li>}
         {requests.map(r => (
-            <li key={r.id} className="mb-4 p-2 border rounded">
+            <li key={r.id} className="mb-4 p-2 border border-cyan-500/20 rounded bg-slate-900/40">
               <strong>{r.title}</strong> ({r.type}) - {r.status}
               <div>{r.description || (r.metadata && r.metadata.description) || ''}</div>
               <div className="mt-2">
                 <input type="file" onChange={handleFileChange} />
-                <button className="bg-green-600 text-white px-3 py-1 rounded ml-2" onClick={() => handleIssue(r)} disabled={isLoading}>Issue</button>
+                <button className="bg-cyan-600 text-slate-950 px-3 py-1 rounded ml-2 font-semibold" onClick={() => handleIssue(r)} disabled={isLoading}>Issue</button>
               </div>
             </li>
         ))}

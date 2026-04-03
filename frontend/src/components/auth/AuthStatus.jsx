@@ -10,24 +10,24 @@ const AuthStatus = () => {
 
   if (loading) {
     return (
-      <div className="p-4 bg-blue-50 rounded-lg shadow-sm mb-4">
-        <p className="text-blue-700">Loading authentication status...</p>
+      <div className="p-4 bg-cyan-950/30 border border-cyan-500/30 rounded-lg shadow-sm mb-4">
+        <p className="text-cyan-100">Loading authentication status...</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 rounded-lg shadow-sm mb-4">
-        <p className="text-red-700">Auth Error: {error}</p>
+      <div className="p-4 bg-red-950/30 border border-red-500/30 rounded-lg shadow-sm mb-4">
+        <p className="text-red-200">Auth Error: {error}</p>
       </div>
     );
   }
 
   if (isAuthenticated && user) {
     return (
-      <div className="p-4 bg-green-50 rounded-lg shadow-sm mb-4">
-        <p className="text-green-700">
+      <div className="p-4 bg-emerald-950/30 border border-emerald-500/30 rounded-lg shadow-sm mb-4">
+        <p className="text-emerald-200">
           Authenticated as: <strong>{user.username || user.email}</strong> (Role: {user.role})
         </p>
       </div>
@@ -35,8 +35,8 @@ const AuthStatus = () => {
   }
 
   return (
-    <div className="p-4 bg-gray-50 rounded-lg shadow-sm mb-4">
-      <p className="text-gray-700">Not authenticated. Please log in.</p>
+    <div className="p-4 bg-slate-900/70 border border-cyan-500/20 rounded-lg shadow-sm mb-4">
+      <p className="text-cyan-100">Not authenticated. Please log in.</p>
     </div>
   );
 };

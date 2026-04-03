@@ -2,11 +2,11 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = {
-	default: "bg-purple-600 text-white",
-	secondary: "bg-gray-100 text-gray-800",
-	outline: "border border-gray-300 text-gray-800",
-	success: "bg-green-100 text-green-800",
-	destructive: "bg-red-100 text-red-800",
+	default: "bg-cyan-600 text-slate-950",
+	secondary: "bg-slate-900/70 text-cyan-100 border border-cyan-500/20",
+	outline: "border border-cyan-500/30 text-cyan-100",
+	success: "bg-emerald-950/40 text-emerald-200 border border-emerald-500/30",
+	destructive: "bg-red-950/40 text-red-200 border border-red-500/30",
 }
 
 function Badge({ className, variant = "default", ...props }) {
