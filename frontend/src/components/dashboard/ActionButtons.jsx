@@ -636,11 +636,11 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       {showCredModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-950 border border-cyan-500/30 rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-800">Credential Details</h3>
+            <div className="flex justify-between items-center p-4 border-b border-cyan-500/30">
+              <h3 className="text-lg font-semibold text-cyan-100">Credential Details</h3>
               <button 
                 onClick={closeCredModal}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-cyan-300 hover:text-cyan-100"
               >
                 <X size={20} />
               </button>
@@ -653,7 +653,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       type="button"
                       className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border ${
                         credentialInfo.institutionType === 'college' 
-                          ? 'bg-purple-100 border-purple-500 text-purple-700' 
+                          ? 'bg-cyan-900/60 border-cyan-400 text-cyan-100' 
                           : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-100'
                       }`}
                       onClick={() => setCredentialInfo(prev => ({ ...prev, institutionType: 'college' }))}
@@ -665,7 +665,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       type="button"
                       className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border ${
                         credentialInfo.institutionType === 'company' 
-                          ? 'bg-blue-100 border-blue-500 text-blue-700' 
+                          ? 'bg-cyan-900/60 border-cyan-400 text-cyan-100' 
                           : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-100'
                       }`}
                       onClick={() => setCredentialInfo(prev => ({ ...prev, institutionType: 'company' }))}
@@ -676,9 +676,9 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
                       {credentialInfo.institutionType === 'college' ? 'College/University Name' : 'Company/Organization Name'} 
-                      <span className="text-xs text-purple-600 ml-1">(click to see options)</span>
+                      <span className="text-xs text-cyan-400 ml-1">(click to see options)</span>
                     </label>
                     <div className="relative">
                       <div className="flex items-center relative">
@@ -694,7 +694,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                             setCollegeSearchText(''); // Set to empty string to show dropdown
                           }}
                           placeholder={credentialInfo.institutionType === 'college' ? 'Search or select your institution...' : 'Search or select your organization...'}
-                          className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                           required
                         />
                         <button
@@ -703,7 +703,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                             fetchColleges();
                             setCollegeSearchText('');
                           }}
-                          className="absolute right-2 text-gray-400 hover:text-purple-500"
+                          className="absolute right-2 text-cyan-400 hover:text-cyan-300"
                         >
                           <ChevronDown size={18} />
                         </button>
@@ -717,7 +717,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                           className="absolute z-10 mt-1 w-full bg-slate-950 border border-cyan-500/30 rounded-md shadow-lg max-h-60 overflow-auto"
                         >
                           {loadingColleges ? (
-                            <div className="p-2 text-center text-gray-500">Loading institutions...</div>
+                            <div className="p-2 text-center text-cyan-300/70">Loading institutions...</div>
                           ) : (
                             <>
                               {(credentialInfo.institutionType === 'college' ? colleges : companies)
@@ -728,7 +728,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                                 .map(item => (
                                   <div 
                                     key={item.id}
-                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    className="p-2 hover:bg-cyan-900/40 cursor-pointer text-cyan-100"
                                     onClick={() => {
                                       if (credentialInfo.institutionType === 'college') {
                                         handleCollegeSelect(item);
@@ -745,7 +745,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                                 !collegeSearchText || collegeSearchText.trim() === '' || 
                                 (item.fullName || item.name).toLowerCase().includes(collegeSearchText.toLowerCase())
                               ).length === 0 && (
-                                <div className="p-2 text-center text-gray-500">
+                                <div className="p-2 text-center text-cyan-300/70">
                                   No matches found. Your entry will be used.
                                 </div>
                               )}
@@ -757,8 +757,8 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Title <span className="text-xs text-purple-600 ml-1">(required, e.g. UI Test, Exam Form)</span>
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
+                      Title <span className="text-xs text-cyan-400 ml-1">(required, e.g. UI Test, Exam Form)</span>
                     </label>
                     <input
                       type="text"
@@ -766,18 +766,18 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       value={credentialInfo.title || ''}
                       onChange={handleCredentialInfoChange}
                       placeholder="Enter credential title, e.g. UI Test, Exam Form, Degree Name"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
                       Degree/Credential Name
                     </label>
                     <div ref={degreeRef} className="relative">
                       <div 
-                        className="flex items-center w-full p-2 border border-gray-300 rounded-md cursor-pointer"
+                        className="flex items-center w-full p-2 border border-cyan-500/30 rounded-md cursor-pointer bg-slate-900"
                         onClick={() => setShowDegreeDropdown(!showDegreeDropdown)}
                       >
                         <input
@@ -786,10 +786,10 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                           value={credentialInfo.credentialName}
                           onChange={handleCredentialInfoChange}
                           placeholder="Select or enter your degree/credential"
-                          className="flex-grow focus:outline-none focus:ring-2 focus:ring-purple-500 border-none"
+                          className="flex-grow bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 border-none"
                           readOnly={showDegreeDropdown}
                         />
-                        <ChevronDown size={18} className="text-gray-400" />
+                        <ChevronDown size={18} className="text-cyan-400" />
                       </div>
                       
                       {showDegreeDropdown && (
@@ -797,8 +797,11 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                           {degreeOptions.map((degree, index) => (
                             <div
                               key={index}
-                              className="p-2 hover:bg-gray-100 cursor-pointer"
-                              onClick={() => handleDegreeSelect(degree)}
+                              className="p-2 hover:bg-cyan-900/40 cursor-pointer text-cyan-100"
+                              onClick={() => {
+                                handleDegreeSelect(degree);
+                                setShowDegreeDropdown(false);
+                              }}
                             >
                               {degree}
                             </div>
@@ -809,7 +812,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
                       Date Issued
                     </label>
                     <input
@@ -817,28 +820,28 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       name="issuedDate"
                       value={credentialInfo.issuedDate}
                       onChange={handleCredentialInfoChange}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
                 </div>
 
-                <div className="text-sm text-gray-600">
-                  <p>Selected file: <span className="font-medium">{selectedFile?.name}</span></p>
+                <div className="text-sm text-cyan-200">
+                  <p>Selected file: <span className="font-medium text-cyan-100">{selectedFile?.name}</span></p>
                   <p className="mt-1">The credential will be sent to {credentialInfo.institution} for verification.</p>
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2 p-4 border-t">
+            <div className="flex justify-end gap-2 p-4 border-t border-cyan-500/30">
               <button
                 onClick={closeCredModal}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-cyan-500/30 rounded-md text-cyan-200 hover:bg-cyan-900/40"
               >
                 Cancel
               </button>
               <button
                 onClick={uploadCredential}
                 disabled={!credentialInfo.institution || !credentialInfo.title || !credentialInfo.institution_id}
-                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-cyan-600 text-cyan-950 rounded-md hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
               >
                 Upload Credential
               </button>
