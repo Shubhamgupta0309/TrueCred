@@ -17,7 +17,16 @@ logger = logging.getLogger(__name__)
 
 company_exp_bp = Blueprint('experiences_company', __name__, url_prefix='/api/experiences')
 
-company_exp_bp = Blueprint('experiences_company', __name__, url_prefix='/api/experiences')
+
+def _get_company_user():
+    """Return the authenticated company user or a tuple(response, status)."""
+    user_id = get_jwt_identity()
+    user = User.objects(id=user_id).first()
+    if not user:
+        return None, ({'success': False, 'message': 'User not found'}, 404)
+    if user.role != 'company':
+        return None, ({'success': False, 'message': 'Only company accounts can access this endpoint'}, 403)
+    return user, None
 
 
 def _format_date(dt):
@@ -30,8 +39,17 @@ def _format_date(dt):
 @company_exp_bp.route('/pending', methods=['GET'])
 @jwt_required()
 def pending_experiences():
-    # For now, return globally pending experiences
-    exps = Experience.objects(verification_status='pending').order_by('-created_at')
+    company_user, error = _get_company_user()
+    if error:
+        payload, status = error
+        return jsonify(payload), status
+
+    org_name = (company_user.organization or '').strip()
+    query = {'verification_status': 'pending'}
+    if org_name:
+        query['organization'] = org_name
+
+    exps = Experience.objects(**query).order_by('-created_at')
     out = []
     ipfs = IPFSService()
     
@@ -87,13 +105,23 @@ def pending_experiences():
                 'created_at': x.created_at.isoformat() if x.created_at else None,
                 'updated_at': x.updated_at.isoformat() if x.updated_at else None
             })
-    return jsonify({'requests': out}), 200
+    return jsonify({'success': True, 'data': out, 'requests': out}), 200
 
 
 @company_exp_bp.route('/history', methods=['GET'])
 @jwt_required()
 def experiences_history():
-    exps = Experience.objects(verification_status__in=['verified', 'rejected']).order_by('-updated_at')
+    company_user, error = _get_company_user()
+    if error:
+        payload, status = error
+        return jsonify(payload), status
+
+    org_name = (company_user.organization or '').strip()
+    query = {'verification_status__in': ['verified', 'rejected']}
+    if org_name:
+        query['organization'] = org_name
+
+    exps = Experience.objects(**query).order_by('-updated_at')
     out = []
     for x in exps:
         try:
@@ -113,7 +141,7 @@ def experiences_history():
                 'status': 'verified' if x.is_verified else 'rejected',
                 'actionDate': _format_date(x.updated_at) or _format_date(datetime.utcnow()),
             })
-    return jsonify({'history': out}), 200
+    return jsonify({'success': True, 'data': out, 'history': out}), 200
 
 
 @company_exp_bp.route('/request', methods=['POST'])
@@ -230,10 +258,19 @@ def request_experience_verification():
 @company_exp_bp.route('/<experience_id>/approve', methods=['POST'])
 @jwt_required()
 def approve_experience(experience_id):
+    company_user, error = _get_company_user()
+    if error:
+        payload, status = error
+        return jsonify(payload), status
+
     try:
         exp = Experience.objects.get(id=experience_id)
     except DoesNotExist:
-        return jsonify({'error': 'Experience not found'}), 404
+        return jsonify({'success': False, 'message': 'Experience not found'}), 404
+
+    if company_user.organization and exp.organization != company_user.organization:
+        return jsonify({'success': False, 'message': 'Unauthorized for this experience request'}), 403
+
     # Update fields to mark verified
     exp.is_verified = True
     exp.verification_status = 'verified'
@@ -241,20 +278,29 @@ def approve_experience(experience_id):
     exp.pending_verification = False
     exp.verified_at = datetime.utcnow()
     exp.save()
-    return jsonify({'success': True}), 200
+    return jsonify({'success': True, 'message': 'Experience request approved'}), 200
 
 
 @company_exp_bp.route('/<experience_id>/reject', methods=['POST'])
 @jwt_required()
 def reject_experience(experience_id):
+    company_user, error = _get_company_user()
+    if error:
+        payload, status = error
+        return jsonify(payload), status
+
     try:
         exp = Experience.objects.get(id=experience_id)
     except DoesNotExist:
-        return jsonify({'error': 'Experience not found'}), 404
+        return jsonify({'success': False, 'message': 'Experience not found'}), 404
+
+    if company_user.organization and exp.organization != company_user.organization:
+        return jsonify({'success': False, 'message': 'Unauthorized for this experience request'}), 403
+
     reason = (request.json or {}).get('reason')
     exp.is_verified = False
     exp.verification_status = 'rejected'
     exp.rejection_reason = reason
     exp.pending_verification = False
     exp.save()
-    return jsonify({'success': True}), 200
+    return jsonify({'success': True, 'message': 'Experience request rejected'}), 200

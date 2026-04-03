@@ -2,7 +2,6 @@
 import io
 import os
 import hashlib
-import importlib
 from typing import Any, Dict
 import logging
 
@@ -21,10 +20,9 @@ except ImportError as exc:
     np = None
     OCR_IMPORT_ERROR = exc
 
-pdfium = None
 try:
-    pdfium = importlib.import_module('pypdfium2')
-except Exception:
+    import pypdfium2 as pdfium
+except ImportError:
     pdfium = None
 
 
@@ -52,7 +50,7 @@ class OCRService:
                 'or install pytesseract, Pillow, opencv-python, scikit-image, and numpy.'
             ) from OCR_IMPORT_ERROR
     
-    def preprocess_image(self, image: Any):
+    def preprocess_image(self, image: Image.Image):
         """
         Preprocess image for better OCR accuracy.
         

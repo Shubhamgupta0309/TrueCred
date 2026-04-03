@@ -20,10 +20,8 @@ function App() {
 
   return (
     <ToastProvider>
-      <div className="min-h-screen flex flex-col bg-purple-50">
-        <div className="flex-grow flex items-center justify-center">
-          <RouterProvider router={router} />
-        </div>
+      <div className="min-h-screen bg-slate-950">
+        <RouterProvider router={router} />
       </div>
     </ToastProvider>
   );

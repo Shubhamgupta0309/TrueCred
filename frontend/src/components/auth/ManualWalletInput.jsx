@@ -78,13 +78,13 @@ export default function ManualWalletInput() {
 
   return (
     <div className="mt-4">
-      <div className="text-sm text-gray-600 mb-2">
+      <div className="text-sm text-cyan-300/70 mb-2">
         Login with your registered wallet address:
       </div>
       
       <form onSubmit={handleSubmit} className="space-y-2">
         <div className="flex flex-col">
-          <label htmlFor="walletAddress" className="text-sm text-gray-700 mb-1">
+          <label htmlFor="walletAddress" className="text-sm text-cyan-300 mb-1">
             Wallet Address
           </label>
           <div className="flex">
@@ -96,14 +96,14 @@ export default function ManualWalletInput() {
               onChange={(e) => setWalletAddress(e.target.value)}
               placeholder="0x..."
               autoComplete="off"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="flex-1 px-3 py-2 border border-cyan-500/30 rounded-l-md bg-slate-900 text-cyan-100 placeholder-cyan-600 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
             />
             <button
               type="submit"
               id="connectWalletBtn"
               name="connectWalletBtn"
               disabled={isSubmitting}
-              className="bg-purple-600 text-white px-4 py-2 rounded-r-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="bg-cyan-600 text-white px-4 py-2 rounded-r-md hover:bg-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isSubmitting ? 'Connecting...' : 'Connect'}
             </button>
@@ -111,13 +111,13 @@ export default function ManualWalletInput() {
         </div>
         
         {error && (
-          <div className="text-sm text-red-600">
+          <div className="text-sm text-red-400">
             {error}
           </div>
         )}
         
         {success && (
-          <div className="text-sm text-green-600">
+          <div className="text-sm text-green-400">
             {success}
           </div>
         )}

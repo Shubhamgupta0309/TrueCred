@@ -22,7 +22,7 @@ export default function CollegeDashboard() {
   const [history, setHistory] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('requests');
+  const [activeTab, setActiveTab] = useState('intro');
   const [error, setError] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [collegeProfile, setCollegeProfile] = useState(null);
@@ -130,7 +130,7 @@ export default function CollegeDashboard() {
 
     // Optional: Refresh data from server to ensure consistency
     try {
-      const response = await api.get('/college/pending-requests');
+      const response = await api.get('/api/college/pending-requests');
       if (response.data && response.data.requests) {
         setPendingRequests(response.data.requests);
       }
@@ -187,6 +187,24 @@ export default function CollegeDashboard() {
     }
   };
 
+  const summaryStats = [
+    {
+      label: 'Pending Requests',
+      value: pendingRequests.length,
+      tone: 'text-amber-700 bg-amber-50 border-amber-100'
+    },
+    {
+      label: 'Issued Today',
+      value: history.filter((h) => h.status === 'Issued').length,
+      tone: 'text-emerald-700 bg-emerald-50 border-emerald-100'
+    },
+    {
+      label: 'Alerts',
+      value: notifications.length,
+      tone: 'text-indigo-700 bg-indigo-50 border-indigo-100'
+    }
+  ];
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-100 p-4 md:p-8 flex items-center justify-center">
@@ -228,6 +246,16 @@ export default function CollegeDashboard() {
         {/* Tab Navigation */}
         <div className="bg-white shadow-sm rounded-lg mb-8">
           <div className="flex border-b">
+            <button
+              className={`py-3 px-6 focus:outline-none ${
+                activeTab === 'intro'
+                  ? 'border-b-2 border-purple-600 text-purple-700'
+                  : 'text-gray-500 hover:text-purple-500'
+              }`}
+              onClick={() => setActiveTab('intro')}
+            >
+              Intro
+            </button>
             <button
               className={`py-3 px-6 focus:outline-none ${
                 activeTab === 'requests'
@@ -272,7 +300,40 @@ export default function CollegeDashboard() {
         </div>
 
         <AnimatePresence mode="wait">
-          {activeTab === 'requests' ? (
+          {activeTab === 'intro' ? (
+            <motion.div
+              key="intro"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit={{ opacity: 0 }}
+              className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            >
+              <div className="lg:col-span-2 space-y-6">
+                <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm border border-purple-100 p-6">
+                  <p className="text-xs uppercase tracking-[0.18em] text-purple-700 font-semibold">TrueCred Startup Workspace</p>
+                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-gray-900">Institution Verification Command Center</h2>
+                  <p className="mt-3 text-gray-600 leading-relaxed">
+                    Manage credential approvals, keep audit-ready verification history, and publish trusted templates so
+                    student submissions can be evaluated with confidence and speed.
+                  </p>
+                </motion.div>
+                <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {summaryStats.map((item) => (
+                    <div key={item.label} className={`rounded-xl border p-4 ${item.tone}`}>
+                      <p className="text-xs uppercase tracking-wide font-semibold">{item.label}</p>
+                      <p className="text-3xl font-bold mt-2">{item.value}</p>
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
+              <div className="space-y-8">
+                <motion.div variants={itemVariants}>
+                  <NotificationPanel notifications={notifications} />
+                </motion.div>
+              </div>
+            </motion.div>
+          ) : activeTab === 'requests' ? (
             <motion.div
               key="requests"
               variants={containerVariants}
