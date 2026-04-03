@@ -59,15 +59,15 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
     }
   };
   return (
-    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <FileText className="w-5 h-5 text-purple-600" />
+    <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10 p-6">
+      <h3 className="text-lg font-bold text-cyan-100 mb-4 flex items-center gap-2">
+        <FileText className="w-5 h-5 text-cyan-400" />
         My Credentials ({verifiedCredentials.length})
       </h3>
       <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
         {verifiedCredentials.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
-            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-cyan-300/70 text-center py-8">
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-cyan-500/60" />
             <p>No verified credentials yet.</p>
             <p className="text-sm mt-2">Your approved credentials will appear here.</p>
           </div>
@@ -78,14 +78,14 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer"
+              className="border border-cyan-500/30 bg-cyan-950/20 rounded-lg p-4 hover:bg-cyan-950/40 hover:shadow-md transition-all duration-200 cursor-pointer"
             >
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-gray-800">{cred.title}</p>
-                    <p className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                    <p className="font-semibold text-cyan-100">{cred.title}</p>
+                    <p className="text-sm text-cyan-300/80 flex items-center gap-2 mt-1">
                       <Calendar className="w-4 h-4" />
                       Verified on {cred.date ? (new Date(cred.date).toLocaleDateString()) : 'Unknown'}
                     </p>
@@ -97,7 +97,7 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                     whileTap={{ scale: 0.9 }}
                     onClick={() => handleVerifyOnBlockchain(cred.id)}
                     disabled={verifyingId === cred.id}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="p-2 text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/40 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Verify on blockchain"
                   >
                     <RefreshCw className={`w-5 h-5 ${verifyingId === cred.id ? 'animate-spin' : ''}`} />
@@ -105,7 +105,7 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="p-2 text-gray-500 hover:text-purple-600 hover:bg-purple-100 rounded-full"
+                    className="p-2 text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/40 rounded-full"
                     title="View Details"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -137,18 +137,18 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
   
       {/* Credential Details Modal */}
       {selectedCredential && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            className="bg-slate-950 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
           >
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">{selectedCredential.title}</h2>
+                <h2 className="text-2xl font-bold text-cyan-100">{selectedCredential.title}</h2>
                 <button
                   onClick={() => setSelectedCredential(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-cyan-300 hover:text-cyan-100 text-2xl"
                 >
                   ×
                 </button>
@@ -156,14 +156,14 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
 
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedCredential.verified ? 'text-green-600 bg-green-100' : 'text-gray-600 bg-gray-100'}`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedCredential.verified ? 'text-green-300 bg-green-950/40' : 'text-cyan-200 bg-cyan-900/40'}`}>
                     {selectedCredential.verified ? 'Verified' : (selectedCredential.pending_verification ? 'Pending' : 'Not Verified')}
                   </span>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Basic Information</h3>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Basic Information</h3>
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Issuer:</span> {selectedCredential.issuer}</p>
                       <p><span className="font-medium">Type:</span> {selectedCredential.type || 'Not specified'}</p>
@@ -172,7 +172,7 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                   </div>
 
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Dates</h3>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Dates</h3>
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Issued:</span> {selectedCredential.issue_date ? new Date(selectedCredential.issue_date).toLocaleDateString() : 'Unknown'}</p>
                       <p><span className="font-medium">Verified At:</span> {selectedCredential.verified_at ? new Date(selectedCredential.verified_at).toLocaleString() : 'N/A'}</p>
@@ -182,15 +182,15 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
 
                 {selectedCredential.description && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Description</h3>
-                    <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">{selectedCredential.description}</p>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Description</h3>
+                    <p className="text-sm text-cyan-200 bg-cyan-900/30 p-3 rounded-lg">{selectedCredential.description}</p>
                   </div>
                 )}
 
                 {/* Verification Details */}
                 {(selectedCredential.blockchain_data || selectedCredential.blockchain_tx_hash) && (
                   <div>
-                    <h3 className="font-semibold text-gray-700 mb-2">Verification Details</h3>
+                    <h3 className="font-semibold text-cyan-200 mb-2">Verification Details</h3>
                     <div className="space-y-2 text-sm">
                       <p><span className="font-medium">Transaction Hash:</span> {selectedCredential.blockchain_data?.tx_hash || selectedCredential.blockchain_tx_hash || 'N/A'}</p>
                       <p><span className="font-medium">Block Number:</span> {selectedCredential.blockchain_data?.block_number || selectedCredential.block_number || 'N/A'}</p>
@@ -201,7 +201,7 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
 
                 {/* Documents */}
                 <div>
-                  <h3 className="font-semibold text-gray-700 mb-2">Documents</h3>
+                  <h3 className="font-semibold text-cyan-200 mb-2">Documents</h3>
                   <div className="space-y-2">
                     {
                       (() => {

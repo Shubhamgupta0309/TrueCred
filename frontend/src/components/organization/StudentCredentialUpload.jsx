@@ -168,18 +168,18 @@ export default function StudentCredentialUpload({ student, onComplete }) {
   
   return (
     <motion.div
-      className="bg-white p-6 rounded-lg shadow-lg"
+      className="bg-cyan-950/30 border border-cyan-500/30 p-6 rounded-lg shadow-lg"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Upload Credential</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-cyan-100">Upload Credential</h2>
+          <p className="text-cyan-200 mt-1">
             For student: <span className="font-medium">{student.name}</span>
           </p>
-          <p className="text-sm font-mono text-blue-700">{student.truecred_id}</p>
+          <p className="text-sm font-mono text-cyan-300">{student.truecred_id}</p>
         </div>
         
         {success && (
@@ -216,8 +216,8 @@ export default function StudentCredentialUpload({ student, onComplete }) {
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
-            <label className="block text-gray-700 mb-2" htmlFor="title">
-              Credential Name* <span className="text-gray-500">(e.g., UI Test, Exam Form)</span>
+            <label className="block text-cyan-200 mb-2" htmlFor="title">
+              Credential Name* <span className="text-cyan-300/70">(e.g., UI Test, Exam Form)</span>
             </label>
             <input
               id="title"
@@ -225,14 +225,14 @@ export default function StudentCredentialUpload({ student, onComplete }) {
               type="text"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               required
               placeholder="Enter credential name, e.g. UI Test, Exam Form, Degree Name"
             />
           </div>
           
           <div className="mb-6">
-            <label className="block text-gray-700 mb-2" htmlFor="type">
+            <label className="block text-cyan-200 mb-2" htmlFor="type">
               Credential Type*
             </label>
             <select
@@ -240,7 +240,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
               name="type"
               value={formData.type}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               required
             >
               <option value="diploma">Diploma</option>
@@ -254,7 +254,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
           </div>
           
           <div className="mb-6">
-            <label className="block text-gray-700 mb-2" htmlFor="description">
+            <label className="block text-cyan-200 mb-2" htmlFor="description">
               Description
             </label>
             <textarea
@@ -263,7 +263,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
               value={formData.description}
               onChange={handleInputChange}
               rows="3"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="Provide details about this credential"
             ></textarea>
           </div>
@@ -327,9 +327,9 @@ export default function StudentCredentialUpload({ student, onComplete }) {
                 </div>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500 mb-2">Drag and drop a file here, or click to select</p>
+              <div className="border-2 border-dashed border-cyan-500/30 rounded-lg p-6 text-center bg-cyan-950/20">
+                <Upload className="h-8 w-8 text-cyan-300 mx-auto mb-2" />
+                <p className="text-cyan-300/70 mb-2">Drag and drop a file here, or click to select</p>
                 <input
                   type="file"
                   className="hidden"
@@ -339,7 +339,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
                 />
                 <label
                   htmlFor="document-upload"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block cursor-pointer"
+                  className="px-4 py-2 bg-cyan-600 text-slate-950 rounded-lg hover:bg-cyan-500 transition-colors inline-block cursor-pointer"
                 >
                   Select File
                 </label>

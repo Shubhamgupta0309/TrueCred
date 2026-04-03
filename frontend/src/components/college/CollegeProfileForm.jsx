@@ -126,20 +126,21 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6"
+      className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10 p-6"
     >
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center">
-          <Building className="h-6 w-6 text-purple-600 mr-2" />
-          <h2 className="text-xl font-bold text-gray-800">College Information</h2>
+          <Building className="h-6 w-6 text-cyan-400 mr-2" />
+          <h2 className="text-xl font-bold text-cyan-100">College Information</h2>
         </div>
         
         {!isEditing && (
           <div className="flex gap-4">
             <button
               type="button"
+              data-profile-edit
               onClick={() => setIsEditing(true)}
-              className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+              className="px-4 py-2 bg-cyan-900/40 text-cyan-200 rounded-lg hover:bg-cyan-900/60 transition-colors"
             >
               Edit Details
             </button>
@@ -160,7 +161,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                   setLoading(false);
                 }
               }}
-              className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+              className="px-4 py-2 bg-cyan-900/40 text-cyan-200 rounded-lg hover:bg-cyan-900/60 transition-colors"
             >
               Test Update
             </button>
@@ -169,16 +170,16 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 rounded-lg border border-red-200 flex items-center">
+        <div className="mb-6 p-4 bg-cyan-950/30 rounded-lg border border-cyan-500/30 flex items-center">
           <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-          <p className="text-red-700">{error}</p>
+          <p className="text-cyan-100">{error}</p>
         </div>
       )}
 
       {success && (
-        <div className="mb-6 p-4 bg-green-50 rounded-lg border border-green-200 flex items-center">
+        <div className="mb-6 p-4 bg-cyan-950/30 rounded-lg border border-cyan-500/30 flex items-center">
           <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-          <p className="text-green-700">College profile updated successfully!</p>
+          <p className="text-cyan-100">College profile updated successfully!</p>
         </div>
       )}
 
@@ -186,18 +187,18 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">College Name</h3>
-              <p className="text-gray-800">{formData.name || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">College Name</h3>
+              <p className="text-cyan-100">{formData.name || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Full Legal Name</h3>
-              <p className="text-gray-800">{formData.fullName || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Full Legal Name</h3>
+              <p className="text-cyan-100">{formData.fullName || 'Not specified'}</p>
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-700 mb-1">Address</h3>
-            <p className="text-gray-800">
+            <h3 className="font-semibold text-cyan-200 mb-1">Address</h3>
+            <p className="text-cyan-100">
               {formData.address ? (
                 <>
                   {formData.address}, {formData.city}, {formData.state}, {formData.country} {formData.postalCode}
@@ -210,10 +211,10 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Website</h3>
-              <p className="text-gray-800">
+              <h3 className="font-semibold text-cyan-200 mb-1">Website</h3>
+              <p className="text-cyan-100">
                 {formData.website ? (
-                  <a href={formData.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                  <a href={formData.website} target="_blank" rel="noopener noreferrer" className="text-cyan-300 hover:underline">
                     {formData.website}
                   </a>
                 ) : (
@@ -222,36 +223,36 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Phone</h3>
-              <p className="text-gray-800">{formData.phone || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Phone</h3>
+              <p className="text-cyan-100">{formData.phone || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Email</h3>
-              <p className="text-gray-800">{formData.email || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Email</h3>
+              <p className="text-cyan-100">{formData.email || 'Not specified'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Accreditation Body</h3>
-              <p className="text-gray-800">{formData.accreditationBody || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Accreditation Body</h3>
+              <p className="text-cyan-100">{formData.accreditationBody || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Established</h3>
-              <p className="text-gray-800">{formData.establishmentYear || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Established</h3>
+              <p className="text-cyan-100">{formData.establishmentYear || 'Not specified'}</p>
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-700 mb-1">Description</h3>
-            <p className="text-gray-800">{formData.description || 'Not specified'}</p>
+            <h3 className="font-semibold text-cyan-200 mb-1">Description</h3>
+            <p className="text-cyan-100">{formData.description || 'Not specified'}</p>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="name">
+              <label className="block text-cyan-200 mb-2" htmlFor="name">
                 College Name*
               </label>
               <input
@@ -260,14 +261,14 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 required
                 placeholder="e.g., Stanford University"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="fullName">
+              <label className="block text-cyan-200 mb-2" htmlFor="fullName">
                 Full Legal Name
               </label>
               <input
@@ -276,14 +277,14 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.fullName}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="e.g., Leland Stanford Junior University"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-gray-700 mb-2" htmlFor="address">
+            <label className="block text-cyan-200 mb-2" htmlFor="address">
               Address
             </label>
             <input
@@ -292,14 +293,14 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
               type="text"
               value={formData.address}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="Street address"
             />
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="city">
+              <label className="block text-cyan-200 mb-2" htmlFor="city">
                 City
               </label>
               <input
@@ -308,13 +309,13 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.city}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="City"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="state">
+              <label className="block text-cyan-200 mb-2" htmlFor="state">
                 State/Province
               </label>
               <input
@@ -323,13 +324,13 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.state}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="State/Province"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="country">
+              <label className="block text-cyan-200 mb-2" htmlFor="country">
                 Country
               </label>
               <input
@@ -338,13 +339,13 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.country}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Country"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="postalCode">
+              <label className="block text-cyan-200 mb-2" htmlFor="postalCode">
                 Postal Code
               </label>
               <input
@@ -353,7 +354,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.postalCode}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Postal/ZIP code"
               />
             </div>
@@ -361,7 +362,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="website">
+              <label className="block text-cyan-200 mb-2" htmlFor="website">
                 Website
               </label>
               <input
@@ -370,13 +371,13 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="url"
                 value={formData.website}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="https://www.example.edu"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="phone">
+              <label className="block text-cyan-200 mb-2" htmlFor="phone">
                 Phone
               </label>
               <input
@@ -385,13 +386,13 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="tel"
                 value={formData.phone}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="+1 (123) 456-7890"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="email">
+              <label className="block text-cyan-200 mb-2" htmlFor="email">
                 Email
               </label>
               <input
@@ -400,7 +401,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="email"
                 value={formData.email}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="admissions@example.edu"
               />
             </div>
@@ -408,7 +409,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="accreditationBody">
+              <label className="block text-cyan-200 mb-2" htmlFor="accreditationBody">
                 Accreditation Body
               </label>
               <input
@@ -417,13 +418,13 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.accreditationBody}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="e.g., WASC Senior College and University Commission"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="establishmentYear">
+              <label className="block text-cyan-200 mb-2" htmlFor="establishmentYear">
                 Establishment Year
               </label>
               <input
@@ -432,14 +433,14 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
                 type="text"
                 value={formData.establishmentYear}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="e.g., 1885"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-gray-700 mb-2" htmlFor="description">
+            <label className="block text-cyan-200 mb-2" htmlFor="description">
               Description
             </label>
             <textarea
@@ -447,7 +448,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
               name="description"
               value={formData.description}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               rows={4}
               placeholder="Brief description of your institution..."
             />
@@ -458,7 +459,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-6 py-2 bg-cyan-900/40 text-cyan-100 rounded-lg hover:bg-cyan-900/60 transition-colors"
                 disabled={loading}
               >
                 Cancel
@@ -467,7 +468,7 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
             
             <button
               type="submit"
-              className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+              className="px-6 py-2 bg-cyan-600 text-slate-950 rounded-lg hover:bg-cyan-500 transition-colors flex items-center"
               disabled={loading}
             >
               {loading ? (

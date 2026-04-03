@@ -135,21 +135,21 @@ export default function PendingRequests({ requests = [], onAction }) {
 
   if (!requests || requests.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h3 className="text-lg font-bold mb-2">Pending Requests</h3>
-        <p className="text-gray-500">No pending requests at the moment.</p>
+      <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-xl shadow-md p-6">
+        <h3 className="text-lg font-bold mb-2 text-cyan-100">Pending Requests</h3>
+        <p className="text-cyan-300/70">No pending requests at the moment.</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-md p-6">
-      <h3 className="text-lg font-bold mb-4">Pending Requests</h3>
+    <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-xl shadow-md p-6">
+      <h3 className="text-lg font-bold mb-4 text-cyan-100">Pending Requests</h3>
       
       {/* Search and Filter Section */}
       <div className="mb-4 space-y-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-cyan-200 mb-1">
             Search Requests
           </label>
           <input
@@ -157,18 +157,18 @@ export default function PendingRequests({ requests = [], onAction }) {
             placeholder="Search by title, student name, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-cyan-200 mb-1">
             College/University Name (filter)
           </label>
           <select
             value={selectedInstitution}
             onChange={(e) => setSelectedInstitution(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
           >
             <option value="">All Institutions</option>
             {institutions.map((institution, index) => (
@@ -180,7 +180,7 @@ export default function PendingRequests({ requests = [], onAction }) {
         </div>
         
         {(searchTerm || selectedInstitution) && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-cyan-300/80">
             <span>Filtered: {filteredRequests.length} of {requests.length} requests</span>
             <button
               onClick={() => {
@@ -204,58 +204,58 @@ export default function PendingRequests({ requests = [], onAction }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="border border-purple-100 rounded-lg p-4 hover:bg-purple-50 transition-colors duration-200"
+            className="border border-cyan-500/20 bg-cyan-950/20 rounded-lg p-4 hover:bg-cyan-900/30 transition-colors duration-200"
           >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               {/* Request Info */}
               <div className="flex-1">
                 <div className="mb-2">
-                  <h4 className="font-semibold text-gray-800 text-sm">Title</h4>
-                  <p className="text-blue-600 font-medium">{req.title || req.credentialTitle || 'No title provided'}</p>
+                  <h4 className="font-semibold text-cyan-100 text-sm">Title</h4>
+                  <p className="text-cyan-300 font-medium">{req.title || req.credentialTitle || 'No title provided'}</p>
                 </div>
                 
                 <div className="mb-2">
-                  <h4 className="font-semibold text-gray-800 text-sm">Student</h4>
-                  <p className="text-gray-700">{req.studentName || req.student_name || 'Unknown Student'}</p>
-                  <p className="text-xs text-gray-500">{req.studentEmail || req.student_email || ''}</p>
+                  <h4 className="font-semibold text-cyan-100 text-sm">Student</h4>
+                  <p className="text-cyan-200">{req.studentName || req.student_name || 'Unknown Student'}</p>
+                  <p className="text-xs text-cyan-300/70">{req.studentEmail || req.student_email || ''}</p>
                 </div>
                 
                 <div className="mb-2">
-                  <h4 className="font-semibold text-gray-800 text-sm">Institution</h4>
-                  <p className="text-gray-700">{req.institutionName || req.institution_name || req.issuer || 'Not specified'}</p>
+                  <h4 className="font-semibold text-cyan-100 text-sm">Institution</h4>
+                  <p className="text-cyan-200">{req.institutionName || req.institution_name || req.issuer || 'Not specified'}</p>
                 </div>
 
                 <div className="mb-2">
-                  <h4 className="font-semibold text-gray-800 text-sm">OCR Verification</h4>
-                  <p className="text-gray-700 capitalize">
+                  <h4 className="font-semibold text-cyan-100 text-sm">OCR Verification</h4>
+                  <p className="text-cyan-200 capitalize">
                     {(req.verification_status || 'not_checked').replace('_', ' ')}
                   </p>
-                  <p className="text-gray-700">Confidence: {typeof req.confidence_score === 'number' ? `${req.confidence_score}%` : 'N/A'}</p>
+                  <p className="text-cyan-200">Confidence: {typeof req.confidence_score === 'number' ? `${req.confidence_score}%` : 'N/A'}</p>
                   {req.matched_template_name && (
-                    <p className="text-xs text-gray-500">Matched template: {req.matched_template_name}</p>
+                    <p className="text-xs text-cyan-300/70">Matched template: {req.matched_template_name}</p>
                   )}
                   {req.ocr_decision_details?.decision_reason && (
-                    <p className="text-xs text-gray-500 mt-1">{req.ocr_decision_details.decision_reason}</p>
+                    <p className="text-xs text-cyan-300/70 mt-1">{req.ocr_decision_details.decision_reason}</p>
                   )}
                   {req.ocr_decision_details?.matching_details?.text_similarity !== undefined && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-cyan-300/70 mt-1">
                       Text similarity: {req.ocr_decision_details.matching_details.text_similarity}%
                     </p>
                   )}
                   {req.ocr_decision_details?.matching_details?.layout_similarity !== undefined && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-cyan-300/70 mt-1">
                       Layout similarity: {req.ocr_decision_details.matching_details.layout_similarity}%
                     </p>
                   )}
                   {req.ocr_decision_details?.matching_details?.required_fields_matched !== undefined && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-cyan-300/70 mt-1">
                       Required fields: {req.ocr_decision_details.matching_details.required_fields_matched}/
                       {req.ocr_decision_details.matching_details.required_fields_total || 0}
                     </p>
                   )}
                 </div>
                 
-                <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <p className="text-xs text-cyan-300/60 mt-2 flex items-center gap-1">
                     <Calendar className="w-3 h-3"/> Submitted: {req.submissionDate || (req.created_at ? new Date(req.created_at).toLocaleDateString() : 'Unknown')}
                 </p>
                 
@@ -267,7 +267,7 @@ export default function PendingRequests({ requests = [], onAction }) {
                       <span>Blockchain Verified</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                    <div className="flex items-center gap-1 text-xs text-cyan-300/70">
                       <Shield className="w-3 h-3" />
                       <span>Not on Blockchain</span>
                     </div>
@@ -280,7 +280,7 @@ export default function PendingRequests({ requests = [], onAction }) {
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => handleViewDoc(req)}
-                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
+                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 border border-cyan-500/30 text-cyan-100 rounded-md hover:bg-cyan-900/30"
                 >
                   <FileText className="w-4 h-4" /> View Doc
                 </motion.button>
@@ -313,8 +313,8 @@ export default function PendingRequests({ requests = [], onAction }) {
           </motion.div>
         ))}
         {filteredRequests.length === 0 && requests.length > 0 && (
-            <div className="text-center py-8 text-gray-500">
-                <FileText className="w-10 h-10 mx-auto mb-2 text-gray-400"/>
+            <div className="text-center py-8 text-cyan-300/70">
+              <FileText className="w-10 h-10 mx-auto mb-2 text-cyan-300/60"/>
                 <p>No requests match your search criteria.</p>
                 <button
                   onClick={() => {
@@ -329,7 +329,7 @@ export default function PendingRequests({ requests = [], onAction }) {
         )}
         
         {requests.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-cyan-300/70">
                 <Check className="w-10 h-10 mx-auto mb-2 text-green-500"/>
                 <p>All requests have been processed!</p>
             </div>
@@ -339,8 +339,8 @@ export default function PendingRequests({ requests = [], onAction }) {
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Upload Authoritative Credential</h2>
+          <div className="bg-slate-950 border border-cyan-500/30 rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 text-cyan-100">Upload Authoritative Credential</h2>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFileChange} className="mb-4" />
             <div className="flex gap-4 mt-4">
               <button
@@ -352,7 +352,7 @@ export default function PendingRequests({ requests = [], onAction }) {
               </button>
               <button
                 onClick={() => { setShowUploadModal(false); setFile(null); setSelectedRequest(null); }}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-cyan-900/40 text-cyan-100 rounded hover:bg-cyan-900/60"
               >
                 Cancel
               </button>

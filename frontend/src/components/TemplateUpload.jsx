@@ -135,13 +135,13 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="w-full max-w-2xl mx-auto bg-cyan-950/30 border border-cyan-500/30 text-cyan-100">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-cyan-100">
           <Upload className="h-5 w-5" />
           Upload Certificate Template
         </CardTitle>
-        <CardDescription>
+        <CardDescription className="text-cyan-300/70">
           Upload a master certificate template for OCR-based verification
         </CardDescription>
       </CardHeader>
@@ -149,8 +149,8 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
         <form onSubmit={handleUpload} className="space-y-6">
           {/* File Upload */}
           <div className="space-y-2">
-            <Label htmlFor="template-file-input">Certificate Template *</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition">
+            <Label htmlFor="template-file-input" className="text-cyan-200">Certificate Template *</Label>
+            <div className="border-2 border-dashed border-cyan-500/30 rounded-lg p-6 text-center hover:border-cyan-400 transition bg-slate-900/70">
               <Input
                 id="template-file-input"
                 type="file"
@@ -161,19 +161,19 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
               <label htmlFor="template-file-input" className="cursor-pointer">
                 {templateFile ? (
                   <div className="space-y-2">
-                    <FileText className="h-12 w-12 mx-auto text-green-600" />
+                    <FileText className="h-12 w-12 mx-auto text-cyan-300" />
                     <p className="text-sm font-medium">{templateFile.name}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-cyan-300/70">
                       {(templateFile.size / 1024).toFixed(2)} KB
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <Upload className="h-12 w-12 mx-auto text-gray-400" />
-                    <p className="text-sm text-gray-600">
+                    <Upload className="h-12 w-12 mx-auto text-cyan-300/70" />
+                    <p className="text-sm text-cyan-200">
                       Click to upload or drag and drop
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-cyan-300/70">
                       PNG, JPG or PDF (max 10MB)
                     </p>
                   </div>
@@ -195,21 +195,22 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
 
           {/* Template Name */}
           <div className="space-y-2">
-            <Label htmlFor="template-name">Template Name *</Label>
+            <Label htmlFor="template-name" className="text-cyan-200">Template Name *</Label>
             <Input
               id="template-name"
               placeholder="e.g., Computer Science Degree 2024"
               value={templateName}
               onChange={(e) => setTemplateName(e.target.value)}
+              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50"
               required
             />
           </div>
 
           {/* Template Type */}
           <div className="space-y-2">
-            <Label htmlFor="template-type">Certificate Type *</Label>
+            <Label htmlFor="template-type" className="text-cyan-200">Certificate Type *</Label>
             <Select value={templateType} onValueChange={setTemplateType}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-slate-900 border-cyan-500/30 text-cyan-100">
                 <SelectValue placeholder="Select certificate type" />
               </SelectTrigger>
               <SelectContent>
@@ -224,28 +225,30 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
 
           {/* Required Fields */}
           <div className="space-y-2">
-            <Label htmlFor="required-fields">Required Fields</Label>
+            <Label htmlFor="required-fields" className="text-cyan-200">Required Fields</Label>
             <Input
               id="required-fields"
               placeholder="name, date, course (comma-separated)"
               value={requiredFields}
               onChange={(e) => setRequiredFields(e.target.value)}
+              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-cyan-300/70">
               Fields that must be present for verification
             </p>
           </div>
 
           {/* Optional Fields */}
           <div className="space-y-2">
-            <Label htmlFor="optional-fields">Optional Fields</Label>
+            <Label htmlFor="optional-fields" className="text-cyan-200">Optional Fields</Label>
             <Input
               id="optional-fields"
               placeholder="grade, roll_number (comma-separated)"
               value={optionalFields}
               onChange={(e) => setOptionalFields(e.target.value)}
+              className="bg-slate-900 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-300/50"
             />
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-cyan-300/70">
               Additional fields that may be extracted
             </p>
           </div>
@@ -260,9 +263,9 @@ const TemplateUpload = ({ organizationId, organizationName, organizationType }) 
 
           {/* Success Alert */}
           {uploadResult && (
-            <Alert className="bg-green-50 border-green-200">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
+            <Alert className="bg-cyan-950/30 border-cyan-500/30 text-cyan-100">
+              <CheckCircle className="h-4 w-4 text-cyan-300" />
+              <AlertDescription className="text-cyan-100">
                 <p className="font-semibold">Template uploaded successfully!</p>
                 <p className="text-sm mt-1">
                   OCR Confidence: {uploadResult.confidence}%

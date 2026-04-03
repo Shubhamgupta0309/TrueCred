@@ -231,10 +231,11 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Check if file is a PDF
-    if (file.type !== 'application/pdf') {
+    // Allow PDF and common image uploads so the institution can verify screenshots too.
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (!allowedTypes.includes(file.type)) {
       setExpUploadStatus('error');
-      setExpStatusMessage('Only PDF files are allowed.');
+      setExpStatusMessage('Only PDF, PNG, or JPG files are allowed.');
       return;
     }
 
@@ -563,8 +564,8 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6 flex flex-col justify-start">
-      <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
+    <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10 p-6 flex flex-col justify-start">
+      <h3 className="text-lg font-bold text-cyan-100 mb-4">Quick Actions</h3>
       <div className="space-y-4">
         <input 
           type="file" 
@@ -574,6 +575,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
           onChange={handleFileSelect} 
         />
         <motion.button
+          data-action="upload-credential"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           onClick={triggerFileInput}
@@ -601,10 +603,11 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
           type="file" 
           ref={expFileInputRef}
           className="hidden" 
-          accept=".pdf" 
+          accept=".pdf,.png,.jpg,.jpeg" 
           onChange={handleExpFileSelect} 
         />
         <motion.button
+          data-action="add-experience"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           onClick={triggerExpFileInput}
@@ -632,7 +635,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       {/* Credential Modal */}
       {showCredModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-slate-950 border border-cyan-500/30 rounded-lg shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center p-4 border-b">
               <h3 className="text-lg font-semibold text-gray-800">Credential Details</h3>
               <button 
@@ -651,7 +654,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border ${
                         credentialInfo.institutionType === 'college' 
                           ? 'bg-purple-100 border-purple-500 text-purple-700' 
-                          : 'bg-white border-gray-300 text-gray-700'
+                          : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-100'
                       }`}
                       onClick={() => setCredentialInfo(prev => ({ ...prev, institutionType: 'college' }))}
                     >
@@ -663,7 +666,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border ${
                         credentialInfo.institutionType === 'company' 
                           ? 'bg-blue-100 border-blue-500 text-blue-700' 
-                          : 'bg-white border-gray-300 text-gray-700'
+                          : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-100'
                       }`}
                       onClick={() => setCredentialInfo(prev => ({ ...prev, institutionType: 'company' }))}
                     >
@@ -711,7 +714,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       {collegeSearchText !== null && (
                         <div 
                           ref={collegeDropdownRef}
-                          className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                          className="absolute z-10 mt-1 w-full bg-slate-950 border border-cyan-500/30 rounded-md shadow-lg max-h-60 overflow-auto"
                         >
                           {loadingColleges ? (
                             <div className="p-2 text-center text-gray-500">Loading institutions...</div>
@@ -790,7 +793,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       </div>
                       
                       {showDegreeDropdown && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                        <div className="absolute z-10 w-full mt-1 bg-slate-950 border border-cyan-500/30 rounded-md shadow-lg max-h-60 overflow-auto">
                           {degreeOptions.map((degree, index) => (
                             <div
                               key={index}
@@ -847,12 +850,12 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       {/* Experience Modal */}
       {showExpModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+          <div className="bg-slate-950 border border-cyan-500/30 rounded-lg shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-800">Experience Details</h3>
+              <h3 className="text-lg font-semibold text-cyan-100">Experience Details</h3>
               <button 
                 onClick={closeExpModal}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-cyan-300 hover:text-cyan-100"
               >
                 <X size={20} />
               </button>
@@ -861,7 +864,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
                       Company Name
                     </label>
                     <div className="relative">
@@ -874,7 +877,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                           handleExperienceInfoChange(e);
                         }}
                         placeholder="e.g., Google Inc."
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                         required
                       />
                       
@@ -882,10 +885,10 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       {companySearchText && (
                         <div 
                           ref={companyDropdownRef}
-                          className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto"
+                          className="absolute z-10 mt-1 w-full bg-slate-950 border border-cyan-500/30 rounded-md shadow-lg max-h-60 overflow-auto"
                         >
                           {loadingCompanies ? (
-                            <div className="p-2 text-center text-gray-500">Loading companies...</div>
+                            <div className="p-2 text-center text-cyan-300/70">Loading companies...</div>
                           ) : (
                             <>
                               {companies
@@ -895,7 +898,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                                 .map(company => (
                                   <div 
                                     key={company.id}
-                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    className="p-2 hover:bg-cyan-900/40 cursor-pointer text-cyan-100"
                                     onClick={() => {
                                       handleCompanySelect(company);
                                     }}
@@ -907,7 +910,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                               {companies.filter(company => 
                                 company.name.toLowerCase().includes(companySearchText.toLowerCase())
                               ).length === 0 && (
-                                <div className="p-2 text-center text-gray-500">
+                                <div className="p-2 text-center text-cyan-300/70">
                                   No companies found. Your entry will be used.
                                 </div>
                               )}
@@ -919,7 +922,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
                       Position/Role
                     </label>
                     <input
@@ -928,12 +931,12 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       value={experienceInfo.position}
                       onChange={handleExperienceInfoChange}
                       placeholder="e.g., Software Engineer"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-cyan-200 mb-1">
                       Start Date
                     </label>
                     <input
@@ -941,7 +944,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       name="startDate"
                       value={experienceInfo.startDate}
                       onChange={handleExperienceInfoChange}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
                   
@@ -952,16 +955,16 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       name="isCurrent"
                       checked={experienceInfo.isCurrent}
                       onChange={handleExperienceInfoChange}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 text-cyan-500 bg-slate-900 border-cyan-500 focus:ring-cyan-500"
                     />
-                    <label htmlFor="isCurrent" className="ml-2 text-sm text-gray-700">
+                    <label htmlFor="isCurrent" className="ml-2 text-sm text-cyan-200">
                       I currently work here
                     </label>
                   </div>
                   
                   {!experienceInfo.isCurrent && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-cyan-200 mb-1">
                         End Date
                       </label>
                       <input
@@ -969,29 +972,30 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                         name="endDate"
                         value={experienceInfo.endDate}
                         onChange={handleExperienceInfoChange}
-                        className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       />
                     </div>
                   )}
                 </div>
 
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-cyan-300/70">
                   <p>Selected file: <span className="font-medium">{selectedExpFile?.name}</span></p>
                   <p className="mt-1">The experience will be sent to {experienceInfo.company} for verification.</p>
+                  <p className="mt-1">Allowed files: PDF, JPG, JPEG, or PNG.</p>
                 </div>
               </div>
             </div>
             <div className="flex justify-end gap-2 p-4 border-t">
               <button
                 onClick={closeExpModal}
-                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-cyan-500/30 rounded-md text-cyan-100 hover:bg-cyan-900/30"
               >
                 Cancel
               </button>
               <button
                 onClick={uploadExperience}
                 disabled={!experienceInfo.company}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-cyan-600 text-slate-950 rounded-md hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Upload Experience
               </button>

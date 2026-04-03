@@ -57,8 +57,8 @@ export default function PendingExperienceRequests({ requests, onAction }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-4">Pending Experience Requests ({requests.length})</h3>
+    <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10 p-6">
+      <h3 className="text-lg font-bold text-cyan-100 mb-4">Pending Experience Requests ({requests.length})</h3>
       <div className="space-y-4 max-h-[30rem] overflow-y-auto pr-2">
         {requests.map((req, index) => (
           <motion.div
@@ -68,17 +68,17 @@ export default function PendingExperienceRequests({ requests, onAction }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
             transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="border border-purple-100 rounded-lg p-4 hover:bg-purple-50 transition-colors duration-200"
+            className="border border-cyan-500/20 bg-cyan-950/20 rounded-lg p-4 hover:bg-cyan-900/30 transition-colors duration-200"
           >
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               {/* Request Info */}
               <div className="flex-1">
-                <p className="font-semibold text-gray-800">{req.experienceTitle}</p>
-                <p className="text-sm text-gray-600">Student: {req.studentName}</p>
-                 <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+                <p className="font-semibold text-cyan-100">{req.experienceTitle}</p>
+                <p className="text-sm text-cyan-200">Student: {req.studentName}</p>
+                 <p className="text-xs text-cyan-300/70 mt-1 flex items-center gap-1">
                     <School className="w-3 h-3"/> From: {req.collegeName}
                 </p>
-                <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                <p className="text-xs text-cyan-300/60 mt-1 flex items-center gap-1">
                     <Calendar className="w-3 h-3"/> Received: {req.submissionDate}
                 </p>
               </div>
@@ -88,7 +88,7 @@ export default function PendingExperienceRequests({ requests, onAction }) {
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => handleViewDetails(req)}
-                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
+                  className="flex-1 sm:flex-none text-sm flex items-center justify-center gap-2 px-3 py-2 border border-cyan-500/30 text-cyan-100 rounded-md hover:bg-cyan-900/30"
                 >
                   <FileText className="w-4 h-4" /> View Details
                 </motion.button>
@@ -121,7 +121,7 @@ export default function PendingExperienceRequests({ requests, onAction }) {
           </motion.div>
         ))}
         {requests.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-cyan-300/70">
                 <Check className="w-10 h-10 mx-auto mb-2 text-green-500"/>
                 <p>No pending experience verifications!</p>
             </div>
@@ -131,8 +131,8 @@ export default function PendingExperienceRequests({ requests, onAction }) {
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Upload Verification Document</h2>
+          <div className="bg-slate-950 border border-cyan-500/30 rounded-lg shadow-lg p-8 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 text-cyan-100">Upload Verification Document</h2>
             <input type="file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onChange={handleFileChange} className="mb-4" />
             <div className="flex gap-4 mt-4">
               <button
@@ -144,7 +144,7 @@ export default function PendingExperienceRequests({ requests, onAction }) {
               </button>
               <button
                 onClick={() => { setShowUploadModal(false); setFile(null); setSelectedRequest(null); }}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                className="px-4 py-2 bg-cyan-900/40 text-cyan-100 rounded hover:bg-cyan-900/60"
               >
                 Cancel
               </button>

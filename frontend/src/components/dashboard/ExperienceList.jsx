@@ -44,15 +44,15 @@ export default function ExperienceList({ experiences }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg shadow-purple-500/10 p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <Briefcase className="w-5 h-5 text-purple-600" />
+    <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10 p-6">
+      <h3 className="text-lg font-bold text-cyan-100 mb-4 flex items-center gap-2">
+        <Briefcase className="w-5 h-5 text-cyan-400" />
         My Experiences ({verifiedExperiences.length})
       </h3>
       <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
         {verifiedExperiences.length === 0 ? (
-          <div className="text-gray-500 text-center py-8">
-            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+          <div className="text-cyan-300/70 text-center py-8">
+            <CheckCircle className="w-12 h-12 mx-auto mb-4 text-cyan-500/60" />
             <p>No verified experiences yet.</p>
             <p className="text-sm mt-2">Your approved experiences will appear here.</p>
           </div>
@@ -63,23 +63,23 @@ export default function ExperienceList({ experiences }) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 hover:shadow-md transition-all duration-200 cursor-pointer"
+              className="border border-cyan-500/30 bg-cyan-950/20 rounded-lg p-4 hover:bg-cyan-900/30 hover:shadow-md transition-all duration-200 cursor-pointer"
               onClick={() => setSelectedExperience(exp)}
             >
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <CheckCircle className="w-5 h-5 text-green-600" />
-                    <p className="font-semibold text-gray-800">{exp.title}</p>
+                    <p className="font-semibold text-cyan-100">{exp.title}</p>
                   </div>
-                  <p className="text-sm text-gray-500">{exp.organization} &bull; {exp.type}</p>
+                  <p className="text-sm text-cyan-300/80">{exp.organization} &bull; {exp.type}</p>
                   <p className="text-sm text-green-600 font-medium">Verified</p>
                 </div>
                 <div className="flex items-center gap-2 mt-2 sm:mt-0">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-100 rounded-full"
+                    className="p-2 text-cyan-300 hover:text-cyan-100 hover:bg-cyan-900/40 rounded-full"
                     title="View Details"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -101,14 +101,14 @@ export default function ExperienceList({ experiences }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            className="bg-slate-950 border border-cyan-500/30 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
           >
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <h2 className="text-2xl font-bold text-gray-800">{selectedExperience.title}</h2>
+                <h2 className="text-2xl font-bold text-cyan-100">{selectedExperience.title}</h2>
                 <button
                   onClick={() => setSelectedExperience(null)}
-                  className="text-gray-500 hover:text-gray-700 text-2xl"
+                  className="text-cyan-300 hover:text-cyan-100 text-2xl"
                 >
                   ×
                 </button>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../components/dashboard/DashboardHeader';
 import CredentialsList from '../components/dashboard/CredentialsList';
 import ExperienceList from '../components/dashboard/ExperienceList';
@@ -96,7 +97,8 @@ const getStatusLabel = (statusKey) => {
 };
 
 function StudentDashboard({ onAuthError }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [credentials, setCredentials] = useState(mockCredentials);
   const [experiences, setExperiences] = useState(mockExperiences);
   const [notifications, setNotifications] = useState(mockNotifications);
@@ -106,7 +108,7 @@ function StudentDashboard({ onAuthError }) {
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'blockchain'
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [activeTab, setActiveTab] = useState('intro');
+  const [activeTab, setActiveTab] = useState('requests');
   const [pendingRequests, setPendingRequests] = useState([]);
 
   const summaryStats = [
@@ -135,6 +137,11 @@ function StudentDashboard({ onAuthError }) {
     email: user?.email || '',
     role: 'Student',
     truecred_id: user?.truecred_id || 'TC000000'
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/auth');
   };
 
   // Fetch user data from API
@@ -391,8 +398,8 @@ function StudentDashboard({ onAuthError }) {
                   </div>
                 </div>
 
-                {/* Hidden ActionButtons */}
-                <div className="hidden">
+                {/* Offscreen ActionButtons so programmatic triggers can open its modals */}
+                <div className="absolute -left-[9999px] top-0">
                   <ActionButtons 
                     onAuthError={handleActionError} 
                     onSuccess={() => {
@@ -432,7 +439,6 @@ function StudentDashboard({ onAuthError }) {
                 {/* Tab Navigation */}
                 <div className="flex gap-2 overflow-x-auto pb-4">
                   {[
-                    { id: 'intro', label: '🏠 Home' },
                     { id: 'requests', label: '📋 Requests' },
                     { id: 'overview', label: '📚 Credentials' },
                     { id: 'profile', label: '👤 Profile' }
@@ -593,6 +599,20 @@ function StudentDashboard({ onAuthError }) {
                       ) : (
                         <ProfileCompletion onComplete={() => setNeedsProfileCompletion(false)} />
                       )}
+                      <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-end">
+                        <button
+                          onClick={() => navigate('/profile')}
+                          className="px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-100 bg-cyan-950/20 hover:bg-cyan-900/30 transition-colors"
+                        >
+                          Edit Profile
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

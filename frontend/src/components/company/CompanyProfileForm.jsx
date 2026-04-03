@@ -77,26 +77,26 @@ export default function CompanyProfileForm({ user, onUpdate }) {
   };
 
   return (
-    <motion.div className="bg-white rounded-2xl shadow-lg p-6">
+    <motion.div data-profile-form className="bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Building className="h-5 w-5 text-teal-600" />
-          <h3 className="text-lg font-semibold">Company Profile</h3>
+          <Building className="h-5 w-5 text-cyan-400" />
+          <h3 className="text-lg font-semibold text-cyan-100">Company Profile</h3>
         </div>
         {!isEditing && (
-          <button onClick={() => setIsEditing(true)} className="px-3 py-1 bg-teal-100 text-teal-700 rounded">Edit</button>
+          <button data-profile-edit onClick={() => setIsEditing(true)} className="px-3 py-1 bg-cyan-900/40 text-cyan-200 rounded">Edit</button>
         )}
       </div>
 
       {error && (
-        <div className="mb-4 p-3 bg-red-50 rounded">
-          <AlertCircle className="inline-block mr-2" /> <span className="text-red-700">{error}</span>
+        <div className="mb-4 p-3 bg-cyan-950/30 rounded border border-cyan-500/30">
+          <AlertCircle className="inline-block mr-2 text-red-400" /> <span className="text-cyan-100">{error}</span>
         </div>
       )}
 
       {success && (
-        <div className="mb-4 p-3 bg-green-50 rounded">
-          <CheckCircle className="inline-block mr-2" /> <span className="text-green-700">Saved</span>
+        <div className="mb-4 p-3 bg-cyan-950/30 rounded border border-cyan-500/30">
+          <CheckCircle className="inline-block mr-2 text-green-400" /> <span className="text-cyan-100">Saved</span>
         </div>
       )}
 
@@ -104,75 +104,75 @@ export default function CompanyProfileForm({ user, onUpdate }) {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Company Name</h3>
-              <p className="text-gray-800">{formData.name || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Company Name</h3>
+              <p className="text-cyan-100">{formData.name || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Full Legal Name</h3>
-              <p className="text-gray-800">{formData.fullName || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Full Legal Name</h3>
+              <p className="text-cyan-100">{formData.fullName || 'Not specified'}</p>
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-700 mb-1">Address</h3>
-            <p className="text-gray-800">{formData.address || 'Not specified'}</p>
+            <h3 className="font-semibold text-cyan-200 mb-1">Address</h3>
+            <p className="text-cyan-100">{formData.address || 'Not specified'}</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">City</h3>
-              <p className="text-gray-800">{formData.city || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">City</h3>
+              <p className="text-cyan-100">{formData.city || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">State/Province</h3>
-              <p className="text-gray-800">{formData.state || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">State/Province</h3>
+              <p className="text-cyan-100">{formData.state || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Country</h3>
-              <p className="text-gray-800">{formData.country || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Country</h3>
+              <p className="text-cyan-100">{formData.country || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Postal Code</h3>
-              <p className="text-gray-800">{formData.postalCode || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Postal Code</h3>
+              <p className="text-cyan-100">{formData.postalCode || 'Not specified'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Website</h3>
-              <p className="text-gray-800">{formData.website || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Website</h3>
+              <p className="text-cyan-100">{formData.website || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Phone</h3>
-              <p className="text-gray-800">{formData.phone || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Phone</h3>
+              <p className="text-cyan-100">{formData.phone || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Email</h3>
-              <p className="text-gray-800">{formData.email || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Email</h3>
+              <p className="text-cyan-100">{formData.email || 'Not specified'}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Accreditation Body</h3>
-              <p className="text-gray-800">{formData.accreditationBody || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Accreditation Body</h3>
+              <p className="text-cyan-100">{formData.accreditationBody || 'Not specified'}</p>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-700 mb-1">Establishment Year</h3>
-              <p className="text-gray-800">{formData.establishmentYear || 'Not specified'}</p>
+              <h3 className="font-semibold text-cyan-200 mb-1">Establishment Year</h3>
+              <p className="text-cyan-100">{formData.establishmentYear || 'Not specified'}</p>
             </div>
           </div>
 
           <div>
-            <h3 className="font-semibold text-gray-700 mb-1">Description</h3>
-            <p className="text-gray-800">{formData.description || 'Not specified'}</p>
+            <h3 className="font-semibold text-cyan-200 mb-1">Description</h3>
+            <p className="text-cyan-100">{formData.description || 'Not specified'}</p>
           </div>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="name">
+              <label className="block text-cyan-200 mb-2" htmlFor="name">
                 Company Name*
               </label>
               <input
@@ -181,14 +181,14 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.name}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 required
                 placeholder="e.g., PrimeX Technologies"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="fullName">
+              <label className="block text-cyan-200 mb-2" htmlFor="fullName">
                 Full Legal Name
               </label>
               <input
@@ -197,14 +197,14 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.fullName}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="e.g., PrimeX Technologies Private Limited"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-gray-700 mb-2" htmlFor="address">
+            <label className="block text-cyan-200 mb-2" htmlFor="address">
               Address
             </label>
             <input
@@ -213,14 +213,14 @@ export default function CompanyProfileForm({ user, onUpdate }) {
               type="text"
               value={formData.address}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               placeholder="Street address"
             />
           </div>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="city">
+              <label className="block text-cyan-200 mb-2" htmlFor="city">
                 City
               </label>
               <input
@@ -229,13 +229,13 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.city}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="City"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="state">
+              <label className="block text-cyan-200 mb-2" htmlFor="state">
                 State/Province
               </label>
               <input
@@ -244,13 +244,13 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.state}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="State/Province"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="country">
+              <label className="block text-cyan-200 mb-2" htmlFor="country">
                 Country
               </label>
               <input
@@ -259,13 +259,13 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.country}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Country"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="postalCode">
+              <label className="block text-cyan-200 mb-2" htmlFor="postalCode">
                 Postal Code
               </label>
               <input
@@ -274,7 +274,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.postalCode}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="Postal/ZIP code"
               />
             </div>
@@ -282,7 +282,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="website">
+              <label className="block text-cyan-200 mb-2" htmlFor="website">
                 Website
               </label>
               <input
@@ -291,13 +291,13 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="url"
                 value={formData.website}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="https://www.example.com"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="phone">
+              <label className="block text-cyan-200 mb-2" htmlFor="phone">
                 Phone
               </label>
               <input
@@ -306,13 +306,13 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="tel"
                 value={formData.phone}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="+1 (123) 456-7890"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="email">
+              <label className="block text-cyan-200 mb-2" htmlFor="email">
                 Email
               </label>
               <input
@@ -321,7 +321,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="contact@example.com"
               />
             </div>
@@ -329,7 +329,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="accreditationBody">
+              <label className="block text-cyan-200 mb-2" htmlFor="accreditationBody">
                 Accreditation Body
               </label>
               <input
@@ -338,13 +338,13 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.accreditationBody}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="e.g., ISO 9001 Certified"
               />
             </div>
             
             <div>
-              <label className="block text-gray-700 mb-2" htmlFor="establishmentYear">
+              <label className="block text-cyan-200 mb-2" htmlFor="establishmentYear">
                 Establishment Year
               </label>
               <input
@@ -353,14 +353,14 @@ export default function CompanyProfileForm({ user, onUpdate }) {
                 type="text"
                 value={formData.establishmentYear}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 placeholder="e.g., 2010"
               />
             </div>
           </div>
           
           <div>
-            <label className="block text-gray-700 mb-2" htmlFor="description">
+            <label className="block text-cyan-200 mb-2" htmlFor="description">
               Description
             </label>
             <textarea
@@ -368,7 +368,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
               name="description"
               value={formData.description}
               onChange={handleChange}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500"
               rows={4}
               placeholder="Brief description of your company..."
             />
@@ -379,7 +379,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                className="px-6 py-2 bg-cyan-900/40 text-cyan-100 rounded-lg hover:bg-cyan-900/60 transition-colors"
                 disabled={loading}
               >
                 Cancel
@@ -388,7 +388,7 @@ export default function CompanyProfileForm({ user, onUpdate }) {
             
             <button
               type="submit"
-              className="px-6 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center"
+              className="px-6 py-2 bg-cyan-600 text-slate-950 rounded-lg hover:bg-cyan-500 transition-colors flex items-center"
               disabled={loading}
             >
               {loading ? (

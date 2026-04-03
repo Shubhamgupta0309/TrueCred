@@ -245,201 +245,205 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow-lg">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-3xl font-bold text-gray-800">Student Profile</h2>
-        <button
-          onClick={() => navigate('/student-dashboard')}
-          className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-medium transition-colors duration-200 flex items-center gap-2"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to Dashboard
-        </button>
-      </div>
-      {profileCompleted && (
-        <div className="inline-block bg-green-100 text-green-800 px-4 py-2 rounded-lg mb-4 font-medium">
-          ✓ Profile Complete
+    <div className="min-h-screen bg-slate-950 text-cyan-100 p-6 md:p-8">
+      <div className="max-w-4xl mx-auto p-8 bg-cyan-950/30 border border-cyan-500/30 rounded-2xl shadow-lg shadow-cyan-500/10">
+        <div className="flex justify-between items-center mb-6 gap-4">
+          <h2 className="text-3xl font-bold text-cyan-100">Student Profile</h2>
+          <button
+            onClick={() => navigate('/student-dashboard')}
+            className="bg-cyan-600 hover:bg-cyan-500 text-slate-950 px-4 py-2 rounded-md font-medium transition-colors duration-200 flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </button>
         </div>
-      )}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-          {error}
-        </div>
-      )}
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg mb-4">
-          {success}
-        </div>
-      )}
-      
-      <form onSubmit={e => { e.preventDefault(); handleSave(); }} className="space-y-6">
-        {education.map((edu, idx) => (
-          <div key={idx} className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-700">Education {idx + 1}</h3>
-              {education.length > 1 && (
-                <button 
-                  type="button" 
-                  onClick={() => removeEducation(idx)}
-                  className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
-                >
-                  Remove
-                </button>
-              )}
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Institution</label>
-                <select 
-                  value={edu.institution} 
-                  onChange={e => handleEduChange(idx, 'institution', e.target.value)} 
-                  className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  required
-                  disabled={collegesLoading}
-                >
-                  <option value="">
-                    {collegesLoading ? 'Loading colleges...' : 'Select Institution'}
-                  </option>
-                  {colleges.map(college => (
-                    <option key={college.id} value={college.name}>
-                      {college.name}
-                    </option>
-                  ))}
-                  <option value="Other">Other</option>
-                </select>
-                {edu.institution === 'Other' && (
-                  <input
-                    type="text"
-                    value={customValues.institution}
-                    onChange={e => {
-                      handleCustomValueChange('institution', e.target.value);
-                      handleEduChange(idx, 'institution', e.target.value);
-                    }}
-                    placeholder="Enter institution name"
-                    className="w-full mt-2 border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
+
+        {profileCompleted && (
+          <div className="inline-block bg-cyan-950/30 text-cyan-100 px-4 py-2 rounded-lg mb-4 font-medium border border-cyan-500/30">
+            ✓ Profile Complete
+          </div>
+        )}
+        {error && (
+          <div className="bg-cyan-950/30 border border-cyan-500/30 text-cyan-100 px-4 py-3 rounded-lg mb-4">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-cyan-950/30 border border-cyan-500/30 text-cyan-100 px-4 py-3 rounded-lg mb-4">
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={e => { e.preventDefault(); handleSave(); }} className="space-y-6">
+          {education.map((edu, idx) => (
+            <div key={idx} className="bg-slate-900/80 p-6 rounded-lg border border-cyan-500/20">
+              <div className="flex justify-between items-center mb-4 gap-3">
+                <h3 className="text-lg font-semibold text-cyan-100">Education {idx + 1}</h3>
+                {education.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeEducation(idx)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm font-medium transition-colors duration-200"
+                  >
+                    Remove
+                  </button>
                 )}
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Degree</label>
-                <select 
-                  value={edu.degree} 
-                  onChange={e => handleEduChange(idx, 'degree', e.target.value)} 
-                  className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  required
-                >
-                  <option value="">Select Degree</option>
-                  {degreeOptions.filter(option => option !== 'Other').map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                  <option value="Other">Other</option>
-                </select>
-                {edu.degree === 'Other' && (
-                  <input
-                    type="text"
-                    value={customValues.degree}
-                    onChange={e => {
-                      handleCustomValueChange('degree', e.target.value);
-                      handleEduChange(idx, 'degree', e.target.value);
-                    }}
-                    placeholder="Enter degree name"
-                    className="w-full mt-2 border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Field of Study</label>
-                <select 
-                  value={edu.field_of_study} 
-                  onChange={e => handleEduChange(idx, 'field_of_study', e.target.value)} 
-                  className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  required
-                >
-                  <option value="">Select Field of Study</option>
-                  {fieldOfStudyOptions.filter(option => option !== 'Other').map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                  <option value="Other">Other</option>
-                </select>
-                {edu.field_of_study === 'Other' && (
-                  <input
-                    type="text"
-                    value={customValues.field_of_study}
-                    onChange={e => {
-                      handleCustomValueChange('field_of_study', e.target.value);
-                      handleEduChange(idx, 'field_of_study', e.target.value);
-                    }}
-                    placeholder="Enter field of study"
-                    className="w-full mt-2 border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                <input 
-                  type="date" 
-                  value={edu.start_date} 
-                  onChange={e => handleEduChange(idx, 'start_date', e.target.value)} 
-                  className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  required 
-                />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  id={`current-${idx}`}
-                  checked={edu.current} 
-                  onChange={e => handleEduChange(idx, 'current', e.target.checked)} 
-                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <label htmlFor={`current-${idx}`} className="text-sm font-medium text-gray-700">
-                  Currently studying here
-                </label>
-              </div>
-              
-              {!edu.current && (
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-                  <input 
-                    type="date" 
-                    value={edu.end_date} 
-                    onChange={e => handleEduChange(idx, 'end_date', e.target.value)} 
-                    className="w-full border border-gray-300 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required 
+                  <label className="block text-sm font-medium text-cyan-200 mb-2" htmlFor={`institution-${idx}`}>Institution</label>
+                  <select
+                    id={`institution-${idx}`}
+                    value={edu.institution}
+                    onChange={e => handleEduChange(idx, 'institution', e.target.value)}
+                    className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                    required
+                    disabled={collegesLoading}
+                  >
+                    <option value="">{collegesLoading ? 'Loading colleges...' : 'Select Institution'}</option>
+                    {colleges.map(college => (
+                      <option key={college.id} value={college.name}>{college.name}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
+                  {edu.institution === 'Other' && (
+                    <input
+                      type="text"
+                      value={customValues.institution}
+                      onChange={e => {
+                        handleCustomValueChange('institution', e.target.value);
+                        handleEduChange(idx, 'institution', e.target.value);
+                      }}
+                      placeholder="Enter institution name"
+                      className="w-full mt-2 border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                      required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-cyan-200 mb-2" htmlFor={`degree-${idx}`}>Degree</label>
+                  <select
+                    id={`degree-${idx}`}
+                    value={edu.degree}
+                    onChange={e => handleEduChange(idx, 'degree', e.target.value)}
+                    className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                    required
+                  >
+                    <option value="">Select Degree</option>
+                    {degreeOptions.filter(option => option !== 'Other').map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
+                  {edu.degree === 'Other' && (
+                    <input
+                      type="text"
+                      value={customValues.degree}
+                      onChange={e => {
+                        handleCustomValueChange('degree', e.target.value);
+                        handleEduChange(idx, 'degree', e.target.value);
+                      }}
+                      placeholder="Enter degree name"
+                      className="w-full mt-2 border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                      required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-cyan-200 mb-2" htmlFor={`field-${idx}`}>Field of Study</label>
+                  <select
+                    id={`field-${idx}`}
+                    value={edu.field_of_study}
+                    onChange={e => handleEduChange(idx, 'field_of_study', e.target.value)}
+                    className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                    required
+                  >
+                    <option value="">Select Field of Study</option>
+                    {fieldOfStudyOptions.filter(option => option !== 'Other').map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                    <option value="Other">Other</option>
+                  </select>
+                  {edu.field_of_study === 'Other' && (
+                    <input
+                      type="text"
+                      value={customValues.field_of_study}
+                      onChange={e => {
+                        handleCustomValueChange('field_of_study', e.target.value);
+                        handleEduChange(idx, 'field_of_study', e.target.value);
+                      }}
+                      placeholder="Enter field of study"
+                      className="w-full mt-2 border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                      required
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-cyan-200 mb-2" htmlFor={`start-${idx}`}>Start Date</label>
+                  <input
+                    id={`start-${idx}`}
+                    type="date"
+                    value={edu.start_date}
+                    onChange={e => handleEduChange(idx, 'start_date', e.target.value)}
+                    className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                    required
                   />
                 </div>
-              )}
+
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id={`current-${idx}`}
+                    checked={edu.current}
+                    onChange={e => handleEduChange(idx, 'current', e.target.checked)}
+                    className="w-4 h-4 text-cyan-500 bg-slate-900 border-cyan-500 rounded focus:ring-cyan-500"
+                  />
+                  <label htmlFor={`current-${idx}`} className="text-sm font-medium text-cyan-200">
+                    Currently studying here
+                  </label>
+                </div>
+
+                {!edu.current && (
+                  <div>
+                    <label className="block text-sm font-medium text-cyan-200 mb-2" htmlFor={`end-${idx}`}>End Date</label>
+                    <input
+                      id={`end-${idx}`}
+                      type="date"
+                      value={edu.end_date}
+                      onChange={e => handleEduChange(idx, 'end_date', e.target.value)}
+                      className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
             </div>
+          ))}
+
+          <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            <button
+              type="button"
+              onClick={addEducation}
+              className="bg-cyan-600 hover:bg-cyan-500 text-slate-950 px-6 py-2 rounded-md font-medium transition-colors duration-200"
+            >
+              + Add Education
+            </button>
+            <button
+              type="submit"
+              className="bg-cyan-600 hover:bg-cyan-500 text-slate-950 px-6 py-2 rounded-md font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Saving...' : 'Save Profile'}
+            </button>
           </div>
-        ))}
-        
-        <div className="flex flex-col sm:flex-row gap-4 pt-4">
-          <button 
-            type="button" 
-            onClick={addEducation}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-200"
-          >
-            + Add Education
-          </button>
-          <button 
-            type="submit" 
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Saving...' : 'Save Profile'}
-          </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };
