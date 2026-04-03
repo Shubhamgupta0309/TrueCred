@@ -8,6 +8,7 @@ from flask_jwt_extended import (
 )
 from datetime import datetime, timedelta
 from services.auth_service import AuthService
+from services.wallet_auth_service import WalletAuthService
 from models.user import User
 from middleware.auth_middleware import admin_required
 import logging
@@ -18,6 +19,11 @@ logger = logging.getLogger(__name__)
 
 # Create blueprint
 auth_bp = Blueprint('auth', __name__)
+
+# In-memory nonce store for wallet challenge flow.
+# Format: {wallet_address: {"message": str, "expires_at": datetime}}
+WALLET_AUTH_NONCES = {}
+WALLET_AUTH_NONCE_TTL = timedelta(minutes=5)
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -710,23 +716,84 @@ def wallet_auth():
             'message': 'Missing wallet address'
         }), 400
     
-    wallet_address = data.get('wallet_address')
-    
-    # Authenticate user
+    wallet_address = data.get('wallet_address', '').lower()
+    signature = data.get('signature')
+    message = data.get('message')
+
+    # Clean expired nonces opportunistically.
+    now = datetime.utcnow()
+    expired_addresses = [
+        addr for addr, payload in WALLET_AUTH_NONCES.items()
+        if payload.get('expires_at') and payload['expires_at'] < now
+    ]
+    for addr in expired_addresses:
+        WALLET_AUTH_NONCES.pop(addr, None)
+
+    # Ensure wallet is associated with a real account before issuing challenge.
     user, error = AuthService.authenticate_wallet(wallet_address)
-    
     if error:
         return jsonify({
             'success': False,
             'message': error
         }), 401
-    
+
+    wallet_auth_service = WalletAuthService()
+
+    # Step 1: Request nonce (no signature provided yet).
+    if not signature or not message:
+        nonce_message = wallet_auth_service.generate_nonce(wallet_address)
+        WALLET_AUTH_NONCES[wallet_address] = {
+            'message': nonce_message,
+            'expires_at': now + WALLET_AUTH_NONCE_TTL
+        }
+        return jsonify({
+            'success': True,
+            'requires_signature': True,
+            'message': 'Nonce generated. Sign this message with your wallet to continue.',
+            'nonce_message': nonce_message
+        }), 200
+
+    # Step 2: Verify signed nonce.
+    nonce_record = WALLET_AUTH_NONCES.get(wallet_address)
+    if not nonce_record:
+        return jsonify({
+            'success': False,
+            'message': 'Wallet challenge not found or expired. Please retry wallet login.'
+        }), 401
+
+    if nonce_record.get('expires_at') and nonce_record['expires_at'] < now:
+        WALLET_AUTH_NONCES.pop(wallet_address, None)
+        return jsonify({
+            'success': False,
+            'message': 'Wallet challenge expired. Please retry wallet login.'
+        }), 401
+
+    if nonce_record.get('message') != message:
+        return jsonify({
+            'success': False,
+            'message': 'Invalid wallet challenge message.'
+        }), 401
+
+    is_valid_signature = wallet_auth_service.verify_signature(
+        wallet_address,
+        signature,
+        message
+    )
+    if not is_valid_signature:
+        return jsonify({
+            'success': False,
+            'message': 'Invalid wallet signature.'
+        }), 401
+
+    # Prevent replay by clearing nonce after successful verification.
+    WALLET_AUTH_NONCES.pop(wallet_address, None)
+
     # Generate tokens
     tokens = AuthService.generate_tokens(
         user_id=str(user.id),
         additional_claims={'role': user.role}
     )
-    
+
     # Return user data and tokens
     return jsonify({
         'success': True,

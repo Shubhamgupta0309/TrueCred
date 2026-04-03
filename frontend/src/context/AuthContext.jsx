@@ -386,10 +386,33 @@ export const AuthProvider = ({ children }) => {
     try {
       // Ensure wallet address is lowercase for consistency
       const normalizedAddress = walletAddress.toLowerCase();
-      console.log('AuthContext: Sending wallet auth request with address:', normalizedAddress);
-      
-      const response = await api.post('/api/auth/wallet-auth', {
+      console.log('AuthContext: Requesting wallet auth nonce for address:', normalizedAddress);
+
+      // Step 1: Request server nonce/challenge message.
+      const nonceResponse = await api.post('/api/auth/wallet-auth', {
         wallet_address: normalizedAddress
+      });
+
+      const nonceMessage = nonceResponse?.data?.nonce_message;
+      if (!nonceMessage) {
+        throw new Error('Wallet challenge was not returned by server.');
+      }
+
+      if (!window?.safeMetaMaskRequest) {
+        throw new Error('MetaMask provider is unavailable.');
+      }
+
+      // Step 2: Sign nonce with wallet.
+      const signature = await window.safeMetaMaskRequest('personal_sign', [
+        nonceMessage,
+        normalizedAddress,
+      ]);
+
+      // Step 3: Verify signature and obtain JWT tokens.
+      const response = await api.post('/api/auth/wallet-auth', {
+        wallet_address: normalizedAddress,
+        message: nonceMessage,
+        signature,
       });
 
       console.log('Wallet auth response:', response.data);
