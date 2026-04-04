@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from services.auth_service import AuthService
 from services.wallet_auth_service import WalletAuthService
 from models.user import User
+from models.revoked_token import RevokedToken
 from middleware.auth_middleware import admin_required
 import logging
 
@@ -146,11 +147,26 @@ def logout():
       Success message
     """
     # Get the JWT ID
-    jti = get_jwt()["jti"]
+    jwt_data = get_jwt()
+    jti = jwt_data["jti"]
+    token_type = jwt_data.get('type', 'access')
+    expires_at_unix = jwt_data.get('exp')
+    expires_at = datetime.utcfromtimestamp(expires_at_unix) if expires_at_unix else None
+    current_user_id = get_jwt_identity()
     
-    # Add token to blacklist
-    from app import token_blacklist
-    token_blacklist.add(jti)
+    # Persist revocation so it survives process restarts and works across instances.
+    try:
+        RevokedToken.revoke(
+            jti=jti,
+            token_type=token_type,
+            user_id=current_user_id,
+            expires_at=expires_at
+        )
+    except Exception as e:
+        logger.error(f"Failed to persist token revocation: {e}")
+        # Backward-compatible fallback to in-memory blacklist.
+        from app import token_blacklist
+        token_blacklist.add(jti)
     
     return jsonify({
         'success': True,

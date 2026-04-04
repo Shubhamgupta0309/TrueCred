@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils.api_response import success_response, error_response
 from models.user import User
+from models.notification import Notification
 import logging
 
 # Set up logging
@@ -28,29 +29,36 @@ def get_notifications():
     current_user_id = get_jwt_identity()
     
     try:
-        # In a production application, you would fetch notifications from the database
-        # For now, we'll return an empty list as a placeholder
-        
-        # TODO: Implement actual notification fetching from database
-        # Example:
-        # user = User.find_by_id(current_user_id)
-        # if not user:
-        #     return error_response(message="User not found", status_code=404)
-        # notifications = db.notifications.find({"user_id": current_user_id}).sort("created_at", -1).limit(20)
-        
-        # If the application has a pymongo db attached, read notifications collection
+        # Ensure the user exists.
+        user = User.objects(id=current_user_id).first()
+        if not user:
+            return error_response(
+                message="User not found",
+                status_code=404,
+                error_code="user_not_found"
+            )
+
+        # Primary source: Notification model collection.
         notifications = []
         try:
-            if hasattr(current_app, 'db') and current_app.db is not None:
-                cursor = current_app.db.notifications.find({'user_id': current_user_id}).sort('created_at', -1).limit(50)
-                notifications = list(cursor)
-                # Convert ObjectId and datetime to serializable form
-                for n in notifications:
-                    n['_id'] = str(n['_id'])
-                    if 'created_at' in n and hasattr(n['created_at'], 'isoformat'):
-                        n['created_at'] = n['created_at'].isoformat()
+            docs = Notification.objects(user_id=str(current_user_id)).order_by('-created_at').limit(50)
+            notifications = [doc.to_json() for doc in docs]
         except Exception as e:
-            logger.exception('Failed to fetch notifications from DB: %s', e)
+            logger.exception('Failed to fetch notifications via Notification model: %s', e)
+
+        # Backward-compatible fallback for deployments that still use a raw pymongo collection.
+        if not notifications:
+            try:
+                if hasattr(current_app, 'db') and current_app.db is not None:
+                    cursor = current_app.db.notifications.find({'user_id': str(current_user_id)}).sort('created_at', -1).limit(50)
+                    raw_docs = list(cursor)
+                    for n in raw_docs:
+                        n['_id'] = str(n.get('_id'))
+                        if 'created_at' in n and hasattr(n['created_at'], 'isoformat'):
+                            n['created_at'] = n['created_at'].isoformat()
+                    notifications = raw_docs
+            except Exception as e:
+                logger.exception('Fallback pymongo notifications fetch failed: %s', e)
 
         return success_response(
             data={"notifications": notifications},
