@@ -86,6 +86,22 @@ class ProductionConfig(Config):
     
     # In production, ensure all secret keys are properly set
     # and consider using more secure settings
+    @classmethod
+    def validate(cls):
+        """Validate critical production configuration."""
+        insecure_secret = cls.SECRET_KEY in (None, '', 'default-secret-key')
+        insecure_jwt_secret = cls.JWT_SECRET_KEY in (None, '', 'default-jwt-secret-key')
+
+        missing = []
+        if insecure_secret:
+            missing.append('SECRET_KEY')
+        if insecure_jwt_secret:
+            missing.append('JWT_SECRET_KEY')
+
+        if missing:
+            raise RuntimeError(
+                'Invalid production configuration. Set strong values for: ' + ', '.join(missing)
+            )
 
 # Dictionary for mapping configuration based on environment
 config = {
@@ -106,8 +122,14 @@ def get_config(config_name='default'):
         Configuration class
     """
     if config_name in config:
-        return config[config_name]
+        cfg = config[config_name]
+        if cfg is ProductionConfig:
+            cfg.validate()
+        return cfg
     
     # Use environment variable if config_name is not provided
     env = os.environ.get('FLASK_ENV', 'default')
-    return config.get(env, config['default'])
+    cfg = config.get(env, config['default'])
+    if cfg is ProductionConfig:
+        cfg.validate()
+    return cfg

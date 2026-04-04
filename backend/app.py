@@ -28,9 +28,7 @@ import time
 # JWT manager
 jwt = JWTManager()
 
-# Simple in-memory token blacklist
-# In a production environment, you would use Redis or another database
-# to store blacklisted tokens
+# Backward-compatible in-memory fallback used only if DB checks fail.
 token_blacklist = set()
 
 def create_app(config_name='default'):
@@ -80,6 +78,13 @@ def create_app(config_name='default'):
     def check_if_token_in_blacklist(jwt_header, jwt_payload):
         """Check if a token is in the blacklist."""
         jti = jwt_payload["jti"]
+        try:
+            from models.revoked_token import RevokedToken
+            if RevokedToken.objects(jti=jti).first() is not None:
+                return True
+        except Exception:
+            # Non-fatal fallback for temporary DB issues.
+            pass
         return jti in token_blacklist
 
     @jwt.expired_token_loader

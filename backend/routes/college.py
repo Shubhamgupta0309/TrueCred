@@ -276,27 +276,50 @@ def get_verification_history():
         A JSON response with the verification history.
     """
     try:
-        # This is a placeholder that would be implemented with actual database queries
-        # For now, we'll return mock data
-        return jsonify({
-            'success': True,
-            'history': [
-                {
-                    'id': 101,
-                    'studentName': 'Emily White',
-                    'credentialTitle': 'Graphic Design Certificate',
-                    'status': 'Verified',
-                    'actionDate': 'Nov 14, 2023'
-                },
-                {
-                    'id': 102,
-                    'studentName': 'David Green',
-                    'credentialTitle': 'Business Administration Degree',
-                    'status': 'Rejected',
-                    'actionDate': 'Nov 12, 2023'
-                }
-            ]
-        }), 200
+        current_user_id = get_jwt_identity()
+        user = User.objects(id=current_user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        if user.role != 'college':
+            return jsonify({'success': False, 'message': 'Only college users can access this endpoint'}), 403
+
+        # Collect possible issuer identifiers used in requests.
+        allowed_issuer_ids = {str(user.id)}
+        if getattr(user, 'college_id', None):
+            allowed_issuer_ids.add(str(user.college_id))
+
+        profile = OrganizationProfile.objects(user_id=str(user.id)).first()
+        if profile:
+            allowed_issuer_ids.add(str(profile.id))
+
+        # History = non-pending requests handled by this issuer/college.
+        requests = CredentialRequest.objects(
+            issuer_id__in=list(allowed_issuer_ids),
+            status__in=['issued', 'approved', 'rejected']
+        ).order_by('-updated_at', '-created_at').limit(100)
+
+        history = []
+        for req in requests:
+            student = User.objects(id=req.user_id).first()
+            student_name = (
+                f"{(student.first_name or '').strip()} {(student.last_name or '').strip()}".strip()
+                if student else 'Unknown Student'
+            )
+            if not student_name:
+                student_name = student.username if student else 'Unknown Student'
+
+            action_dt = req.updated_at or req.created_at
+            history.append({
+                'id': str(req.id),
+                'studentName': student_name,
+                'credentialTitle': req.title,
+                'status': req.status.capitalize(),
+                'actionDate': action_dt.strftime('%b %d, %Y') if action_dt else None,
+                'updated_at': action_dt.isoformat() if action_dt else None,
+            })
+
+        return jsonify({'success': True, 'history': history}), 200
     except Exception as e:
         logger.error(f'Error getting verification history: {str(e)}')
         return jsonify({
