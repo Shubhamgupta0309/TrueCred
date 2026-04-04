@@ -89,12 +89,12 @@ export default function LandingPage() {
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <motion.div className="text-2xl font-black tracking-wide text-cyan-300">
-            TRUECRED PLATFORM
+            TRUECRED
           </motion.div>
           <div className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-[0.18em] text-cyan-200">
-            <a href="#case-study" className="hover:text-cyan-100 transition-colors">CASE STUDY</a>
-            <a href="#platform" className="hover:text-cyan-100 transition-colors">THE PLATFORM</a>
-            <a href="#contact" className="hover:text-cyan-100 transition-colors">CONTACT</a>
+            <a href="#features" className="hover:text-cyan-100 transition-colors">FEATURES</a>
+            <a href="#about" className="hover:text-cyan-100 transition-colors">ABOUT</a>
+            <a href="#testimonials" className="hover:text-cyan-100 transition-colors">TESTIMONIALS</a>
           </div>
         </div>
       </motion.nav>
@@ -153,7 +153,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features Section */}
-      <section id="case-study" className="py-20 px-6 bg-cyan-500/5 backdrop-blur-sm border-y border-cyan-400/10">
+      <section id="features" className="py-20 px-6 bg-cyan-500/5 backdrop-blur-sm border-y border-cyan-400/10">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -188,8 +188,87 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* About Section */}
+      <section id="about" className="py-20 px-6 bg-white/5 backdrop-blur-sm border-y border-cyan-400/10">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center"
+          >
+            {/* Left: Why TrueCred */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="text-4xl md:text-5xl font-bold text-cyan-200 mb-6">
+                Why TrueCred?
+              </h2>
+              <p className="text-lg text-cyan-100/90 mb-6 leading-relaxed">
+                In today's digital world, credentials are scattered across different institutions, outdated documents sit in filing cabinets, and there's no secure way to prove your verified achievements online.
+              </p>
+              <p className="text-lg text-cyan-100/90 mb-6 leading-relaxed">
+                TrueCred solves this by giving you a unified platform to request, verify, and manage all your credentials—from degree certificates to professional experience—all backed by blockchain for permanence and trust.
+              </p>
+              <div className="space-y-4">
+                <div className="flex gap-4 items-start">
+                  <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-bold text-cyan-100 mb-1">For Students & Professionals</h4>
+                    <p className="text-cyan-100/80">Own your verified portfolio with confidence</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 items-start">
+                  <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-bold text-cyan-100 mb-1">For Institutions</h4>
+                    <p className="text-cyan-100/80">Issue credentials directly, reduce verification burden</p>
+                  </div>
+                </div>
+                <div className="flex gap-4 items-start">
+                  <CheckCircle className="w-6 h-6 text-emerald-400 flex-shrink-0 mt-1" />
+                  <div>
+                    <h4 className="font-bold text-cyan-100 mb-1">Built on Trust</h4>
+                    <p className="text-cyan-100/80">Blockchain-backed credentials that last forever</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right: Key Stats/Mission */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6 }}
+              className="bg-gradient-to-br from-cyan-500/10 to-purple-500/10 border border-cyan-400/20 rounded-2xl p-8"
+            >
+              <h3 className="text-2xl font-bold text-cyan-100 mb-8">Our Mission</h3>
+              <p className="text-cyan-100/90 text-lg leading-relaxed mb-8">
+                "Empower individuals to control their digital identity and career narrative through verified, portable, and blockchain-secured credentials."
+              </p>
+              <div className="space-y-6">
+                <div>
+                  <div className="text-4xl font-bold text-emerald-400 mb-2">100%</div>
+                  <p className="text-cyan-100/80">OCR-verified document accuracy</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-emerald-400 mb-2">Instant</div>
+                  <p className="text-cyan-100/80">Real-time status updates and tracking</p>
+                </div>
+                <div>
+                  <div className="text-4xl font-bold text-emerald-400 mb-2">Forever</div>
+                  <p className="text-cyan-100/80">Blockchain-encrypted permanent records</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Step-by-Step Process */}
-      <section className="py-20 px-6">
+      <section id="process" className="py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -266,7 +345,7 @@ export default function LandingPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 px-6 bg-white bg-opacity-5 backdrop-blur-sm">
+      <section id="testimonials" className="py-20 px-6 bg-white bg-opacity-5 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
