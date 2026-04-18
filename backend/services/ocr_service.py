@@ -67,7 +67,11 @@ class OCRService:
         
         # Convert to grayscale
         if len(img_array.shape) == 3:
-            gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
+            # PDF renderers often return RGBA images; handle both 3-channel and 4-channel.
+            if img_array.shape[2] == 4:
+                gray = cv2.cvtColor(img_array, cv2.COLOR_RGBA2GRAY)
+            else:
+                gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
         else:
             gray = img_array
         
@@ -126,8 +130,15 @@ class OCRService:
             # Extract full text
             full_text = pytesseract.image_to_string(processed_img, config=self.config)
             
-            # Calculate average confidence
-            confidences = [int(conf) for conf in data['conf'] if int(conf) > 0]
+            # Calculate average confidence (Tesseract may return floats/strings like '96.5').
+            parsed_confidences = []
+            for conf in data['conf']:
+                try:
+                    parsed_confidences.append(float(conf))
+                except (TypeError, ValueError):
+                    parsed_confidences.append(-1.0)
+
+            confidences = [conf for conf in parsed_confidences if conf > 0]
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0
             
             # Extract structured data (words with positions)
@@ -136,7 +147,7 @@ class OCRService:
                 if text.strip():  # Skip empty strings
                     structured_data.append({
                         'text': text,
-                        'confidence': int(data['conf'][i]),
+                        'confidence': int(round(parsed_confidences[i])) if i < len(parsed_confidences) else 0,
                         'left': int(data['left'][i]),
                         'top': int(data['top'][i]),
                         'width': int(data['width'][i]),
@@ -167,7 +178,8 @@ class OCRService:
 
     def _load_image_from_bytes(self, file_bytes: bytes):
         """Load an image from bytes and render first page for PDFs."""
-        if file_bytes.startswith(b'%PDF'):
+        header = (file_bytes or b'')[:1024]
+        if b'%PDF' in header:
             if pdfium is None:
                 raise RuntimeError(
                     'PDF OCR requires pypdfium2. Install it with "pip install pypdfium2".'

@@ -13,7 +13,6 @@ import ProfileCard from '../components/profile/ProfileCard';
 import withAuthErrorHandling from '../components/withAuthErrorHandling';
 import AuthenticationModal from '../components/common/AuthenticationModal';
 import { credentialService, experienceService, notificationService } from '../services/api';
-import StudentSearch from '../components/organization/StudentSearch';
 import { Upload, PlusCircle, Star, TrendingUp, Lock, Users } from 'lucide-react';
 
 // Mock Data - will be replaced with API calls
@@ -58,19 +57,49 @@ const normalizeCredentials = (arr) => {
 };
 
 const getEffectiveRequestStatus = (req) => {
-  const verificationStatus = (req?.verification_status || '').toLowerCase();
+  const requestStatus = String(req?.status || '').trim().toLowerCase();
+  const verificationStatus = String(req?.verification_status || '').trim().toLowerCase();
+
+  // Give precedence to explicit request lifecycle states from issuer/college actions.
+  if (
+    requestStatus === 'issued' ||
+    requestStatus === 'approved' ||
+    requestStatus === 'verified' ||
+    requestStatus.includes('approve') ||
+    requestStatus.includes('issue') ||
+    requestStatus.includes('verify')
+  ) {
+    return 'approved';
+  }
+
+  if (
+    requestStatus === 'rejected' ||
+    requestStatus === 'declined' ||
+    requestStatus.includes('reject') ||
+    requestStatus.includes('declin')
+  ) {
+    return 'rejected';
+  }
+
+  if (
+    requestStatus === 'review' ||
+    requestStatus === 'under_review' ||
+    requestStatus === 'pending_review' ||
+    requestStatus.includes('review')
+  ) {
+    return 'review';
+  }
+
   if (verificationStatus) {
-    if (verificationStatus === 'verified') return 'approved';
-    if (verificationStatus === 'pending_review') return 'review';
-    if (verificationStatus === 'rejected') return 'rejected';
+    if (verificationStatus === 'verified' || verificationStatus.includes('verify')) return 'approved';
+    if (verificationStatus === 'pending_review' || verificationStatus.includes('review')) return 'review';
+    if (verificationStatus === 'rejected' || verificationStatus.includes('reject')) return 'rejected';
     if (verificationStatus === 'no_template' || verificationStatus === 'failed' || verificationStatus === 'error') {
       return 'pending';
     }
-    return verificationStatus;
   }
-  const requestStatus = (req?.status || 'pending').toLowerCase();
-  if (requestStatus === 'verified' || requestStatus === 'issued') return 'approved';
-  return requestStatus;
+
+  return 'pending';
 };
 
 const getStatusBadgeClass = (statusKey) => {
@@ -108,7 +137,13 @@ const normalizeDateKeyPart = (value) => {
 
 const getRequestKind = (req) => {
   const explicitType = normalizeKeyPart(req?.type || req?.request_type || req?.category);
-  if (explicitType) return explicitType;
+  if (explicitType) {
+    const experienceTypeHints = ['experience', 'work', 'intern', 'employment', 'job'];
+    if (experienceTypeHints.some((hint) => explicitType.includes(hint))) {
+      return 'experience';
+    }
+    return 'credential';
+  }
 
   if (req?.company || req?.company_id || req?.position || req?.startDate || req?.endDate) {
     return 'experience';
@@ -150,22 +185,32 @@ const dedupeByKey = (items, keyFn) => {
   return Array.from(map.values());
 };
 
-const mapApprovedCredentialRequest = (req) => ({
+const credentialIdentityKey = (cred) => [
+  normalizeKeyPart(cred?.title || cred?.name || cred?.credentialName),
+  normalizeKeyPart(cred?.issuer || cred?.institution || cred?.organizationName),
+].join('|');
+
+const mapApprovedCredentialRequest = (req) => {
+  const firstAttachment = Array.isArray(req.attachments) && req.attachments.length > 0 ? req.attachments[0] : null;
+
+  return {
   id: req.id,
   title: req.title || req.credentialTitle || req.name || 'Unknown Credential',
   issuer: req.issuer || req.institutionName || req.institution_name || 'Unknown Institution',
-  type: req.type || 'credential',
+  type: req.type || 'certificate',
   status: 'approved',
-  verification_status: req.verification_status || 'approved',
+  verification_status: req.verification_status || 'verified',
   issue_date: req.issue_date || req.created_at || req.updated_at || null,
   date: req.issue_date || req.created_at || req.updated_at || null,
+  verified_at: req.verified_at || req.updated_at || req.created_at || null,
   verified: true,
   pending_verification: false,
   blockchain_data: req.blockchain_data,
-  document_url: req.document_url,
-  ipfs_hash: req.ipfs_hash,
+  document_url: req.document_url || firstAttachment?.uri || firstAttachment?.url || null,
+  ipfs_hash: req.ipfs_hash || firstAttachment?.hash || firstAttachment?.document_hash || null,
   attachments: req.attachments,
-});
+  };
+};
 
 const mapApprovedExperienceRequest = (req) => ({
   id: req.id,
@@ -184,6 +229,11 @@ const mapApprovedExperienceRequest = (req) => ({
   credentials: req.credentials,
 });
 
+const isApprovedExperienceRecord = (exp) => {
+  const status = normalizeKeyPart(exp?.verification_status || exp?.status);
+  return exp?.is_verified === true || status === 'verified' || status === 'approved' || status === 'issued';
+};
+
 function StudentDashboard({ onAuthError }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -195,20 +245,35 @@ function StudentDashboard({ onAuthError }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [needsProfileCompletion, setNeedsProfileCompletion] = useState(false);
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'blockchain'
-  const [selectedStudent, setSelectedStudent] = useState(null);
   const [activeTab, setActiveTab] = useState('requests');
   const [pendingRequests, setPendingRequests] = useState([]);
 
   const approvedCredentialRequests = pendingRequests.filter((req) => {
-    return isApprovedOrIssued(req) && getRequestKind(req) !== 'experience';
+    return isApprovedOrIssued(req) && getRequestKind(req) === 'credential';
   });
 
   const approvedExperienceRequests = pendingRequests.filter((req) => {
     return isApprovedOrIssued(req) && getRequestKind(req) === 'experience';
   });
 
+  const existingCredentialIdentityKeys = new Set(
+    credentials
+      .map(credentialIdentityKey)
+      .filter((key) => key && key !== '|')
+  );
+
+  const approvedCredentialRequestsForMerge = approvedCredentialRequests
+    .map(mapApprovedCredentialRequest)
+    .filter((reqCred) => {
+      const key = credentialIdentityKey(reqCred);
+      if (!key || key === '|') {
+        return true;
+      }
+      return !existingCredentialIdentityKeys.has(key);
+    });
+
   const mergedCredentials = dedupeByKey(
-    [...credentials, ...approvedCredentialRequests.map(mapApprovedCredentialRequest)],
+    [...credentials, ...approvedCredentialRequestsForMerge],
     credentialRecordKey
   );
 
@@ -234,6 +299,24 @@ function StudentDashboard({ onAuthError }) {
 
   // Fetch user data from API
   useEffect(() => {
+    const fetchPendingRequests = async () => {
+      try {
+        const pendingResp = await credentialService.getUserRequests();
+        console.debug('GET /api/user/requests response:', pendingResp);
+        if (pendingResp.data && pendingResp.data.success) {
+          const reqs = pendingResp.data.data?.requests || pendingResp.data.requests || pendingResp.data || [];
+          setPendingRequests(reqs || []);
+        } else {
+          console.warn('Unexpected user requests response shape', pendingResp && pendingResp.data);
+        }
+      } catch (pendingError) {
+        console.error('Error fetching user pending requests:', pendingError);
+        if (pendingError.response) {
+          console.error('User requests API Error response data:', pendingError.response.status, pendingError.response.data);
+        }
+      }
+    };
+
     const fetchData = async () => {
       setLoading(true);
       
@@ -246,22 +329,7 @@ function StudentDashboard({ onAuthError }) {
         }
 
         // Fetch pending credential requests for this user
-        try {
-          const pendingResp = await credentialService.getUserRequests();
-          console.debug('GET /api/user/requests response:', pendingResp);
-          if (pendingResp.data && pendingResp.data.success) {
-            // backend returns list of requests under data.requests or data
-            const reqs = pendingResp.data.data?.requests || pendingResp.data.requests || pendingResp.data || [];
-            setPendingRequests(reqs || []);
-          } else {
-            console.warn('Unexpected user requests response shape', pendingResp && pendingResp.data);
-          }
-        } catch (pendingError) {
-          console.error('Error fetching user pending requests:', pendingError);
-          if (pendingError.response) {
-            console.error('User requests API Error response data:', pendingError.response.status, pendingError.response.data);
-          }
-        }
+        await fetchPendingRequests();
 
         // Fetch issued credentials
         try {
@@ -325,6 +393,12 @@ function StudentDashboard({ onAuthError }) {
     };
 
     fetchData();
+
+    const refreshTimer = setInterval(() => {
+      fetchPendingRequests();
+    }, 15000);
+
+    return () => clearInterval(refreshTimer);
   }, [onAuthError, user]);
 
   // Handle verification status updates
@@ -591,54 +665,83 @@ function StudentDashboard({ onAuthError }) {
                       exit={{ opacity: 0, y: -20 }}
                       className="space-y-6"
                     >
-                      {pendingRequests && pendingRequests.length > 0 ? (
-                        <div className="space-y-4">
-                          {['approved', 'review', 'pending', 'rejected'].map(status => {
-                            const statusReqs = pendingRequests.filter(r => getEffectiveRequestStatus(r) === status);
-                            return statusReqs.length > 0 ? (
-                              <div key={status} className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/30 rounded-xl p-6">
-                                <h3 className="text-lg font-bold text-white mb-4">{getStatusLabel(status)} ({statusReqs.length})</h3>
-                                <div className="space-y-3">
-                                  {statusReqs.map(req => (
-                                    <motion.div
-                                      key={req.id}
-                                      className={`p-4 rounded-lg border ${getStatusBadgeClass(status)} bg-opacity-20`}
-                                    >
-                                      <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                          <h4 className="font-semibold text-white">{req.title}</h4>
-                                          <p className="text-sm text-cyan-100 mt-1">{req.issuer}</p>
-                                          {req.confidence_score !== undefined && (
-                                            <div className="mt-2 flex items-center gap-2">
-                                                <div className="h-2 bg-cyan-950/50 rounded-full flex-1" style={{width: '120px'}}>
-                                                <div 
-                                                  className={`h-full rounded-full ${
-                                                    req.confidence_score > 50 ? 'bg-emerald-400' :
-                                                    req.confidence_score > 30 ? 'bg-amber-400' : 'bg-red-400'
-                                                  }`}
-                                                  style={{width: `${req.confidence_score}%`}}
-                                                />
-                                              </div>
-                                              <span className="text-xs font-mono text-cyan-100">{req.confidence_score}%</span>
-                                            </div>
-                                          )}
+                      {(() => {
+                        const approvedExperienceRequestsForDisplay = mergedExperiences
+                          .filter(isApprovedExperienceRecord)
+                          .map((exp) => ({
+                            ...exp,
+                            id: exp.id || exp._id || `${normalizeKeyPart(exp.title || exp.position)}-${normalizeKeyPart(exp.organization || exp.company)}`,
+                            title: exp.title || exp.position || 'Experience',
+                            issuer: exp.organization || exp.company || 'Organization',
+                            type: exp.type || 'experience',
+                            status: 'approved',
+                            __kind: 'experience'
+                          }));
+
+                        const visibleStatuses = ['approved', 'review', 'pending', 'rejected'].filter((status) => {
+                          const hasRequestInStatus = (pendingRequests || []).some((r) => getEffectiveRequestStatus(r) === status);
+                          if (status === 'approved') {
+                            return hasRequestInStatus || approvedExperienceRequestsForDisplay.length > 0;
+                          }
+                          return hasRequestInStatus;
+                        });
+
+                        if (visibleStatuses.length === 0) {
+                          return (
+                            <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/20 rounded-xl p-12 text-center">
+                              <p className="text-cyan-100 text-lg">No requests yet</p>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="space-y-4">
+                            {visibleStatuses.map((status) => {
+                              const statusReqs = (pendingRequests || []).filter((r) => getEffectiveRequestStatus(r) === status);
+                              const statusReqsWithKind = statusReqs.map((req) => ({
+                                ...req,
+                                __kind: getRequestKind(req)
+                              }));
+
+                              const combinedStatusReqs = status === 'approved'
+                                ? dedupeByKey(
+                                  [...statusReqsWithKind, ...approvedExperienceRequestsForDisplay],
+                                  (item) => [
+                                    item.__kind || getRequestKind(item),
+                                    normalizeKeyPart(item.title || item.position),
+                                    normalizeKeyPart(item.issuer || item.organization || item.company),
+                                    normalizeDateKeyPart(item.issue_date || item.verified_at || item.start_date || item.startDate || item.created_at),
+                                  ].join('|')
+                                )
+                                : statusReqsWithKind;
+
+                              return (
+                                <div key={status} className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/30 rounded-xl p-6">
+                                  <h3 className="text-lg font-bold text-white mb-4">{getStatusLabel(status)} ({combinedStatusReqs.length})</h3>
+                                  <div className={`space-y-3 pr-1 ${combinedStatusReqs.length > 3 ? 'max-h-80 overflow-y-auto' : ''}`}>
+                                    {combinedStatusReqs.map((req) => (
+                                      <motion.div
+                                        key={req.id || `${normalizeKeyPart(req.title || req.position)}-${normalizeKeyPart(req.issuer || req.organization || req.company)}`}
+                                        className={`p-4 rounded-lg border ${getStatusBadgeClass(status)} bg-opacity-20`}
+                                      >
+                                        <div className="flex justify-between items-start">
+                                          <div className="flex-1">
+                                            <h4 className="font-semibold text-white">{req.title || req.position || 'Request'}</h4>
+                                            <p className="text-sm text-cyan-100 mt-1">{req.issuer || req.organization || req.company || req.institutionName || req.institution_name || 'Organization'}</p>
+                                          </div>
+                                          <div className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadgeClass(status)}`}>
+                                            {getStatusLabel(status)}
+                                          </div>
                                         </div>
-                                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusBadgeClass(status)}`}>
-                                          {getStatusLabel(status)}
-                                        </div>
-                                      </div>
-                                    </motion.div>
-                                  ))}
+                                      </motion.div>
+                                    ))}
+                                  </div>
                                 </div>
-                              </div>
-                            ) : null;
-                          })}
-                        </div>
-                      ) : (
-                        <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/20 rounded-xl p-12 text-center">
-                          <p className="text-cyan-100 text-lg">No requests yet</p>
-                        </div>
-                      )}
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
                     </motion.div>
                   )}
 
@@ -713,11 +816,9 @@ function StudentDashboard({ onAuthError }) {
                 transition={{ delay: 0.3 }}
                 className="lg:col-span-2 space-y-6"
               >
-                {/* Student Search - Moved to Top */}
-                <div className="hidden lg:block">
-                  <div className="bg-cyan-950/30 backdrop-blur-md border border-cyan-500/30 rounded-xl p-4">
-                    <StudentSearch onStudentSelect={(s) => setSelectedStudent(s)} />
-                  </div>
+                {/* Notifications */}
+                <div>
+                  <NotificationPanel notifications={notifications} />
                 </div>
 
                 {/* Quick Info / Tips */}
@@ -729,11 +830,6 @@ function StudentDashboard({ onAuthError }) {
                     <p>• Share your TrueCred ID with institutions</p>
                     <p>• Build your verifiable portfolio</p>
                   </div>
-                </div>
-
-                {/* Notifications */}
-                <div>
-                  <NotificationPanel notifications={notifications} />
                 </div>
               </motion.div>
             </div>

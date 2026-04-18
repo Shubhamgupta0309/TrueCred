@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, PlusCircle, Check, AlertCircle, X, Building, School, Briefcase, ChevronDown } from 'lucide-react';
+import { Upload, PlusCircle, Check, AlertCircle, X, ChevronDown } from 'lucide-react';
 import axios from 'axios';
 import { api, organizationService } from '../../services/api';
 import { isAuthenticated } from '../../utils/tokenUtils';
 
 export default function ActionButtons({ onAuthError, onSuccess }) {
+  const today = new Date().toISOString().split('T')[0];
   const [uploading, setUploading] = useState(false);
   const [uploadingExp, setUploadingExp] = useState(false);
   const [uploadStatus, setUploadStatus] = useState(null); // 'success', 'error', or null
@@ -55,7 +56,6 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
   
   const [credentialInfo, setCredentialInfo] = useState({
     institution: '',
-    institutionType: 'college', // 'college' or 'company'
     title: '', // Custom title like "UI Test, Exam Form"
     credentialName: '', // Degree name like "Bachelor of Engineering (B.E.)"
     issuedDate: '',
@@ -203,8 +203,10 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     if (!file) return;
 
     // Allow PDF and image uploads so OCR can run reliably against templates.
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = ['application/pdf', 'application/x-pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    const fileName = (file.name || '').toLowerCase();
+    const hasAllowedExtension = ['.pdf', '.png', '.jpg', '.jpeg'].some((ext) => fileName.endsWith(ext));
+    if (!allowedTypes.includes(file.type) && !hasAllowedExtension) {
       setUploadStatus('error');
       setStatusMessage('Only PDF, PNG, or JPG files are allowed.');
       return;
@@ -232,8 +234,10 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
     if (!file) return;
 
     // Allow PDF and common image uploads so the institution can verify screenshots too.
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
-    if (!allowedTypes.includes(file.type)) {
+    const allowedTypes = ['application/pdf', 'application/x-pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    const fileName = (file.name || '').toLowerCase();
+    const hasAllowedExtension = ['.pdf', '.png', '.jpg', '.jpeg'].some((ext) => fileName.endsWith(ext));
+    if (!allowedTypes.includes(file.type) && !hasAllowedExtension) {
       setExpUploadStatus('error');
       setExpStatusMessage('Only PDF, PNG, or JPG files are allowed.');
       return;
@@ -313,7 +317,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       uploadedAt: new Date().toISOString(),
       description: 'Credential document upload',
       institution: credentialInfo.institution,
-      institutionType: credentialInfo.institutionType,
+      institutionType: 'college',
       title: credentialInfo.title, // Custom title
       credentialName: credentialInfo.credentialName, // Degree name
       issuedDate: credentialInfo.issuedDate,
@@ -349,7 +353,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
         issue_date: credentialInfo.issuedDate || null,
         metadata: {
           institution_id: credentialInfo.institution_id || null,
-          institutionType: credentialInfo.institutionType,
+          institutionType: 'college',
           credentialName: credentialInfo.credentialName, // Keep degree name in metadata
           uploadedAt: new Date().toISOString(),
           source: 'student_request',
@@ -439,7 +443,6 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
       setSelectedFile(null);
       setCredentialInfo({
         institution: '',
-        institutionType: 'college',
         title: '',
         credentialName: '',
         issuedDate: '',
@@ -648,36 +651,9 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
             <div className="p-4">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex gap-2 mb-4">
-                    <button
-                      type="button"
-                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border ${
-                        credentialInfo.institutionType === 'college' 
-                          ? 'bg-cyan-900/60 border-cyan-400 text-cyan-100' 
-                          : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-100'
-                      }`}
-                      onClick={() => setCredentialInfo(prev => ({ ...prev, institutionType: 'college' }))}
-                    >
-                      <School size={20} />
-                      <span>College/University</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={`flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border ${
-                        credentialInfo.institutionType === 'company' 
-                          ? 'bg-cyan-900/60 border-cyan-400 text-cyan-100' 
-                          : 'bg-cyan-950/30 border-cyan-500/30 text-cyan-100'
-                      }`}
-                      onClick={() => setCredentialInfo(prev => ({ ...prev, institutionType: 'company' }))}
-                    >
-                      <Building size={20} />
-                      <span>Company/Organization</span>
-                    </button>
-                  </div>
-                  
                   <div>
                     <label className="block text-sm font-medium text-cyan-200 mb-1">
-                      {credentialInfo.institutionType === 'college' ? 'College/University Name' : 'Company/Organization Name'} 
+                      College/University Name
                       <span className="text-xs text-cyan-400 ml-1">(click to see options)</span>
                     </label>
                     <div className="relative">
@@ -693,7 +669,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                             // Show dropdown on click regardless of whether there's text
                             setCollegeSearchText(''); // Set to empty string to show dropdown
                           }}
-                          placeholder={credentialInfo.institutionType === 'college' ? 'Search or select your institution...' : 'Search or select your organization...'}
+                          placeholder="Search or select your institution..."
                           className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                           required
                         />
@@ -720,7 +696,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                             <div className="p-2 text-center text-cyan-300/70">Loading institutions...</div>
                           ) : (
                             <>
-                              {(credentialInfo.institutionType === 'college' ? colleges : companies)
+                              {colleges
                                 .filter(item => 
                                   !collegeSearchText || collegeSearchText.trim() === '' || 
                                   (item.fullName || item.name).toLowerCase().includes(collegeSearchText.toLowerCase())
@@ -730,18 +706,14 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                                     key={item.id}
                                     className="p-2 hover:bg-cyan-900/40 cursor-pointer text-cyan-100"
                                     onClick={() => {
-                                      if (credentialInfo.institutionType === 'college') {
-                                        handleCollegeSelect(item);
-                                      } else {
-                                        handleCollegeSelect(item); // Reusing the same function for both types
-                                      }
+                                      handleCollegeSelect(item);
                                     }}
                                   >
                                     {item.fullName || item.name}
                                   </div>
                                 ))
                               }
-                              {(credentialInfo.institutionType === 'college' ? colleges : companies).filter(item => 
+                              {colleges.filter(item => 
                                 !collegeSearchText || collegeSearchText.trim() === '' || 
                                 (item.fullName || item.name).toLowerCase().includes(collegeSearchText.toLowerCase())
                               ).length === 0 && (
@@ -820,6 +792,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       name="issuedDate"
                       value={credentialInfo.issuedDate}
                       onChange={handleCredentialInfoChange}
+                      max={today}
                       className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
@@ -947,6 +920,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                       name="startDate"
                       value={experienceInfo.startDate}
                       onChange={handleExperienceInfoChange}
+                      max={today}
                       className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                     />
                   </div>
@@ -975,6 +949,7 @@ export default function ActionButtons({ onAuthError, onSuccess }) {
                         name="endDate"
                         value={experienceInfo.endDate}
                         onChange={handleExperienceInfoChange}
+                        max={today}
                         className="w-full p-2 border border-cyan-500/30 rounded-md bg-slate-900 text-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                       />
                     </div>

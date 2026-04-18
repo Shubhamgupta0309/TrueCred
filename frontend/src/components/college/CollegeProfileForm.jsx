@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Save, Building, Map, Phone, Mail, Globe, AlertCircle, CheckCircle } from 'lucide-react';
-import { api, collegeService } from '../../services/api';
+import { collegeService } from '../../services/api';
 
 const CollegeProfileForm = ({ user, onUpdate }) => {
   const [formData, setFormData] = useState({
@@ -143,27 +143,6 @@ const CollegeProfileForm = ({ user, onUpdate }) => {
               className="px-4 py-2 bg-cyan-900/40 text-cyan-200 rounded-lg hover:bg-cyan-900/60 transition-colors"
             >
               Edit Details
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                setLoading(true);
-                try {
-                  const testProfile = { ...formData, name: formData.name || 'Test College' };
-                  console.log('Testing profile update with data:', testProfile);
-                  const response = await api.post('/college/profile', testProfile);
-                  console.log('Test profile update response:', response.data);
-                  alert('Profile update test succeeded!');
-                } catch (err) {
-                  console.error('Test profile update failed:', err);
-                  alert(`Test failed: ${err.message || 'Unknown error'}`);
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              className="px-4 py-2 bg-cyan-900/40 text-cyan-200 rounded-lg hover:bg-cyan-900/60 transition-colors"
-            >
-              Test Update
             </button>
           </div>
         )}

@@ -15,6 +15,31 @@ export const api = axios.create({
 let isRefreshing = false;
 let refreshSubscribers = [];
 
+const isDataChangingMethod = (method) => {
+  const normalizedMethod = (method || '').toLowerCase();
+  return ['post', 'put', 'patch', 'delete'].includes(normalizedMethod);
+};
+
+const shouldBroadcastDataChange = (config) => {
+  if (!config || !isDataChangingMethod(config.method)) {
+    return false;
+  }
+
+  const url = (config.url || '').toLowerCase();
+  // Avoid refresh loops or unnecessary churn for auth token lifecycle endpoints.
+  if (url.includes('/api/auth/refresh') || url.includes('/api/auth/logout')) {
+    return false;
+  }
+
+  return true;
+};
+
+const broadcastDataChange = (config) => {
+  if (shouldBroadcastDataChange(config)) {
+    window.dispatchEvent(new CustomEvent('truecred:data-changed'));
+  }
+};
+
 // Function to push callbacks to array
 const subscribeTokenRefresh = (callback) => {
   refreshSubscribers.push(callback);
@@ -43,6 +68,7 @@ api.interceptors.request.use(
 // Response interceptor for handling token expiration
 api.interceptors.response.use(
   (response) => {
+    broadcastDataChange(response.config);
     return response;
   },
   async (error) => {
@@ -163,6 +189,16 @@ api.interceptors.response.use(
   }
 );
 
+// Some screens use axios directly instead of the shared api instance.
+// Add a lightweight global interceptor so those mutations also trigger refresh.
+axios.interceptors.response.use(
+  (response) => {
+    broadcastDataChange(response.config);
+    return response;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Auth services
 export const authService = {
   login: (credentials) => api.post('/api/auth/login', credentials),
@@ -195,8 +231,10 @@ export const collegeService = {
   // Only keep endpoints that are implemented in backend
   // Remove unused or non-existent endpoints
   getPendingRequests: () => api.get('/api/college/pending-requests'),
+  getVerificationHistory: () => api.get('/api/college/verification-history'),
+  deleteVerificationHistoryItem: (requestId) => api.delete(`/api/college/verification-history/${requestId}`),
   approveRequest: (requestId) => api.post(`/api/credentials/${requestId}/approve`),
-  rejectRequest: (requestId, reason) => api.post(`/api/credentials/${requestId}/reject`, { reason }),
+  rejectRequest: (requestId) => api.post(`/api/credentials/${requestId}/reject`, {}),
   updateProfile: (profileData) => api.post('/api/college/profile', profileData),
   getProfile: () => api.get('/api/college/profile'),
 };
@@ -205,8 +243,9 @@ export const collegeService = {
 export const companyService = {
   getPendingExperienceRequests: () => api.get('/api/experiences/pending'),
   approveExperienceRequest: (requestId) => api.post(`/api/experiences/${requestId}/approve`),
-  rejectExperienceRequest: (requestId, reason) => api.post(`/api/experiences/${requestId}/reject`, { reason }),
+  rejectExperienceRequest: (requestId) => api.post(`/api/experiences/${requestId}/reject`, {}),
   getExperienceHistory: () => api.get('/api/experiences/history'),
+  deleteExperienceHistoryItem: (experienceId) => api.delete(`/api/experiences/history/${experienceId}`),
   updateProfile: (profileData) => api.post('/api/company/profile', profileData),
   getProfile: () => api.get('/api/company/profile'),
 };

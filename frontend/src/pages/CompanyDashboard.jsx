@@ -3,10 +3,10 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import CompanyDashboardHeader from '../components/company/CompanyDashboardHeader';
-import SearchFilterPanel from '../components/college/SearchFilterPanel'; // Reusing for now
 import PendingExperienceRequests from '../components/company/PendingExperienceRequests';
 import ExperienceHistory from '../components/company/ExperienceHistory';
 import CompanyProfileForm from '../components/company/CompanyProfileForm';
+import CredentialIssuanceContainer from '../components/CredentialIssuanceContainer';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 import TemplateManager from '../components/TemplateManager';
 import { companyService, notificationService } from '../services/api';
@@ -46,7 +46,17 @@ export default function CompanyDashboard() {
         ]);
 
         if (pendingResp.data && pendingResp.data.success) {
-          setPendingRequests(pendingResp.data.data || pendingResp.data.requests || []);
+          const rawPending = pendingResp.data.data || pendingResp.data.requests || [];
+          const mappedPending = rawPending.map((req) => ({
+            ...req,
+            studentTruecredId:
+              req.studentTruecredId ||
+              req.student_truecred_id ||
+              req.student?.truecred_id ||
+              req.student?.truecredId ||
+              '',
+          }));
+          setPendingRequests(mappedPending);
         }
 
         if (historyResp.data && historyResp.data.success) {
@@ -67,13 +77,53 @@ export default function CompanyDashboard() {
     fetchData();
   }, []);
 
-  const handleAction = async (requestId, newStatus, reason = null) => {
+  // Auto-refresh data every 5 seconds to keep notifications and stats updated
+  React.useEffect(() => {
+    const interval = setInterval(async () => {
+      console.log('Auto-refreshing company dashboard data...');
+      try {
+        const [pendingResp, historyResp, notifResp] = await Promise.all([
+          companyService.getPendingExperienceRequests(),
+          companyService.getExperienceHistory(),
+          notificationService.getNotifications()
+        ]);
+
+        if (pendingResp.data && pendingResp.data.success) {
+          const rawPending = pendingResp.data.data || pendingResp.data.requests || [];
+          const mappedPending = rawPending.map((req) => ({
+            ...req,
+            studentTruecredId:
+              req.studentTruecredId ||
+              req.student_truecred_id ||
+              req.student?.truecred_id ||
+              req.student?.truecredId ||
+              '',
+          }));
+          setPendingRequests(mappedPending);
+        }
+
+        if (historyResp.data && historyResp.data.success) {
+          setHistory(historyResp.data.data || historyResp.data.history || []);
+        }
+
+        if (notifResp.data && notifResp.data.success) {
+          setNotifications(notifResp.data.data.notifications || notifResp.data.notifications || []);
+        }
+      } catch (e) {
+        console.error('Error during company dashboard auto-refresh', e);
+      }
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleAction = async (requestId, newStatus) => {
     try {
       let response;
       if (newStatus === 'approved' || newStatus === 'Approved') {
         response = await companyService.approveExperienceRequest(requestId);
       } else if (newStatus === 'rejected' || newStatus === 'Rejected') {
-        response = await companyService.rejectExperienceRequest(requestId, reason || 'No reason provided');
+        response = await companyService.rejectExperienceRequest(requestId);
       }
       
       if (response && response.data && response.data.success) {
@@ -115,6 +165,17 @@ export default function CompanyDashboard() {
   const handleLogout = async () => {
     await logout();
     navigate('/auth');
+  };
+
+  const handleDeleteHistoryItem = async (historyId) => {
+    try {
+      const response = await companyService.deleteExperienceHistoryItem(historyId);
+      if (response?.data?.success) {
+        setHistory((prev) => prev.filter((item) => item.id !== historyId));
+      }
+    } catch (error) {
+      console.error('Failed to delete experience history item:', error);
+    }
   };
 
   const handleFocusProfileForm = () => {
@@ -176,9 +237,10 @@ export default function CompanyDashboard() {
             <div className="flex border-b border-cyan-500/20">
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'intro' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('intro')}>Intro</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'requests' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('requests')}>Pending Requests</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'issue' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('issue')}>Issue Credentials</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'history' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('history')}>History</button>
               <button className={`py-3 px-6 focus:outline-none ${activeTab === 'templates' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('templates')}>Certificate Templates</button>
-              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('profile')}>Company Profile</button>
+              <button className={`py-3 px-6 focus:outline-none ${activeTab === 'profile' ? 'border-b-2 border-cyan-400 text-cyan-300' : 'text-cyan-200/70 hover:text-cyan-300'}`} onClick={() => setActiveTab('profile')}>Profile</button>
             </div>
           </div>
 
@@ -187,10 +249,10 @@ export default function CompanyDashboard() {
               <div className="lg:col-span-2 space-y-6">
                 <motion.div variants={itemVariants} className="bg-cyan-950/30 rounded-2xl shadow-sm border border-cyan-500/30 p-6">
                   <p className="text-xs uppercase tracking-[0.18em] text-cyan-300 font-semibold">TrueCred Startup Workspace</p>
-                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-cyan-100">Review Faster. Verify Smarter. Build Trust at Scale.</h2>
+                  <h2 className="mt-2 text-2xl md:text-3xl font-bold text-cyan-100">Institution Verification Command Center</h2>
                   <p className="mt-3 text-cyan-200 leading-relaxed">
-                    This dashboard is your operations cockpit for company-side verification. Triage pending experience requests,
-                    complete approvals with clear evidence, and maintain a consistent verification trail for every candidate.
+                    Manage credential approvals, keep audit-ready verification history, and publish trusted templates so
+                    student submissions can be evaluated with confidence and speed.
                   </p>
                 </motion.div>
                 <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -213,9 +275,6 @@ export default function CompanyDashboard() {
               {/* Main Column */}
               <div className="lg:col-span-2 space-y-8">
                 <motion.div variants={itemVariants}>
-                  <SearchFilterPanel />
-                </motion.div>
-                <motion.div variants={itemVariants}>
                   <PendingExperienceRequests requests={pendingRequests} onAction={handleAction} />
                 </motion.div>
               </div>
@@ -223,8 +282,16 @@ export default function CompanyDashboard() {
               {/* Right Column */}
               <div className="space-y-8">
                 <motion.div variants={itemVariants}>
-                  <ExperienceHistory history={history} />
+                  <NotificationPanel notifications={notifications} />
                 </motion.div>
+              </div>
+            </>
+          ) : activeTab === 'issue' ? (
+            <>
+              <div className="lg:col-span-2">
+                <CredentialIssuanceContainer />
+              </div>
+              <div className="space-y-8">
                 <motion.div variants={itemVariants}>
                   <NotificationPanel notifications={notifications} />
                 </motion.div>
@@ -234,7 +301,7 @@ export default function CompanyDashboard() {
             <>
               <div className="lg:col-span-2 space-y-8">
                 <motion.div variants={itemVariants}>
-                  <ExperienceHistory history={history} />
+                  <ExperienceHistory history={history} onDelete={handleDeleteHistoryItem} />
                 </motion.div>
               </div>
               <div className="space-y-8">
@@ -244,47 +311,27 @@ export default function CompanyDashboard() {
               </div>
             </>
           ) : activeTab === 'templates' ? (
-            <>
-              <div className="lg:col-span-2 space-y-8">
-                <motion.div variants={itemVariants}>
-                  <TemplateManager
-                    organizationId={user?.company_id || user?.organization_id || user?.id}
-                    organizationName={user?.organization || user?.company_name || 'Company'}
-                    organizationType="company"
-                  />
-                </motion.div>
-              </div>
-              <div className="space-y-8">
-                <motion.div variants={itemVariants}>
-                  <NotificationPanel notifications={notifications} />
-                </motion.div>
-              </div>
-            </>
+            <div className="lg:col-span-3 space-y-8">
+              <motion.div variants={itemVariants}>
+                <TemplateManager
+                  organizationId={user?.company_id || user?.organization_id || user?.id}
+                  organizationName={user?.organization || user?.company_name || 'Company'}
+                  organizationType="company"
+                />
+              </motion.div>
+            </div>
           ) : (
-            <>
-              <div className="lg:col-span-2">
-                <CompanyProfileForm user={userForHeader} onUpdate={() => {}} />
-                <div className="mt-6 flex justify-end gap-3">
-                  <button
-                    onClick={handleFocusProfileForm}
-                    className="px-4 py-2 rounded-lg border border-cyan-500/30 text-cyan-100 bg-cyan-950/20 hover:bg-cyan-900/30 transition-colors"
-                  >
-                    Edit Profile
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
+            <div className="lg:col-span-3">
+              <CompanyProfileForm user={userForHeader} onUpdate={() => {}} />
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors"
+                >
+                  Logout
+                </button>
               </div>
-              <div className="space-y-8">
-                <motion.div variants={itemVariants}>
-                  <NotificationPanel notifications={notifications} />
-                </motion.div>
-              </div>
-            </>
+            </div>
           )}
         </motion.div>
       </div>

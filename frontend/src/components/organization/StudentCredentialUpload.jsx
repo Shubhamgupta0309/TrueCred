@@ -4,6 +4,7 @@ import { Upload, FileText, X, Calendar, AlertCircle, CheckCircle } from 'lucide-
 import { api } from '../../services/api';
 
 export default function StudentCredentialUpload({ student, onComplete }) {
+  const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -80,6 +81,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
         try {
           // Build FormData for file upload. Our formData.document is a dataURL (data:...;base64,...)
           // Extract base64 and convert to Blob
+          const today = new Date().toISOString().split('T')[0];
           const dataUrl = formData.document;
           const parts = dataUrl.split(',');
           const meta = parts[0] || '';
@@ -124,6 +126,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
       }
 
       const payload = {
+                        max={today}
         ...formData,
         student_id: student.id,
         attachments
@@ -142,6 +145,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
             title: '',
             description: '',
             type: 'certificate',
+                        max={today}
             issue_date: new Date().toISOString().split('T')[0],
             expiry_date: '',
             document: null
@@ -280,6 +284,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
                   type="date"
                   value={formData.issue_date}
                   onChange={handleInputChange}
+                  max={today}
                   className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -298,6 +303,7 @@ export default function StudentCredentialUpload({ student, onComplete }) {
                   type="date"
                   value={formData.expiry_date}
                   onChange={handleInputChange}
+                  max={today}
                   className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />

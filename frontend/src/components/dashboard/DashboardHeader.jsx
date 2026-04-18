@@ -1,38 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, User, Mail, Shield, CheckCircle, XCircle } from 'lucide-react';
-import MetaMaskConnect from './../auth/MetaMaskConnect'; // Reusing the component
+import { LogOut, Mail } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 
 export default function DashboardHeader({ user }) {
   const navigate = useNavigate();
   const { logout } = useAuth();
-
-  // Mock blockchain status - in a real app, this would come from a blockchain context
-  const blockchainStatus = 'connected'; // 'connected', 'disconnected', 'connecting'
-
-  const getBlockchainStatusIcon = () => {
-    switch (blockchainStatus) {
-      case 'connected':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'connecting':
-        return <Shield className="w-4 h-4 text-yellow-600 animate-pulse" />;
-      default:
-        return <XCircle className="w-4 h-4 text-red-600" />;
-    }
-  };
-
-  const getBlockchainStatusText = () => {
-    switch (blockchainStatus) {
-      case 'connected':
-        return 'Blockchain Connected';
-      case 'connecting':
-        return 'Connecting...';
-      default:
-        return 'Blockchain Disconnected';
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -73,15 +47,6 @@ export default function DashboardHeader({ user }) {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-          {/* Blockchain Status */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-cyan-900/30 rounded-lg border border-cyan-500/20">
-            {getBlockchainStatusIcon()}
-            <span className="text-sm font-medium text-cyan-100">{getBlockchainStatusText()}</span>
-          </div>
-          
-          <div className="w-full sm:w-auto">
-            <MetaMaskConnect isDashboard={true} />
-          </div>
           <motion.button onClick={handleLogout}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

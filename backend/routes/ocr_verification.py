@@ -3,6 +3,7 @@ from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from services.template_matching_service import template_matching_service
 from models.credential_request import CredentialRequest
+from models.notification import Notification
 from models.user import User
 from utils.api_response import success_response, error_response
 import logging
@@ -120,8 +121,43 @@ def verify_credential_with_ocr():
                     elif verification_result['verification_status'] == 'rejected':
                         cred_request.status = 'rejected'
                     
+                    # Set issuer_id so college dashboard can find approved credentials
+                    cred_request.issuer_id = organization_id
+                    
                     cred_request.save()
                     request_update['updated'] = True
+
+                    # Notify the user about the OCR decision so the dashboard stays in sync.
+                    notification_map = {
+                        'verified': {
+                            'type': 'credential_approved',
+                            'title': 'Credential approved',
+                            'message': f"Your credential request '{cred_request.title}' was approved.",
+                        },
+                        'pending_review': {
+                            'type': 'credential_review',
+                            'title': 'Credential needs review',
+                            'message': f"Your credential request '{cred_request.title}' needs manual review.",
+                        },
+                        'rejected': {
+                            'type': 'credential_rejected',
+                            'title': 'Credential rejected',
+                            'message': f"Your credential request '{cred_request.title}' was rejected.",
+                        },
+                    }
+                    notification_payload = notification_map.get(verification_result['verification_status'])
+                    if notification_payload:
+                        Notification.create_notification(
+                            user_id=cred_request.user_id,
+                            notification_type=notification_payload['type'],
+                            title=notification_payload['title'],
+                            message=notification_payload['message'],
+                            data={
+                                'request_id': str(cred_request.id),
+                                'verification_status': verification_result['verification_status'],
+                                'confidence_score': verification_result.get('confidence_score', 0),
+                            }
+                        )
                     
                     logger.info(
                         f"Updated credential request {credential_request_id} with OCR results. "

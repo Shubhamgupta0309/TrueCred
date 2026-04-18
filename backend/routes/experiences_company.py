@@ -11,6 +11,7 @@ import logging
 
 from models.experience import Experience
 from models.user import User
+from models.notification import Notification
 from services.ipfs_service import IPFSService
 
 logger = logging.getLogger(__name__)
@@ -72,6 +73,7 @@ def pending_experiences():
             out.append({
                 'id': str(x.id),
                 'studentName': f"{student.first_name or ''} {student.last_name or ''}".strip() or student.username,
+                'studentTruecredId': getattr(student, 'truecred_id', None),
                 'experienceTitle': x.title,
                 'company': x.organization,
                 'duration': None,
@@ -91,6 +93,7 @@ def pending_experiences():
             out.append({
                 'id': str(x.id),
                 'studentName': 'Student',
+                'studentTruecredId': None,
                 'experienceTitle': x.title,
                 'company': x.organization,
                 'duration': None,
@@ -129,6 +132,7 @@ def experiences_history():
             out.append({
                 'id': str(x.id),
                 'studentName': f"{student.first_name or ''} {student.last_name or ''}".strip() or student.username,
+                'studentTruecredId': getattr(student, 'truecred_id', None),
                 'experienceTitle': x.title,
                 'status': 'verified' if x.is_verified else 'rejected',
                 'actionDate': _format_date(x.updated_at) or _format_date(datetime.utcnow()),
@@ -137,6 +141,7 @@ def experiences_history():
             out.append({
                 'id': str(x.id),
                 'studentName': 'Student',
+                'studentTruecredId': None,
                 'experienceTitle': x.title,
                 'status': 'verified' if x.is_verified else 'rejected',
                 'actionDate': _format_date(x.updated_at) or _format_date(datetime.utcnow()),
@@ -304,3 +309,34 @@ def reject_experience(experience_id):
     exp.pending_verification = False
     exp.save()
     return jsonify({'success': True, 'message': 'Experience request rejected'}), 200
+
+
+@company_exp_bp.route('/history/<experience_id>', methods=['DELETE'])
+@jwt_required()
+def delete_experience_history_item(experience_id):
+    company_user, error = _get_company_user()
+    if error:
+        payload, status = error
+        return jsonify(payload), status
+
+    try:
+        exp = Experience.objects.get(id=experience_id)
+    except DoesNotExist:
+        return jsonify({'success': False, 'message': 'Experience not found'}), 404
+
+    if company_user.organization and exp.organization != company_user.organization:
+        return jsonify({'success': False, 'message': 'Unauthorized for this experience record'}), 403
+
+    student_id = str(exp.user.id) if exp.user else None
+    exp.delete()
+
+    # Best-effort cleanup for related notifications.
+    try:
+        if student_id:
+            Notification.objects(user_id=student_id, data__experience_id=str(experience_id)).delete()
+    except Exception as e:
+        logger.warning('Failed cleaning notifications for deleted experience %s: %s', experience_id, e)
+
+    return jsonify({'success': True, 'message': 'Experience history item deleted'}), 200
+
+

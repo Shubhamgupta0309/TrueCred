@@ -43,9 +43,12 @@ const OCRVerification = ({
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-      if (!validTypes.includes(file.type)) {
-        setError('Please upload a PNG or JPG file');
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf'];
+      const fileName = (file.name || '').toLowerCase();
+      const hasValidExtension = ['.png', '.jpg', '.jpeg', '.pdf'].some((ext) => fileName.endsWith(ext));
+
+      if (!validTypes.includes(file.type) && !hasValidExtension) {
+        setError('Please upload a PNG, JPG, or PDF file');
         return;
       }
 
@@ -61,9 +64,13 @@ const OCRVerification = ({
       if (previewUrl) {
         URL.revokeObjectURL(previewUrl);
       }
-      
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+
+      if ((file.type || '').startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        setPreviewUrl(url);
+      } else {
+        setPreviewUrl(null);
+      }
     }
   };
 
@@ -171,7 +178,7 @@ const OCRVerification = ({
               <Input
                 id="certificate-file"
                 type="file"
-                accept=".png,.jpg,.jpeg"
+                accept=".png,.jpg,.jpeg,.pdf"
                 onChange={handleFileChange}
                 className="hidden"
               />
@@ -191,7 +198,7 @@ const OCRVerification = ({
                       Click to upload certificate
                     </p>
                     <p className="text-xs text-cyan-300/70">
-                      PNG or JPG (max 10MB)
+                      PNG, JPG, or PDF (max 10MB)
                     </p>
                   </div>
                 )}

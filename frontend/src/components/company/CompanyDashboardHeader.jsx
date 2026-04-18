@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LogOut, Briefcase } from 'lucide-react';
-import MetaMaskConnect from '../auth/MetaMaskConnect';
 import { useNavigate } from 'react-router-dom';
 export default function CompanyDashboardHeader({ user }) {
   const navigate = useNavigate();
@@ -30,9 +29,6 @@ export default function CompanyDashboardHeader({ user }) {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto">
-          <div className="w-full sm:w-auto">
-            <MetaMaskConnect />
-          </div>
           <motion.button onClick={() => navigate('/')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}

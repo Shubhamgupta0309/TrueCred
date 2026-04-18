@@ -138,7 +138,8 @@ class TemplateMatchingService:
             if not ocr_result['success']:
                 return {
                     'success': False,
-                    'error': 'OCR processing failed',
+                    'error': ocr_result.get('error') or 'OCR processing failed',
+                    'details': ocr_result.get('error') or 'OCR extraction returned no result',
                     'verification_status': 'failed'
                 }
             
@@ -443,8 +444,45 @@ class TemplateMatchingService:
         if not include_inactive:
             query['is_active'] = True
         
+        from models.credential_request import CredentialRequest
+
         templates = CertificateTemplate.objects(**query)
-        return [template.to_json() for template in templates]
+        template_items = []
+
+        for template in templates:
+            live_total_verifications = CredentialRequest.objects(
+                matched_template_id=str(template.id)
+            ).count()
+
+            live_auto_approved_count = CredentialRequest.objects(
+                matched_template_id=str(template.id),
+                verification_status='verified',
+                ocr_verified=True,
+                manual_review_required=False,
+                status='issued'
+            ).count()
+
+            template_json = template.to_json()
+            template_json.update({
+                'live_total_verifications': live_total_verifications,
+                'live_auto_approved_count': live_auto_approved_count,
+                'live_successful_matches': max(live_total_verifications - CredentialRequest.objects(
+                    matched_template_id=str(template.id),
+                    status='rejected'
+                ).count(), 0),
+                'live_failed_matches': CredentialRequest.objects(
+                    matched_template_id=str(template.id),
+                    status='rejected'
+                ).count(),
+                'live_success_rate': round(
+                    (live_auto_approved_count / live_total_verifications * 100)
+                    if live_total_verifications > 0 else 0,
+                    2
+                )
+            })
+            template_items.append(template_json)
+
+        return template_items
     
     def deactivate_template(self, template_id: str) -> bool:
         """

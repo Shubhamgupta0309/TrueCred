@@ -47,7 +47,7 @@ export default function MetaMaskConnect({ isDashboard = false }) {
         }
       } catch (err) {
         console.error('Error checking MetaMask connection:', err);
-      setError('Error connecting to MetaMask. Please ensure MetaMask is installed and unlocked. ' + (err?.message || ''));
+        // Passive check should not interrupt normal email/password auth flow.
       }
     };
 

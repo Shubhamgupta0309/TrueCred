@@ -9,6 +9,7 @@ from services.credential_service import CredentialService
 from models.credential import Credential
 from utils.api_response import success_response, error_response, not_found_response, validation_error_response
 import logging
+import re
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -432,11 +433,33 @@ def request_credential():
                 cr.save()
             else:
                 import requests
+                from services.ipfs_service import IPFSService
                 from services.template_matching_service import template_matching_service
 
-                file_resp = requests.get(attachment_uri, timeout=30)
+                normalized_attachment_uri = (attachment_uri or '').strip()
+                if normalized_attachment_uri.startswith('ipfs://'):
+                    normalized_attachment_uri = normalized_attachment_uri.replace('ipfs://', '', 1)
+                if normalized_attachment_uri.startswith('/ipfs/'):
+                    normalized_attachment_uri = normalized_attachment_uri.replace('/ipfs/', '', 1)
+
+                # If only CID/hash is provided, resolve to a gateway URL first.
+                if normalized_attachment_uri and '://' not in normalized_attachment_uri:
+                    cid_match = re.match(r'^[A-Za-z0-9]+$', normalized_attachment_uri)
+                    if cid_match:
+                        normalized_attachment_uri = IPFSService().get_gateway_url(normalized_attachment_uri)
+
+                if not normalized_attachment_uri:
+                    raise ValueError('Attachment URI is empty after normalization.')
+
+                file_resp = requests.get(normalized_attachment_uri, timeout=30)
                 if not file_resp.ok:
-                    raise ValueError(f'Could not fetch attachment for OCR: HTTP {file_resp.status_code}')
+                    raise ValueError(
+                        f'Could not fetch attachment for OCR: HTTP {file_resp.status_code} from {normalized_attachment_uri}'
+                    )
+
+                content_type = (file_resp.headers.get('Content-Type') or '').lower()
+                if 'text/html' in content_type and not (file_resp.content or b'').startswith(b'%PDF'):
+                    raise ValueError('Attachment URL returned HTML instead of a certificate document.')
 
                 verification_result = template_matching_service.verify_certificate_against_templates(
                     image_data=file_resp.content,
@@ -758,8 +781,21 @@ def approve_request(request_id):
         except Exception as e:
             logger.exception('Error while pinning attachments: %s', e)
 
-        # Mark request as issued and save
+        # Mark request as issued and set issuer_id from the approving user's organization
         cr.status = 'issued'
+        
+        # Set issuer_id so college dashboard can find approved credentials
+        try:
+            approving_user = User.objects(id=current_user_id).first()
+            if approving_user:
+                from models.organization_profile import OrganizationProfile
+                org_profile = OrganizationProfile.objects(user_id=str(current_user_id)).first()
+                if org_profile:
+                    cr.issuer_id = str(org_profile.id)
+                    logger.info(f"Set issuer_id to {cr.issuer_id} for credential request {request_id}")
+        except Exception as e:
+            logger.warning(f"Could not set issuer_id during approval: {e}")
+        
         cr.save()
 
         # Store issued credential hash on blockchain (call service even in dev to get mock values)
@@ -1116,6 +1152,19 @@ def reject_request(request_id):
             return not_found_response(resource_type='CredentialRequest', resource_id=request_id)
 
         cr.status = 'rejected'
+        
+        # Set issuer_id so college dashboard can find rejected credentials
+        try:
+            rejecting_user = User.objects(id=current_user_id).first()
+            if rejecting_user:
+                from models.organization_profile import OrganizationProfile
+                org_profile = OrganizationProfile.objects(user_id=str(current_user_id)).first()
+                if org_profile:
+                    cr.issuer_id = str(org_profile.id)
+                    logger.info(f"Set issuer_id to {cr.issuer_id} for rejected credential request {request_id}")
+        except Exception as e:
+            logger.warning(f"Could not set issuer_id during rejection: {e}")
+        
         cr.save()
 
         note_student = {

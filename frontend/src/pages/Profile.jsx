@@ -68,6 +68,7 @@ const Profile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [education, setEducation] = useState([ { ...emptyEdu } ]);
+  const today = new Date().toISOString().split('T')[0];
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -391,6 +392,7 @@ const Profile = () => {
                     type="date"
                     value={edu.start_date}
                     onChange={e => handleEduChange(idx, 'start_date', e.target.value)}
+                    max={today}
                     className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
                     required
                   />
@@ -417,6 +419,7 @@ const Profile = () => {
                       type="date"
                       value={edu.end_date}
                       onChange={e => handleEduChange(idx, 'end_date', e.target.value)}
+                      max={today}
                       className="w-full border border-cyan-500/30 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-slate-900 text-cyan-100"
                       required
                     />

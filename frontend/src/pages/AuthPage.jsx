@@ -38,6 +38,33 @@ export default function AuthPage() {
     { value: 'other', label: 'Other' }
   ];
 
+  const buildUsernameFromEmail = (email) => {
+    const localPart = String(email || '').split('@')[0].toLowerCase();
+    let username = localPart
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_+|_+$/g, '');
+
+    if (!username) {
+      username = 'user';
+    }
+
+    if (username.length < 3) {
+      username = `${username}${Math.floor(100 + Math.random() * 900)}`;
+    }
+
+    if (/^[0-9]+$/.test(username)) {
+      username = `user_${username}`;
+    }
+
+    return username;
+  };
+
+  const buildUsernameWithSuffix = (base) => {
+    const suffix = Math.floor(100 + Math.random() * 900);
+    return `${base}_${suffix}`;
+  };
+
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -115,8 +142,16 @@ export default function AuthPage() {
     // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Password must be at least 8 characters';
+    } else if (!/[a-z]/.test(formData.password)) {
+      newErrors.password = 'Password must include at least one lowercase letter';
+    } else if (!/[A-Z]/.test(formData.password)) {
+      newErrors.password = 'Password must include at least one uppercase letter';
+    } else if (!/[0-9]/.test(formData.password)) {
+      newErrors.password = 'Password must include at least one number';
+    } else if (!/[!@#$%^&*()\-_=+\[\]{}|;:,.<>?/~`]/.test(formData.password)) {
+      newErrors.password = 'Password must include at least one special character';
     }
 
     // Register-specific validations
@@ -199,27 +234,31 @@ export default function AuthPage() {
         }
       } else {
         // Handle registration with real API
-        // Generate username from email and make sure it only contains valid characters
-        const emailPrefix = formData.email.split('@')[0];
-        // Replace any non-alphanumeric characters (except underscore) with empty string
-        let sanitizedUsername = emailPrefix.replace(/[^a-zA-Z0-9_]/g, '');
-        
-        // If username would be empty after sanitization, use a default plus random number
-        if (!sanitizedUsername || sanitizedUsername.length < 3) {
-          const randomSuffix = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
-          sanitizedUsername = `user${randomSuffix}`;
-        }
-        
-        const userData = {
-          username: sanitizedUsername,
+        // Auto-generate username from email prefix (before @) with backend-safe normalization.
+        const baseUsername = buildUsernameFromEmail(formData.email);
+        const normalizedRole = ['student', 'college', 'company'].includes(formData.role)
+          ? formData.role
+          : 'user';
+
+        let usernameToTry = baseUsername;
+        let result = await register({
+          username: usernameToTry,
           email: formData.email,
           password: formData.password,
-          // No name collected on UI; provide a sensible default for backend
-          name: `User ${sanitizedUsername}`,
-          role: formData.role === 'other' ? formData.customRole : formData.role
-        };
-        
-        const result = await register(userData);
+          role: normalizedRole
+        });
+
+        // Retry automatically when username already exists.
+        const registrationErrorText = `${result?.error || ''} ${authError || ''}`.toLowerCase();
+        if (!result?.success && registrationErrorText.includes('username already exists')) {
+          usernameToTry = buildUsernameWithSuffix(baseUsername);
+          result = await register({
+            username: usernameToTry,
+            email: formData.email,
+            password: formData.password,
+            role: normalizedRole
+          });
+        }
         
         if (result.success) {
           // Check if email verification is required

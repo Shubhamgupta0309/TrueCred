@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 const CredentialIssuanceContainer = () => {
   const { user } = useAuth();
   // const { toast } = useToast();
+  const today = new Date().toISOString().split('T')[0];
   const [form, setForm] = useState({
     truecredId: '',
     credentialType: '',
@@ -266,7 +267,7 @@ const CredentialIssuanceContainer = () => {
                 <option value="badge">Badge</option>
                 <option value="award">Award</option>
                 <option value="license">License</option>
-                <option value="other">Other</option>
+                <option value="other">No type</option>
               </select>
             </div>
           </div>
@@ -292,6 +293,7 @@ const CredentialIssuanceContainer = () => {
                 type="date"
                 value={form.expiryDate}
                 onChange={handleChange}
+                max={today}
                 className="w-full border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded px-3 py-2"
               />
             </div>

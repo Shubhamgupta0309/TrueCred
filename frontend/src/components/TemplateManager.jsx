@@ -168,6 +168,34 @@ const TemplateManager = ({ organizationId, organizationName, organizationType })
                     <p className="text-xs text-cyan-300/70">Avg Confidence</p>
                   </div>
                 </div>
+
+                <div className="mt-6">
+                  <h4 className="font-medium mb-2">Verification History</h4>
+                  {!statistics.verification_history || statistics.verification_history.length === 0 ? (
+                    <p className="text-sm text-cyan-300/70">No verification history found for this template.</p>
+                  ) : (
+                    <div className="overflow-x-auto rounded-lg border border-cyan-500/20">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-900/80 text-cyan-200">
+                          <tr>
+                            <th className="px-3 py-2 text-left font-medium">Name</th>
+                            <th className="px-3 py-2 text-left font-medium">TrueCred ID</th>
+                            <th className="px-3 py-2 text-left font-medium">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {statistics.verification_history.map((item) => (
+                            <tr key={item.request_id} className="border-t border-cyan-500/10 bg-slate-950/40">
+                              <td className="px-3 py-2">{item.student_name || 'N/A'}</td>
+                              <td className="px-3 py-2">{item.student_truecred_id || 'N/A'}</td>
+                              <td className="px-3 py-2">{item.student_email || 'N/A'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

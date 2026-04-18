@@ -11,23 +11,17 @@ export default function PendingRequests({ requests = [], onAction }) {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedInstitution, setSelectedInstitution] = useState('');
   
   // Get unique institutions for filter dropdown
   const institutions = [...new Set(requests.map(req => req.institutionName || req.institution_name || req.issuer).filter(Boolean))];
   
-  // Filter requests based on search and institution
+  // Filter requests by institution
   const filteredRequests = requests.filter(req => {
-    const matchesSearch = !searchTerm || 
-      (req.title || req.credentialTitle || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (req.studentName || req.student_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (req.studentEmail || req.student_email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesInstitution = !selectedInstitution || 
       (req.institutionName || req.institution_name || req.issuer) === selectedInstitution;
     
-    return matchesSearch && matchesInstitution;
+    return matchesInstitution;
   });
 
   const handleViewDoc = async (req) => {
@@ -73,10 +67,9 @@ export default function PendingRequests({ requests = [], onAction }) {
 
   const handleReject = async (req) => {
     if (!req || !req.id) return;
-    const reason = window.prompt('Optional: enter rejection reason', '') || '';
     setProcessingId(req.id);
     try {
-      const resp = await collegeService.rejectRequest(req.id, reason);
+      const resp = await collegeService.rejectRequest(req.id);
       if (resp && resp.data) {
         success('Request rejected successfully!');
         onAction && onAction(req.id, 'Rejected');
@@ -146,21 +139,8 @@ export default function PendingRequests({ requests = [], onAction }) {
     <div className="bg-cyan-950/30 border border-cyan-500/30 rounded-xl shadow-md p-6">
       <h3 className="text-lg font-bold mb-4 text-cyan-100">Pending Requests</h3>
       
-      {/* Search and Filter Section */}
+      {/* Filter Section */}
       <div className="mb-4 space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-cyan-200 mb-1">
-            Search Requests
-          </label>
-          <input
-            type="text"
-            placeholder="Search by title, student name, or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-          />
-        </div>
-        
         <div>
           <label className="block text-sm font-medium text-cyan-200 mb-1">
             College/University Name (filter)
@@ -179,12 +159,11 @@ export default function PendingRequests({ requests = [], onAction }) {
           </select>
         </div>
         
-        {(searchTerm || selectedInstitution) && (
+        {selectedInstitution && (
           <div className="flex items-center gap-2 text-sm text-cyan-300/80">
             <span>Filtered: {filteredRequests.length} of {requests.length} requests</span>
             <button
               onClick={() => {
-                setSearchTerm('');
                 setSelectedInstitution('');
               }}
               className="text-blue-600 hover:text-blue-800 underline"
@@ -315,10 +294,9 @@ export default function PendingRequests({ requests = [], onAction }) {
         {filteredRequests.length === 0 && requests.length > 0 && (
             <div className="text-center py-8 text-cyan-300/70">
               <FileText className="w-10 h-10 mx-auto mb-2 text-cyan-300/60"/>
-                <p>No requests match your search criteria.</p>
+                <p>No requests match your selected filter.</p>
                 <button
                   onClick={() => {
-                    setSearchTerm('');
                     setSelectedInstitution('');
                   }}
                   className="text-blue-600 hover:text-blue-800 underline mt-2"

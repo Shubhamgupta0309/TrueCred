@@ -5,40 +5,44 @@ import { Briefcase, Edit, Eye, CheckCircle, Clock, XCircle } from 'lucide-react'
 export default function ExperienceList({ experiences }) {
   const [selectedExperience, setSelectedExperience] = useState(null);
 
-  // Filter to show only verified/approved experiences
-  const verifiedExperiences = experiences.filter(exp => {
-    const status = (exp.verification_status || exp.status || '').toLowerCase();
+  const getNormalizedStatus = (exp) => (exp.verification_status || exp.status || '').toLowerCase();
+
+  const isApprovedExperience = (exp) => {
+    const status = getNormalizedStatus(exp);
     return exp.is_verified === true || status === 'verified' || status === 'approved' || status === 'issued';
-  });
+  };
+
+  // Filter to show only verified/approved experiences
+  const verifiedExperiences = experiences.filter(isApprovedExperience);
 
   const getStatusIcon = (exp) => {
-    if (exp.is_verified) {
+    if (isApprovedExperience(exp)) {
       return <CheckCircle className="w-5 h-5 text-green-600" />;
     } else if (exp.pending_verification) {
       return <Clock className="w-5 h-5 text-yellow-600" />;
-    } else if (exp.verification_status === 'rejected') {
+    } else if (getNormalizedStatus(exp) === 'rejected') {
       return <XCircle className="w-5 h-5 text-red-600" />;
     }
     return null;
   };
 
   const getStatusText = (exp) => {
-    if (exp.is_verified) {
+    if (isApprovedExperience(exp)) {
       return 'Verified';
     } else if (exp.pending_verification) {
       return 'Pending Verification';
-    } else if (exp.verification_status === 'rejected') {
+    } else if (getNormalizedStatus(exp) === 'rejected') {
       return 'Rejected';
     }
     return 'Not Verified';
   };
 
   const getStatusColor = (exp) => {
-    if (exp.is_verified) {
+    if (isApprovedExperience(exp)) {
       return 'text-green-600 bg-green-100';
     } else if (exp.pending_verification) {
       return 'text-yellow-600 bg-yellow-100';
-    } else if (exp.verification_status === 'rejected') {
+    } else if (getNormalizedStatus(exp) === 'rejected') {
       return 'text-red-600 bg-red-100';
     }
     return 'text-gray-600 bg-gray-100';
@@ -50,7 +54,7 @@ export default function ExperienceList({ experiences }) {
         <Briefcase className="w-5 h-5 text-cyan-400" />
         My Experiences ({verifiedExperiences.length})
       </h3>
-      <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+      <div className={`space-y-4 pr-2 ${verifiedExperiences.length > 3 ? 'max-h-80 overflow-y-auto' : ''}`}>
         {verifiedExperiences.length === 0 ? (
           <div className="text-cyan-300/70 text-center py-8">
             <CheckCircle className="w-12 h-12 mx-auto mb-4 text-cyan-500/60" />
@@ -70,11 +74,11 @@ export default function ExperienceList({ experiences }) {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <CheckCircle className="w-5 h-5 text-green-600" />
+                    {getStatusIcon(exp) || <CheckCircle className="w-5 h-5 text-green-600" />}
                     <p className="font-semibold text-cyan-100">{exp.title}</p>
                   </div>
                   <p className="text-sm text-cyan-300/80">{exp.organization} &bull; {exp.type}</p>
-                  <p className="text-sm text-green-600 font-medium">Verified</p>
+                  <p className="text-sm text-green-600 font-medium">{getStatusText(exp)}</p>
                 </div>
                 <div className="flex items-center gap-2 mt-2 sm:mt-0">
                   <motion.button

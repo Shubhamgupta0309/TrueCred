@@ -5,6 +5,7 @@ import { api, organizationService } from '../../services/api';
 import { ChevronDown } from 'lucide-react';
 
 export default function ProfileCompletion({ onComplete, initialUser }) {
+  const today = new Date().toISOString().split('T')[0];
   const { user, updateUser } = useAuth();
   const dropdownRef = useRef(null);
 
@@ -477,12 +478,12 @@ export default function ProfileCompletion({ onComplete, initialUser }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="block text-cyan-200 mb-2" htmlFor="startDate">Start Date</label>
-                <input id="startDate" name="startDate" type="date" value={formData.currentEducation.startDate} onChange={handleEducationChange} className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400" />
+                <input id="startDate" name="startDate" type="date" value={formData.currentEducation.startDate} onChange={handleEducationChange} max={today} className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400" />
               </div>
 
               <div>
                 <label className="block text-cyan-200 mb-2" htmlFor="endDate">End Date</label>
-                <input id="endDate" name="endDate" type="date" value={formData.currentEducation.endDate} onChange={handleEducationChange} className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400 disabled:opacity-50" disabled={formData.currentEducation.current} />
+                <input id="endDate" name="endDate" type="date" value={formData.currentEducation.endDate} onChange={handleEducationChange} max={today} className="w-full px-4 py-2 border border-cyan-500/30 bg-slate-900 text-cyan-100 rounded-lg focus:outline-none focus:ring-0 focus:bg-slate-800 focus:border-cyan-400 disabled:opacity-50" disabled={formData.currentEducation.current} />
               </div>
             </div>
 

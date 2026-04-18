@@ -6,6 +6,7 @@ from services.ipfs_service import IPFSService
 from models.user import User
 from models.organization_profile import OrganizationProfile
 from models.certificate_template import CertificateTemplate
+from models.credential_request import CredentialRequest
 from utils.api_response import success_response, error_response
 import logging
 import hashlib
@@ -285,11 +286,64 @@ def deactivate_template(template_id):
 def get_template_statistics(template_id):
     """Get verification statistics for a template."""
     try:
-        from models.certificate_template import CertificateTemplate
-        
+        current_user_id = get_jwt_identity()
+
         template = CertificateTemplate.objects(id=template_id).first()
         if not template:
             return error_response('Template not found', 404)
+
+        # Ensure caller belongs to the same organization that owns this template.
+        user = User.objects(id=current_user_id).first()
+        if not user or user.role != template.organization_type:
+            return error_response('Unauthorized', 403)
+
+        user_id = str(user.id)
+        user_college_id = str(getattr(user, 'college_id', '')) if getattr(user, 'college_id', None) else ''
+        user_company_id = str(getattr(user, 'company_id', '')) if getattr(user, 'company_id', None) else ''
+        allowed_org_ids = {user_id}
+        if user_college_id:
+            allowed_org_ids.add(user_college_id)
+        if user_company_id:
+            allowed_org_ids.add(user_company_id)
+
+        profile = OrganizationProfile.objects(user_id=user_id).first()
+        if profile:
+            allowed_org_ids.add(str(profile.id))
+
+        if str(template.organization_id) not in allowed_org_ids:
+            return error_response('Unauthorized', 403)
+
+        recent_requests = list(
+            CredentialRequest.objects(matched_template_id=str(template.id))
+            .order_by('-updated_at', '-created_at')
+            .limit(50)
+        )
+
+        user_ids = list({req.user_id for req in recent_requests if getattr(req, 'user_id', None)})
+        users_by_id = {
+            str(u.id): u
+            for u in User.objects(id__in=user_ids)
+        } if user_ids else {}
+
+        verification_history = []
+        for req in recent_requests:
+            student = users_by_id.get(str(req.user_id))
+            full_name = ''
+            if student:
+                full_name = f"{(student.first_name or '').strip()} {(student.last_name or '').strip()}".strip()
+
+            verification_history.append({
+                'request_id': str(req.id),
+                'student_name': full_name or (student.username if student else 'Unknown Student'),
+                'student_truecred_id': student.truecred_id if student else None,
+                'student_email': student.email if student else None,
+                'title': req.title,
+                'status': req.status,
+                'verification_status': req.verification_status,
+                'confidence_score': req.confidence_score,
+                'created_at': req.created_at.isoformat() if req.created_at else None,
+                'updated_at': req.updated_at.isoformat() if req.updated_at else None,
+            })
         
         stats = {
             'template_id': str(template.id),
@@ -302,7 +356,8 @@ def get_template_statistics(template_id):
                 (template.successful_matches / template.total_verifications * 100)
                 if template.total_verifications > 0 else 0,
                 2
-            )
+            ),
+            'verification_history': verification_history
         }
         
         return success_response(stats)

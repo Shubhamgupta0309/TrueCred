@@ -3,8 +3,12 @@ College profile routes for managing college institution profiles.
 """
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from mongoengine.queryset.visitor import Q
 from models.user import User
 from models.organization_profile import OrganizationProfile
+from models.credential_request import CredentialRequest
+from models.credential import Credential
+from models.notification import Notification
 from datetime import datetime
 import logging
 
@@ -175,29 +179,33 @@ def get_pending_requests():
             logger.warning(f"Access denied - user role is {user.role}, not college: {current_user_id}")
             return jsonify({'success': False, 'message': 'Only college accounts can access pending requests'}), 403
 
-        # Get the organization profile for this college user
-        from models.organization_profile import OrganizationProfile
-        org_profile = OrganizationProfile.objects(user_id=str(current_user_id)).first()
-        
-        if not org_profile:
-            logger.warning(f"No organization profile found for college user: {current_user_id}")
-            return jsonify({'success': False, 'message': 'College profile not found'}), 404
-            
-        logger.info(f"Found organization profile: {org_profile.id} for user: {current_user_id}")
-        logger.info(f"Organization name: {org_profile.name}, Full name: {org_profile.fullName}")
+        # Build issuer matching criteria even when profile is missing.
+        # This keeps dashboard data visible for legacy accounts where profile isn't completed.
+        allowed_issuer_ids = {str(user.id)}
+        if getattr(user, 'college_id', None):
+            allowed_issuer_ids.add(str(user.college_id))
 
-        # Use MongoEngine instead of PyMongo for consistency
-        from models.credential_request import CredentialRequest
+        issuer_name_candidates = set()
+        for val in [getattr(user, 'username', None), getattr(user, 'email', None), getattr(user, 'organization', None)]:
+            if val and str(val).strip():
+                issuer_name_candidates.add(str(val).strip())
 
-        # Query using MongoEngine - issuer_id should match the organization profile ID, not user ID
-        logger.info(f"Querying for credential requests with issuer_id: {str(org_profile.id)}")
-        logger.info(f"Organization profile ID string: {str(org_profile.id)}")
-        logger.info(f"Organization profile ID repr: {repr(org_profile.id)}")
-        
+        org_profile = OrganizationProfile.objects(user_id=str(user.id)).first()
+        if org_profile:
+            allowed_issuer_ids.add(str(org_profile.id))
+            if org_profile.name:
+                issuer_name_candidates.add((org_profile.name or '').strip())
+            if org_profile.fullName:
+                issuer_name_candidates.add((org_profile.fullName or '').strip())
+
+        issuer_match_q = Q(issuer_id__in=list(allowed_issuer_ids))
+        for candidate in issuer_name_candidates:
+            if candidate:
+                issuer_match_q = issuer_match_q | Q(issuer__iexact=candidate)
+
         requests = CredentialRequest.objects(
-            issuer_id=str(org_profile.id),
-            status='pending'
-        ).order_by('-created_at')
+            issuer_match_q & Q(status__in=['pending', 'Pending'])
+        ).order_by('-updated_at', '-created_at')
         
         logger.info(f"Found {len(requests)} pending requests")
         for req in requests:
@@ -290,14 +298,33 @@ def get_verification_history():
             allowed_issuer_ids.add(str(user.college_id))
 
         profile = OrganizationProfile.objects(user_id=str(user.id)).first()
+        issuer_name_candidates = set()
+        for val in [getattr(user, 'username', None), getattr(user, 'email', None), getattr(user, 'organization', None)]:
+            if val and str(val).strip():
+                issuer_name_candidates.add(str(val).strip())
+
         if profile:
             allowed_issuer_ids.add(str(profile.id))
+            if profile.name:
+                issuer_name_candidates.add((profile.name or '').strip())
+            if profile.fullName:
+                issuer_name_candidates.add((profile.fullName or '').strip())
 
-        # History = non-pending requests handled by this issuer/college.
+        # History = all finalized or verified requests handled by this issuer/college.
+        # Includes legacy records where issuer_id may be empty but issuer text matches profile names.
+        issuer_match_q = Q(issuer_id__in=list(allowed_issuer_ids))
+        for candidate in issuer_name_candidates:
+            if candidate:
+                issuer_match_q = issuer_match_q | Q(issuer__iexact=candidate)
+
+        finalized_or_verified_q = (
+            Q(status__in=['issued', 'approved', 'rejected', 'verified']) |
+            Q(verification_status='verified')
+        )
+
         requests = CredentialRequest.objects(
-            issuer_id__in=list(allowed_issuer_ids),
-            status__in=['issued', 'approved', 'rejected']
-        ).order_by('-updated_at', '-created_at').limit(100)
+            issuer_match_q & finalized_or_verified_q
+        ).order_by('-updated_at', '-created_at').limit(200)
 
         history = []
         for req in requests:
@@ -310,13 +337,25 @@ def get_verification_history():
                 student_name = student.username if student else 'Unknown Student'
 
             action_dt = req.updated_at or req.created_at
+            display_status = (req.status or '').strip()
+            if not display_status and req.verification_status:
+                display_status = req.verification_status
+            if req.verification_status == 'verified' and display_status.lower() not in ['issued', 'approved', 'verified']:
+                display_status = 'verified'
+
             history.append({
                 'id': str(req.id),
                 'studentName': student_name,
+                'studentEmail': student.email if student else None,
+                'studentTruecredId': getattr(student, 'truecred_id', None) if student else None,
                 'credentialTitle': req.title,
-                'status': req.status.capitalize(),
+                'issuer': req.issuer,
+                'verification_status': req.verification_status,
+                'status': (display_status or 'verified').capitalize(),
                 'actionDate': action_dt.strftime('%b %d, %Y') if action_dt else None,
+                'created_at': req.created_at.isoformat() if req.created_at else None,
                 'updated_at': action_dt.isoformat() if action_dt else None,
+                'blockchain_tx_hash': getattr(req, 'blockchain_tx_hash', None),
             })
 
         return jsonify({'success': True, 'history': history}), 200
@@ -326,3 +365,90 @@ def get_verification_history():
             'success': False,
             'message': f'An error occurred: {str(e)}'
         }), 500
+
+
+@college_bp.route('/verification-history/<request_id>', methods=['DELETE'])
+@jwt_required()
+def delete_verification_history_item(request_id):
+    """
+    Delete a college verification-history item.
+    This removes the underlying request and any linked issued credential(s) so student view is updated too.
+    """
+    try:
+        current_user_id = get_jwt_identity()
+        user = User.objects(id=current_user_id).first()
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+
+        if user.role != 'college':
+            return jsonify({'success': False, 'message': 'Only college users can access this endpoint'}), 403
+
+        allowed_issuer_ids = {str(user.id)}
+        if getattr(user, 'college_id', None):
+            allowed_issuer_ids.add(str(user.college_id))
+
+        profile = OrganizationProfile.objects(user_id=str(user.id)).first()
+        issuer_name_candidates = set()
+        for val in [getattr(user, 'username', None), getattr(user, 'email', None), getattr(user, 'organization', None)]:
+            if val and str(val).strip():
+                issuer_name_candidates.add(str(val).strip())
+
+        if profile:
+            allowed_issuer_ids.add(str(profile.id))
+            if profile.name:
+                issuer_name_candidates.add((profile.name or '').strip())
+            if profile.fullName:
+                issuer_name_candidates.add((profile.fullName or '').strip())
+
+        issuer_match_q = Q(issuer_id__in=list(allowed_issuer_ids))
+        for candidate in issuer_name_candidates:
+            if candidate:
+                issuer_match_q = issuer_match_q | Q(issuer__iexact=candidate)
+
+        req = CredentialRequest.objects(Q(id=request_id) & issuer_match_q).first()
+        if not req:
+            return jsonify({'success': False, 'message': 'History item not found or access denied'}), 404
+
+        credential_ids_to_delete = set()
+
+        # Primary linkage: credential metadata contains request_id
+        student = User.objects(id=req.user_id).first()
+        if student:
+            for cred in Credential.objects(user=student, metadata__request_id=str(req.id)):
+                credential_ids_to_delete.add(str(cred.id))
+
+        # Secondary linkage via notifications that carry request_id -> credential_id mapping
+        for note in Notification.objects(data__request_id=str(req.id)):
+            try:
+                credential_id = (note.data or {}).get('credential_id')
+                if credential_id:
+                    credential_ids_to_delete.add(str(credential_id))
+            except Exception:
+                continue
+
+        # Legacy fallback: if request was issued, best-effort match by user/title/issuer
+        if not credential_ids_to_delete and student and str(req.status or '').lower() in ['issued', 'approved', 'verified']:
+            fallback_cred = Credential.objects(user=student, title=req.title, issuer=req.issuer).order_by('-created_at').first()
+            if fallback_cred:
+                credential_ids_to_delete.add(str(fallback_cred.id))
+
+        deleted_credentials = 0
+        if credential_ids_to_delete:
+            deleted_credentials = Credential.objects(id__in=list(credential_ids_to_delete)).delete()
+
+        # Remove notifications tied to this request or deleted credentials.
+        Notification.objects(data__request_id=str(req.id)).delete()
+        if credential_ids_to_delete:
+            Notification.objects(data__credential_id__in=list(credential_ids_to_delete)).delete()
+
+        req.delete()
+
+        return jsonify({
+            'success': True,
+            'message': 'History item deleted successfully',
+            'deleted_request_id': str(request_id),
+            'deleted_credentials': int(deleted_credentials)
+        }), 200
+    except Exception as e:
+        logger.exception(f'Error deleting verification history item {request_id}: {str(e)}')
+        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500

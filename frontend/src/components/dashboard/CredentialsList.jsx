@@ -9,6 +9,39 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
   const [verificationResults, setVerificationResults] = useState({});
   const [selectedCredential, setSelectedCredential] = useState(null);
 
+  const normalizeTypeLabel = (value) => {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw || raw === 'credential') return 'certificate';
+    return raw;
+  };
+
+  const buildDocUrl = (val) => {
+    if (!val) return null;
+    const s = String(val);
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    if (s.startsWith('ipfs://')) return `http://localhost:8080/ipfs/${s.replace('ipfs://', '')}`;
+    return `http://localhost:8080/ipfs/${s}`;
+  };
+
+  const getPrimaryDocumentUrl = (cred) => {
+    const candidates = [
+      cred.document_url,
+      cred.ipfs_hash,
+      cred.attachments?.[0]?.uri,
+      cred.attachments?.[0]?.url,
+      cred.attachments?.[0]?.document_url,
+      cred.attachments?.[0]?.hash,
+      cred.attachments?.[0]?.document_hash,
+    ];
+
+    for (const candidate of candidates) {
+      const resolved = buildDocUrl(candidate);
+      if (resolved) return resolved;
+    }
+
+    return null;
+  };
+
   // Filter to show only verified/approved credentials (including OCR-verified)
   const verifiedCredentials = credentials.filter(cred => {
     const status = (cred.status || cred.verification_status || '').toLowerCase();
@@ -65,7 +98,7 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
         <FileText className="w-5 h-5 text-cyan-400" />
         My Credentials ({verifiedCredentials.length})
       </h3>
-      <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
+      <div className={`space-y-4 pr-2 ${verifiedCredentials.length > 3 ? 'max-h-80 overflow-y-auto' : ''}`}>
         {verifiedCredentials.length === 0 ? (
           <div className="text-cyan-300/70 text-center py-8">
             <CheckCircle2 className="w-12 h-12 mx-auto mb-4 text-cyan-500/60" />
@@ -156,6 +189,14 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
               </div>
 
               <div className="space-y-4">
+                {(() => {
+                  const normalizedType = normalizeTypeLabel(selectedCredential.type);
+                  const primaryDocumentUrl = getPrimaryDocumentUrl(selectedCredential);
+                  const issuedAt = selectedCredential.issue_date || selectedCredential.date || selectedCredential.created_at;
+                  const verifiedAt = selectedCredential.verified_at || selectedCredential.updated_at || selectedCredential.created_at;
+
+                  return (
+                    <>
                 <div className="flex items-center gap-2">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${selectedCredential.verified ? 'text-green-300 bg-green-950/40' : 'text-cyan-200 bg-cyan-900/40'}`}>
                     {selectedCredential.verified ? 'Verified' : (selectedCredential.pending_verification ? 'Pending' : 'Not Verified')}
@@ -167,16 +208,16 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                     <h3 className="font-semibold text-cyan-200 mb-2">Basic Information</h3>
                     <div className="space-y-2 text-sm text-cyan-100">
                       <p><span className="font-medium text-cyan-200">Issuer:</span> {selectedCredential.issuer}</p>
-                      <p><span className="font-medium text-cyan-200">Type:</span> {selectedCredential.type || 'Not specified'}</p>
-                      <p><span className="font-medium text-cyan-200">Document URL:</span> {selectedCredential.document_url || selectedCredential.ipfs_hash || 'Not available'}</p>
+                      <p><span className="font-medium text-cyan-200">Type:</span> {normalizedType}</p>
+                      <p><span className="font-medium text-cyan-200">Document URL:</span> {primaryDocumentUrl || 'Not available'}</p>
                     </div>
                   </div>
 
                   <div>
                     <h3 className="font-semibold text-cyan-200 mb-2">Dates</h3>
                     <div className="space-y-2 text-sm text-cyan-100">
-                      <p><span className="font-medium text-cyan-200">Issued:</span> {selectedCredential.issue_date ? new Date(selectedCredential.issue_date).toLocaleDateString() : 'Unknown'}</p>
-                      <p><span className="font-medium text-cyan-200">Verified At:</span> {selectedCredential.verified_at ? new Date(selectedCredential.verified_at).toLocaleString() : 'N/A'}</p>
+                      <p><span className="font-medium text-cyan-200">Issued:</span> {issuedAt ? new Date(issuedAt).toLocaleDateString() : 'Unknown'}</p>
+                      <p><span className="font-medium text-cyan-200">Verified At:</span> {verifiedAt ? new Date(verifiedAt).toLocaleString() : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -206,15 +247,6 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                   <div className="space-y-2">
                     {
                       (() => {
-                        // helper to normalize/build URLs
-                        const buildDocUrl = (val) => {
-                          if (!val) return null;
-                          const s = String(val);
-                          if (s.startsWith('http://') || s.startsWith('https://')) return s;
-                          if (s.startsWith('ipfs://')) return `http://localhost:8080/ipfs/${s.replace('ipfs://','')}`;
-                          return `http://localhost:8080/ipfs/${s}`;
-                        };
-
                         // friendly filename extractor
                         const filenameFromUrl = (u) => {
                           try {
@@ -274,6 +306,9 @@ export default function CredentialsList({ credentials, onVerificationUpdate }) {
                     }
                   </div>
                 </div>
+                    </>
+                  );
+                })()}
 
               </div>
             </div>
